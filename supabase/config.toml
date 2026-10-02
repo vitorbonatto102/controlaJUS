@@ -1,0 +1,16 @@
+project_id = "controlajus"
+
+[auth]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+
+[auth.email.template.invite]
+subject = "Convite para acessar o ControlaJUS"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Recuperar acesso ao ControlaJUS"
+content_path = "./supabase/templates/recovery.html"
