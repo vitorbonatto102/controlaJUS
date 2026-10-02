@@ -39,6 +39,16 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <div><dt>Participação contratual estimada</dt><dd>{formatBRL(participationCents(totalCents, contract.commission_percentage) / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{contract.payment_method === "cash" ? "À vista" :
           contract.payment_method === "installments" ? "Parcelado" : "Não informada"}</dd></div>
+        {contract.payment_start_type === "condition" && <div><dt>Início dos pagamentos</dt>
+          <dd>{contract.payment_start_condition}</dd></div>}
+        {contract.last_installment_amount != null && <div><dt>Última parcela contratada</dt>
+          <dd>{formatBRL(contract.last_installment_amount)}</dd></div>}
+        {contract.has_additional_fee && <div><dt>Honorários adicionais eventuais</dt>
+          <dd>{contract.additional_fee_percentage == null ? "Percentual não informado" :
+            `${contract.additional_fee_percentage}%`} sobre {
+            contract.additional_fee_basis ?? "base não informada"} · {
+            contract.additional_fee_amount == null ? "valor ainda não informado" :
+              formatBRL(contract.additional_fee_amount)}</dd></div>}
       </dl></section>
       <section className="form-panel document-panel"><h2>Documento</h2>
         <p>{contract.contract_file_name ?? "Nenhum PDF anexado a este contrato."}</p>
@@ -50,7 +60,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
       <p className="eyebrow">CRONOGRAMA</p><h2>Parcelas e recebimentos</h2>
       <p>Pagamentos são lançados pela secretaria. Esta página é somente para consulta.</p>
     </div></div>
-      {rows.length === 0 ? <div className="empty-state"><p>Nenhuma parcela cadastrada.</p></div> :
+      {rows.length === 0 ? <div className="empty-state"><p>{contract.payment_start_type === "condition" ?
+        "Aguardando definição do primeiro vencimento." : "Nenhuma parcela cadastrada."}</p></div> :
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th>
         <th>Vencimento</th><th>Valor contratual</th><th>Valor pago</th><th>Diferença</th><th>Data do pagamento</th>
         <th>Participação estimada</th><th>Comissão efetiva</th><th>Status</th></tr></thead>

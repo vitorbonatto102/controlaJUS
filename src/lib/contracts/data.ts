@@ -5,6 +5,8 @@ import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 const contractSelect = `
   id, client_id, origin, contract_date, total_contract_value, payment_method,
   contract_file_path, contract_file_name,
+  payment_start_type, first_due_date, payment_start_condition, last_installment_amount,
+  has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
   clients (full_name, cpf),
   contract_financial_terms (commission_percentage),
   installments (
@@ -35,6 +37,13 @@ function normalize(raw: RawContract): ContractRecord {
     client_cpf: client.cpf, origin: raw.origin, contract_date: raw.contract_date,
     total_contract_value: raw.total_contract_value, payment_method: raw.payment_method,
     contract_file_path: raw.contract_file_path, contract_file_name: raw.contract_file_name,
+    payment_start_type: raw.payment_start_type, first_due_date: raw.first_due_date,
+    payment_start_condition: raw.payment_start_condition,
+    last_installment_amount: raw.last_installment_amount === null ? null : Number(raw.last_installment_amount),
+    has_additional_fee: raw.has_additional_fee,
+    additional_fee_percentage: raw.additional_fee_percentage === null ? null : Number(raw.additional_fee_percentage),
+    additional_fee_basis: raw.additional_fee_basis,
+    additional_fee_amount: raw.additional_fee_amount === null ? null : Number(raw.additional_fee_amount),
     commission_percentage: Number(terms.commission_percentage),
     installments: raw.installments.map((item) => ({
       id: item.id, installment_number: item.installment_number, kind: item.kind,

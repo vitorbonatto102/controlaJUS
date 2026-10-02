@@ -11,16 +11,17 @@ src/app/
   definir-senha/             senha criada pela pessoa convidada
   advogada/                 contratos, indicadores, fechamentos e inadimplência
     notificacoes/            central de avisos e leitura
-    novo-contrato/           cadastro e PDF
+    novo-contrato/           importação de PDF e cadastro manual
     contratos/[id]/          detalhe e PDF temporário
   secretaria/                operação, clientes, pagamentos e cobranças
   gestor/                    painel, fechamento, repasses e correções
   administracao/             convites e gestão de usuários
   admin/users/               entrada alternativa para administração
+  api/contracts/extract/     leitura temporária do PDF no servidor
 src/components/              interface reutilizável
 src/lib/
   auth/                      perfil e controle de função
-  contracts/                 CPF, cronograma, centavos e indicadores
+  contracts/                 CPF, parser de PDF, cronograma, centavos e indicadores
   secretary/                 consultas e status operacionais
   manager/                   consolidação e filtros do gestor
   finance/                   fechamentos, itens, repasses, ajustes e auditoria
@@ -34,15 +35,17 @@ tests/                       regras e integração SQL via PGlite
 
 1. Instale Node.js 22 e rode `npm ci`.
 2. Crie o projeto Supabase. Copie `.env.example` para `.env.local` e preencha as três variáveis. `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` podem chegar ao navegador; `SUPABASE_SECRET_KEY` é a **secret key de servidor** do mesmo projeto e nunca deve ter prefixo `NEXT_PUBLIC_`.
-3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para atualizar um projeto que já estava na etapa 3, aplique apenas `20261002000100_closings_management.sql` e depois `20261002000200_payment_integrity.sql`. O build do Next.js não aplica SQL automaticamente.
+3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Em um projeto que já possui `20261002000200_payment_integrity.sql`, aplique somente `20261002000300_contract_import.sql` antes de publicar o código desta etapa. O build do Next.js não aplica SQL automaticamente.
 4. Em **Authentication → Providers → Email**, mantenha Email habilitado e desative cadastro público (**Allow new users to sign up**). Desative login anônimo. `supabase/config.toml` faz isso no ambiente local da CLI; no projeto hospedado, configure pelo Dashboard.
 5. Em **Authentication → URL Configuration**, informe a Site URL correta (por exemplo, `http://localhost:3001` durante desenvolvimento e a URL da Vercel em produção). Em **Email Templates**, copie [invite.html](supabase/templates/invite.html) para **Invite user** e [recovery.html](supabase/templates/recovery.html) para **Reset password**. Os links abrem páginas com botão de confirmação, evitando consumo automático do token por verificadores de e-mail. Configure SMTP adequado para uso real.
-6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público.
+6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público. A importação usa esse bucket temporariamente porque a Vercel limita o corpo de uma função a 4,5 MB; o arquivo de análise é removido antes da confirmação. O PDF definitivo só é enviado na confirmação. Se a conexão cair imediatamente após o upload, um arquivo não vinculado pode permanecer; faça a limpeza pela API de Storage, nunca apagando diretamente `storage.objects`.
 7. Rode `npm run dev` e acesse `/login`. No Windows, se Node emitir `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, use `npm run dev:system-ca` para confiar nos certificados do Windows.
 
 ### Se uma migration acusar objeto já existente
 
 Cada arquivo de `supabase/migrations` foi feito para ser aplicado **uma vez**, na ordem. O erro `function "revise_manager_payment" already exists with same argument types` aparece ao executar novamente a criação dessa função em `20261002000100_closings_management.sql`. A migration `20261002000200_payment_integrity.sql` atualiza a função com `CREATE OR REPLACE`; não execute o trecho antigo outra vez.
+
+`20261002000300_contract_import.sql` usa transação e tolera reexecução sem recriar objetos; ainda assim, aplique-o somente depois de confirmar que as migrations anteriores estão completas. Se houver erro, não publique o novo código até conferir o estado do banco.
 
 Antes de repetir qualquer SQL, execute [check_management_migrations.sql](supabase/diagnostics/check_management_migrations.sql) no SQL Editor. Ele apenas consulta os objetos existentes. Se todos os 11 itens de `20261002000100` estiverem presentes e nenhum dos 9 itens de `20261002000200` estiver presente, aplique somente a segunda migration. Se ambas estiverem completas, não reaplique nenhuma. Se houver itens ausentes em uma migration parcialmente aplicada, guarde o resultado e o primeiro erro completo para preparar uma correção específica; não use `DROP FUNCTION`, `DROP TABLE` ou `CREATE IF NOT EXISTS` às cegas, pois isso pode ocultar diferenças de esquema e afetar RLS ou dados. O SQL Editor não registra automaticamente as migrations no histórico da CLI; mantenha o mesmo método até reconciliar esse histórico.
 
@@ -63,6 +66,8 @@ Confirme que exatamente uma linha mudou. Essa etapa inicial usa o SQL Editor com
 ## Regras financeiras
 
 - `installments.contractual_amount` é o valor previsto. `payments.amount_paid` é o valor efetivamente recebido, inclusive pagamentos parciais e juros. Uma parcela pode ter vários pagamentos.
+- Contratos com início condicionado guardam a condição, quantidade e valores pactuados, sem criar parcelas até existir um primeiro vencimento real. A última parcela pode ter valor diferente para fechar centavos, desde que a advogada a informe explicitamente.
+- Honorários adicionais eventuais ficam em `contracts.has_additional_fee`, `additional_fee_percentage`, `additional_fee_basis` e `additional_fee_amount`. Eles não entram no principal, nas parcelas nem na comissão da advogada.
 - O gatilho de pagamento cria `commissions` com percentual do contrato e valor recebido. O percentual não vem do perfil atual da advogada.
 - O fechamento usa `payments.payment_date` no mês-calendário. Só pode ser confirmado no último dia desse mês ou depois. A prévia mostra todos os pagamentos válidos antes da confirmação.
 - `monthly_closing_items` conserva cliente, origem, data, pagamento, percentual e comissão originais. Uma correção posterior mantém esses itens e cria `closing_adjustments`. O saldo atual do fechamento considera os ajustes.
@@ -75,7 +80,7 @@ Confirme que exatamente uma linha mudou. Essa etapa inicial usa o SQL Editor com
 
 | Perfil | Acesso |
 | --- | --- |
-| `lawyer` | Somente contratos, clientes associados, parcelas, pagamentos, comissões, fechamentos, repasses e notificações da própria conta. Pode cadastrar contrato com PDF, mas não registrar recebimentos ou repasses. |
+| `lawyer` | Somente contratos, clientes associados, parcelas, pagamentos, comissões, fechamentos, repasses e notificações da própria conta. Pode cadastrar contrato por PDF ou manualmente, mas não registrar recebimentos ou repasses. |
 | `secretary` | Dados operacionais de clientes, contratos, parcelas, pagamentos e notas. Não lê percentual, comissão, fechamento, repasse ou auditoria. Registra pagamentos e corrige somente lançamentos próprios de meses abertos. |
 | `manager` | Vê todas as advogadas e dados financeiros. Confirma fechamentos, registra/reverte repasses e corrige informações por RPC com motivo. Não possui permissões administrativas de usuário. |
 | `admin` | Convites e alterações de nome, perfil e ativação de usuários. Não herda a interface de gestor; funções de gestão exigem `manager`. |
@@ -92,6 +97,7 @@ Migrations novas desta etapa:
 | --- | --- |
 | `20261002000100_closings_management.sql` | Itens de fechamento, ajustes, repasses, índices, RLS e funções de fechamento, transferência, correção e gestão de perfis. |
 | `20261002000200_payment_integrity.sql` | Bloqueio de pagamentos retroativos em meses fechados, lançamento complementar do gestor e auditoria de criações. |
+| `20261002000300_contract_import.sql` | Campos de início condicionado, parcelas pactuadas e honorários adicionais; RPC transacional para cadastro manual ou com PDF. |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `monthly_closing_items`, `closing_adjustments`, `commission_transfers`. Índices cobrem advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
@@ -104,7 +110,7 @@ npm run build
 npm test
 ```
 
-Os testes SQL aplicam **todas** as migrations em PostgreSQL isolado com PGlite e verificam RLS, separação de valores, pagamentos parciais/múltiplos, mudança de mês, snapshot de fechamento, repasses parciais/múltiplos, reversão, correção posterior, ajustes, auditoria, notificações e alterações administrativas. O fluxo de e-mail e Storage no projeto hospedado exige uma verificação manual com contas fictícias, pois depende de Supabase Auth, SMTP e Storage externos.
+Os testes SQL aplicam **todas** as migrations em PostgreSQL isolado com PGlite e verificam RLS, separação de valores, pagamentos parciais/múltiplos, mudança de mês, snapshot de fechamento, repasses parciais/múltiplos, reversão, correção posterior, ajustes, auditoria, notificações e alterações administrativas. Os testes do parser cobrem data fixa, condição, pagamento à vista, honorários adicionais, campos ausentes, variações de espaço e PDFs inválidos ou sem texto. PDFs digitalizados sem camada de texto precisam de cadastro manual nesta etapa. O fluxo de e-mail e Storage no projeto hospedado exige uma verificação manual com contas fictícias, pois depende de Supabase Auth, SMTP e Storage externos.
 
 ## Vercel
 

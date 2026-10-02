@@ -28,7 +28,7 @@ export function formatCpf(value: string): string {
 
 export function isValidPdf(file: File): boolean {
   return file.size > 0 && file.size <= MAX_PDF_BYTES &&
-    file.type === "application/pdf" && /\.pdf$/i.test(file.name);
+    (file.type === "application/pdf" || file.type === "") && /\.pdf$/i.test(file.name);
 }
 
 export async function hasPdfSignature(file: File): Promise<boolean> {

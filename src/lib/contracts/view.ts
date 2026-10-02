@@ -27,6 +27,14 @@ export type ContractRecord = {
   payment_method: "cash" | "installments" | null;
   contract_file_path: string | null;
   contract_file_name: string | null;
+  payment_start_type?: "fixed_date" | "condition" | null;
+  first_due_date?: string | null;
+  payment_start_condition?: string | null;
+  last_installment_amount?: number | null;
+  has_additional_fee?: boolean;
+  additional_fee_percentage?: number | null;
+  additional_fee_basis?: string | null;
+  additional_fee_amount?: number | null;
   commission_percentage: number;
   installments: InstallmentRecord[];
 };

@@ -9,7 +9,7 @@ export type ScheduleRow = {
 export type PaymentPlan =
   | { method: "cash"; totalCents: number; cashCents: number; cashDueDate: string }
   | { method: "installments"; totalCents: number; count: number; installmentCents: number;
-      firstDueDate: string; entryCents?: number; entryDueDate?: string };
+      firstDueDate: string; lastInstallmentCents?: number; entryCents?: number; entryDueDate?: string };
 
 export function parseIsoDate(value: string): { year: number; month: number; day: number } {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -49,6 +49,11 @@ export function buildSchedule(plan: PaymentPlan): { rows: ScheduleRow[]; sumCent
         !Number.isSafeInteger(plan.installmentCents) || plan.installmentCents <= 0) {
       throw new Error("Informe quantidade e valor válidos para as parcelas.");
     }
+    if (plan.lastInstallmentCents !== undefined &&
+        (plan.count < 2 || !Number.isSafeInteger(plan.lastInstallmentCents) ||
+         plan.lastInstallmentCents <= 0)) {
+      throw new Error("Informe um valor válido para a última parcela.");
+    }
     parseIsoDate(plan.firstDueDate);
     rows = [];
     if (plan.entryCents !== undefined) {
@@ -64,7 +69,9 @@ export function buildSchedule(plan: PaymentPlan): { rows: ScheduleRow[]; sumCent
     }
     for (let number = 1; number <= plan.count; number++) {
       rows.push({ installment_number: rows.length + 1, kind: "regular", regular_number: number,
-        due_date: addMonthsClamped(plan.firstDueDate, number - 1), amount_cents: plan.installmentCents });
+        due_date: addMonthsClamped(plan.firstDueDate, number - 1),
+        amount_cents: number === plan.count ? plan.lastInstallmentCents ?? plan.installmentCents :
+          plan.installmentCents });
     }
   }
   const sumCents = rows.reduce((sum, row) => sum + row.amount_cents, 0);
