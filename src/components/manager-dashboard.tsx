@@ -4,10 +4,11 @@ import { useActionState, useMemo, useState } from "react";
 import { FinancialCard } from "@/components/financial-card";
 import { parseMoneyBR } from "@/lib/contracts/finance";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
+import { emptyActionState } from "@/lib/action-state";
 import type { ManagerWorkspace } from "@/lib/manager/data";
 import { buildManagerPaymentRows, filterManagerRows, managerDelinquency,
   managerTotals, transferDeadline, type ManagerPaymentRow } from "@/lib/manager/view";
-import { confirmClosing, correctField, correctPayment, emptyManagerState, recordLatePayment,
+import { confirmClosing, correctField, correctPayment, recordLatePayment,
   registerTransfer, reverseTransfer } from "@/app/gestor/actions";
 import type { AuditEntry, Closing } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
@@ -60,7 +61,7 @@ function FieldCorrection({ table, recordId, field, current, label, options }: {
   table: string; recordId: string; field: string; current: string; label: string;
   options?: { value: string; label: string }[];
 }) {
-  const [state, action, pending] = useActionState(correctField, emptyManagerState);
+  const [state, action, pending] = useActionState(correctField, emptyActionState);
   const displayCurrent = isMoneyField(field) ? formatBRL(Number(current)) :
     (field.endsWith("date") ? formatDateBR(current) : field === "commission_percentage" ? `${current}%` : current);
   const defaultInput = isMoneyField(field) ? formatBRL(Number(current)) : current;
@@ -83,7 +84,7 @@ function FieldCorrection({ table, recordId, field, current, label, options }: {
 }
 
 function PaymentCorrection({ row }: { row: ManagerPaymentRow }) {
-  const [state, action, pending] = useActionState(correctPayment, emptyManagerState);
+  const [state, action, pending] = useActionState(correctPayment, emptyActionState);
   const [mode, setMode] = useState("replace");
   return <details className="operation-details"><summary>Corrigir pagamento</summary>
     <form action={action} className="operation-form">
@@ -102,7 +103,7 @@ function PaymentCorrection({ row }: { row: ManagerPaymentRow }) {
 }
 
 function LatePaymentForm({ installmentId }: { installmentId: string }) {
-  const [state, action, pending] = useActionState(recordLatePayment, emptyManagerState);
+  const [state, action, pending] = useActionState(recordLatePayment, emptyActionState);
   return <details className="operation-details"><summary>Lançamento complementar</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="installment_id" value={installmentId} />
@@ -119,7 +120,7 @@ function LatePaymentForm({ installmentId }: { installmentId: string }) {
 function ClosingPreview({ lawyerId, month, year, rows, today }: {
   lawyerId: string; month: number; year: number; rows: ManagerPaymentRow[]; today: string;
 }) {
-  const [state, action, pending] = useActionState(confirmClosing, emptyManagerState);
+  const [state, action, pending] = useActionState(confirmClosing, emptyActionState);
   const received = rows.reduce((sum, row) => sum + row.paidCents, 0);
   const commission = rows.reduce((sum, row) => sum + row.commissionCents, 0);
   const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
@@ -144,7 +145,7 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
 }
 
 function TransferForm({ closing }: { closing: Closing }) {
-  const [state, action, pending] = useActionState(registerTransfer, emptyManagerState);
+  const [state, action, pending] = useActionState(registerTransfer, emptyActionState);
   const [amount, setAmount] = useState("");
   const cents = parseMoneyBR(amount) ?? 0;
   const pendingCents = Math.round(closing.amount_pending_transfer * 100);
@@ -165,7 +166,7 @@ function TransferForm({ closing }: { closing: Closing }) {
 }
 
 function ReverseTransferForm({ id }: { id: string }) {
-  const [state, action, pending] = useActionState(reverseTransfer, emptyManagerState);
+  const [state, action, pending] = useActionState(reverseTransfer, emptyActionState);
   return <details className="operation-details"><summary>Reverter repasse</summary>
     <form action={action} className="operation-form"><input type="hidden" name="transfer_id" value={id} />
       <label>Motivo<textarea name="reason" minLength={5} maxLength={1000} required /></label>

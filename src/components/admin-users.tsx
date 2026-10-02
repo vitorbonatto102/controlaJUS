@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { emptyAdminState, inviteUser, updateUser } from "@/app/administracao/actions";
+import { inviteUser, updateUser } from "@/app/administracao/actions";
+import { emptyActionState } from "@/lib/action-state";
 import { roleLabel, roles, type Role } from "@/lib/auth/roles";
 
 export type AdminUser = { id: string; full_name: string; email: string; role: Role;
@@ -13,7 +14,7 @@ function Feedback({ state }: { state: { error: string | null; success: string | 
 }
 
 function UserEditor({ user }: { user: AdminUser }) {
-  const [state, action, pending] = useActionState(updateUser, emptyAdminState);
+  const [state, action, pending] = useActionState(updateUser, emptyActionState);
   return <details className="operation-details"><summary>Gerenciar</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="user_id" value={user.id} />
@@ -32,7 +33,7 @@ function UserEditor({ user }: { user: AdminUser }) {
 }
 
 export function AdminUsers({ users }: { users: AdminUser[] }) {
-  const [state, action, pending] = useActionState(inviteUser, emptyAdminState);
+  const [state, action, pending] = useActionState(inviteUser, emptyActionState);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [active, setActive] = useState("");

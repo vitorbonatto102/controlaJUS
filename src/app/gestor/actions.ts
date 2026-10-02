@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { ActionState } from "@/lib/action-state";
 import { requireRole } from "@/lib/auth/profile";
 import { parseMoneyBR } from "@/lib/contracts/finance";
 import { formatDateBR } from "@/lib/formatters";
 import { createClient } from "@/lib/supabase/server";
 
-export type ManagerActionState = { error: string | null; success: string | null };
-export const emptyManagerState: ManagerActionState = { error: null, success: null };
+export type ManagerActionState = ActionState;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const validDate = (date: string) => { try { formatDateBR(date); return true; } catch { return false; } };

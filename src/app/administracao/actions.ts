@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import type { ActionState } from "@/lib/action-state";
 import { requireRole } from "@/lib/auth/profile";
 import { isRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
-export type AdminActionState = { error: string | null; success: string | null };
-export const emptyAdminState: AdminActionState = { error: null, success: null };
+export type AdminActionState = ActionState;
 const field = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

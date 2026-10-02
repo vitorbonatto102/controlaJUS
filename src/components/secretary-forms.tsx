@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { addCollectionNote, emptySecretaryState, registerPayment, revisePayment } from "@/app/secretaria/actions";
+import { addCollectionNote, registerPayment, revisePayment } from "@/app/secretaria/actions";
+import { emptyActionState } from "@/lib/action-state";
 import { noteTypeLabels, type OperationalContract } from "@/lib/secretary/view";
 
 function ActionFeedback({ error, success }: { error: string | null; success: string | null }) {
@@ -10,7 +11,7 @@ function ActionFeedback({ error, success }: { error: string | null; success: str
 }
 
 export function PaymentForm({ clientId, installmentId }: { clientId: string; installmentId: string }) {
-  const [state, action, pending] = useActionState(registerPayment, emptySecretaryState);
+  const [state, action, pending] = useActionState(registerPayment, emptyActionState);
   return <details className="operation-details"><summary>Registrar pagamento</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="client_id" value={clientId} />
@@ -25,7 +26,7 @@ export function PaymentForm({ clientId, installmentId }: { clientId: string; ins
 }
 
 export function NoteForm({ clientId, contracts }: { clientId: string; contracts: OperationalContract[] }) {
-  const [state, action, pending] = useActionState(addCollectionNote, emptySecretaryState);
+  const [state, action, pending] = useActionState(addCollectionNote, emptyActionState);
   const [contractId, setContractId] = useState("");
   const installments = contracts.find((contract) => contract.id === contractId)?.installments ?? [];
   return <form action={action} className="operation-form note-form">
@@ -47,7 +48,7 @@ export function NoteForm({ clientId, contracts }: { clientId: string; contracts:
 export function PaymentCorrectionForm({ clientId, paymentId, amount, date }: {
   clientId: string; paymentId: string; amount: string; date: string;
 }) {
-  const [state, action, pending] = useActionState(revisePayment, emptySecretaryState);
+  const [state, action, pending] = useActionState(revisePayment, emptyActionState);
   const [mode, setMode] = useState("replace");
   return <details className="operation-details"><summary>Corrigir ou estornar</summary>
     <form action={action} className="operation-form">
