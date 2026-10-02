@@ -46,6 +46,8 @@ Cada arquivo de `supabase/migrations` foi feito para ser aplicado **uma vez**, n
 
 Antes de repetir qualquer SQL, execute [check_management_migrations.sql](supabase/diagnostics/check_management_migrations.sql) no SQL Editor. Ele apenas consulta os objetos existentes. Se todos os 11 itens de `20261002000100` estiverem presentes e nenhum dos 9 itens de `20261002000200` estiver presente, aplique somente a segunda migration. Se ambas estiverem completas, não reaplique nenhuma. Se houver itens ausentes em uma migration parcialmente aplicada, guarde o resultado e o primeiro erro completo para preparar uma correção específica; não use `DROP FUNCTION`, `DROP TABLE` ou `CREATE IF NOT EXISTS` às cegas, pois isso pode ocultar diferenças de esquema e afetar RLS ou dados. O SQL Editor não registra automaticamente as migrations no histórico da CLI; mantenha o mesmo método até reconciliar esse histórico.
 
+Se o diagnóstico mostrar exatamente **1/11** para `20261002000100` (apenas `private.revise_manager_payment`) e **9/9** para `20261002000200`, a segunda migration foi aplicada antes da primeira. Execute uma vez [20261002_out_of_order_management.sql](supabase/repairs/20261002_out_of_order_management.sql) no SQL Editor e rode novamente o diagnóstico: o esperado é **11/11** e **9/9**. O reparo verifica esse estado antes de começar, aplica a migration de fechamentos em uma transação e preserva a versão mais nova da função de pagamento. Não execute o reparo para nenhum outro resultado.
+
 ### Primeiro administrador
 
 Sem um admin ativo, convide **uma** conta inicial em **Authentication → Users → Add user → Send invitation**. O trigger cria seu `profiles` inativo. Execute uma única vez no SQL Editor, substituindo o e-mail:
