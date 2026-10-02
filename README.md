@@ -40,6 +40,12 @@ tests/                       regras e integração SQL via PGlite
 6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público.
 7. Rode `npm run dev` e acesse `/login`. No Windows, se Node emitir `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, use `npm run dev:system-ca` para confiar nos certificados do Windows.
 
+### Se uma migration acusar objeto já existente
+
+Cada arquivo de `supabase/migrations` foi feito para ser aplicado **uma vez**, na ordem. O erro `function "revise_manager_payment" already exists with same argument types` aparece ao executar novamente a criação dessa função em `20261002000100_closings_management.sql`. A migration `20261002000200_payment_integrity.sql` atualiza a função com `CREATE OR REPLACE`; não execute o trecho antigo outra vez.
+
+Antes de repetir qualquer SQL, execute [check_management_migrations.sql](supabase/diagnostics/check_management_migrations.sql) no SQL Editor. Ele apenas consulta os objetos existentes. Se todos os 11 itens de `20261002000100` estiverem presentes e nenhum dos 9 itens de `20261002000200` estiver presente, aplique somente a segunda migration. Se ambas estiverem completas, não reaplique nenhuma. Se houver itens ausentes em uma migration parcialmente aplicada, guarde o resultado e o primeiro erro completo para preparar uma correção específica; não use `DROP FUNCTION`, `DROP TABLE` ou `CREATE IF NOT EXISTS` às cegas, pois isso pode ocultar diferenças de esquema e afetar RLS ou dados. O SQL Editor não registra automaticamente as migrations no histórico da CLI; mantenha o mesmo método até reconciliar esse histórico.
+
 ### Primeiro administrador
 
 Sem um admin ativo, convide **uma** conta inicial em **Authentication → Users → Add user → Send invitation**. O trigger cria seu `profiles` inativo. Execute uma única vez no SQL Editor, substituindo o e-mail:
