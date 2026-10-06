@@ -42,9 +42,9 @@ export async function inviteUser(_state: AdminActionState, form: FormData): Prom
   return { error: null, success: "Convite enviado. A pessoa definirá a própria senha pelo link recebido." };
 }
 
-export async function updateUser(_state: AdminActionState, form: FormData): Promise<AdminActionState> {
+export async function updateUser(userId: string, _state: AdminActionState, form: FormData): Promise<AdminActionState> {
   await requireOfficeAdmin();
-  const id = field(form, "user_id");
+  const id = userId.trim();
   const name = field(form, "full_name");
   const role = field(form, "role");
   const active = field(form, "active") === "true";

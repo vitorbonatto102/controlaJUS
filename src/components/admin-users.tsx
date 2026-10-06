@@ -14,10 +14,10 @@ function Feedback({ state }: { state: { error: string | null; success: string | 
 }
 
 function UserEditor({ user }: { user: AdminUser }) {
-  const [state, action, pending] = useActionState(updateUser, emptyActionState);
+  const updateThisUser = updateUser.bind(null, user.id);
+  const [state, action, pending] = useActionState(updateThisUser, emptyActionState);
   return <details className="operation-details"><summary>Gerenciar</summary>
     <form action={action} className="operation-form">
-      <input type="hidden" name="user_id" value={user.id} />
       <label>Nome<input name="full_name" defaultValue={user.full_name} minLength={2} maxLength={160} required /></label>
       <label>Cargo<select name="role" defaultValue={user.role}>{roles.map((role) =>
         <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
