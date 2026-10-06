@@ -50,10 +50,12 @@ export async function updateUser(_state: AdminActionState, form: FormData): Prom
   const active = field(form, "active") === "true";
   const isOfficeAdmin = form.get("is_office_admin") === "on";
   const reason = field(form, "reason");
-  if (!uuid.test(id) || name.length < 2 || name.length > 160 || !isRole(role) ||
-    reason.length < 5 || reason.length > 1000 || field(form, "confirm") !== "yes") {
-    return { error: "Confira os dados, confirme a mudança e informe um motivo.", success: null };
-  }
+  if (!uuid.test(id) || name.length < 2 || name.length > 160 || !isRole(role))
+    return { error: "Confira o usuário, o nome e o cargo.", success: null };
+  if (reason.length < 5 || reason.length > 1000)
+    return { error: "Informe um motivo com pelo menos 5 caracteres.", success: null };
+  if (field(form, "confirm") !== "yes")
+    return { error: "Marque a confirmação da alteração antes de salvar.", success: null };
   const supabase = await createClient();
   const { error } = await supabase.rpc("manage_office_profile", {
     p_user: id, p_name: name, p_role: role, p_active: active,
