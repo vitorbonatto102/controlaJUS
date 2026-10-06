@@ -50,8 +50,12 @@ export async function updateUser(_state: AdminActionState, form: FormData): Prom
   const active = field(form, "active") === "true";
   const isOfficeAdmin = form.get("is_office_admin") === "on";
   const reason = field(form, "reason");
-  if (!uuid.test(id) || name.length < 2 || name.length > 160 || !isRole(role))
-    return { error: "Confira o usuário, o nome e o cargo.", success: null };
+  if (!uuid.test(id))
+    return { error: "Não consegui identificar este usuário. Recarregue a página e tente novamente.", success: null };
+  if (name.length < 2 || name.length > 160)
+    return { error: "O nome precisa ter entre 2 e 160 caracteres.", success: null };
+  if (!isRole(role))
+    return { error: "Selecione um cargo válido: Advogada, Secretaria ou Gestor.", success: null };
   if (reason.length < 5 || reason.length > 1000)
     return { error: "Informe um motivo com pelo menos 5 caracteres.", success: null };
   if (field(form, "confirm") !== "yes")
