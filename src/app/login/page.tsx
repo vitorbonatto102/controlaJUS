@@ -6,7 +6,8 @@ import Link from "next/link";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ convite?: string }> }) {
   const profile = await getCurrentProfile();
-  if (profile?.active) redirect(homeByRole[profile.role]);
+  if (profile?.active && profile.office_id) redirect(homeByRole[profile.role]);
+  if (profile?.active) redirect("/acesso-pendente");
   const { convite } = await searchParams;
 
   return <main className="login-page">

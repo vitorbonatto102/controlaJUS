@@ -5,6 +5,6 @@ import { homeByRole } from "@/lib/auth/roles";
 export default async function RoleHome() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
-  if (!profile.active) redirect("/acesso-pendente");
+  if (!profile.active || !profile.office_id) redirect("/acesso-pendente");
   redirect(homeByRole[profile.role]);
 }

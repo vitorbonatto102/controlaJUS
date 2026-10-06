@@ -20,11 +20,11 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, active")
+    .select("role, active, office_id")
     .eq("id", data.user.id)
     .single();
 
-  if (profileError || !profile || !profile.active || !isRole(profile.role)) {
+  if (profileError || !profile || !profile.active || !profile.office_id || !isRole(profile.role)) {
     await supabase.auth.signOut();
     return { error: "Acesso pendente. Solicite a ativação ao administrador." };
   }

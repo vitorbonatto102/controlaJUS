@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth/profile";
+import { requireOfficeAdmin } from "@/lib/auth/profile";
 
 export default async function AdminUsersPage() {
-  await requireRole("admin");
+  await requireOfficeAdmin();
   redirect("/administracao");
 }

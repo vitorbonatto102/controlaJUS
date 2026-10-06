@@ -9,6 +9,8 @@ export type CurrentProfile = {
   email: string;
   role: Role;
   active: boolean;
+  office_id: string | null;
+  is_office_admin: boolean;
 };
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
@@ -18,7 +20,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, active")
+    .select("id, full_name, email, role, active, office_id, is_office_admin")
     .eq("id", claims.claims.sub)
     .single();
 
@@ -26,10 +28,18 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   return data as CurrentProfile;
 }
 
+export async function requireOfficeAdmin() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (!profile.active || !profile.office_id) redirect("/acesso-pendente");
+  if (!profile.is_office_admin) redirect("/app");
+  return profile;
+}
+
 export async function requireRole(role: Role) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
-  if (!profile.active) redirect("/acesso-pendente");
+  if (!profile.active || !profile.office_id) redirect("/acesso-pendente");
   if (profile.role !== role) redirect("/app");
   return profile;
 }

@@ -6,7 +6,7 @@ import { emptyActionState } from "@/lib/action-state";
 import { roleLabel, roles, type Role } from "@/lib/auth/roles";
 
 export type AdminUser = { id: string; full_name: string; email: string; role: Role;
-  active: boolean; created_at: string };
+  active: boolean; is_office_admin: boolean; created_at: string };
 
 function Feedback({ state }: { state: { error: string | null; success: string | null } }) {
   return <>{state.error && <p className="form-error-box" role="alert">{state.error}</p>}
@@ -19,8 +19,10 @@ function UserEditor({ user }: { user: AdminUser }) {
     <form action={action} className="operation-form">
       <input type="hidden" name="user_id" value={user.id} />
       <label>Nome<input name="full_name" defaultValue={user.full_name} minLength={2} maxLength={160} required /></label>
-      <label>Perfil<select name="role" defaultValue={user.role}>{roles.map((role) =>
+      <label>Cargo<select name="role" defaultValue={user.role}>{roles.map((role) =>
         <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
+      <label className="check-line"><input type="checkbox" name="is_office_admin" defaultChecked={user.is_office_admin} />
+        Admin do escritório: pode convidar e gerenciar usuários deste escritório</label>
       <label>Status<select name="active" defaultValue={String(user.active)}>
         <option value="true">Ativo</option><option value="false">Inativo</option></select></label>
       <label>Motivo da alteração<textarea name="reason" minLength={5} maxLength={1000} required /></label>
@@ -47,8 +49,10 @@ export function AdminUsers({ users }: { users: AdminUser[] }) {
       <form action={action} className="operation-form admin-invite-form">
         <label>Nome completo<input name="full_name" minLength={2} maxLength={160} required /></label>
         <label>E-mail<input name="email" type="email" maxLength={254} required /></label>
-        <label>Perfil<select name="role">{roles.map((item) =>
+        <label>Cargo<select name="role">{roles.map((item) =>
           <option key={item} value={item}>{roleLabel[item]}</option>)}</select></label>
+        <label className="check-line"><input type="checkbox" name="is_office_admin" />
+          Também será admin do escritório</label>
         <button type="submit" className="primary-button" disabled={pending}>+ Convidar usuário</button>
         <Feedback state={state} />
       </form>
@@ -56,16 +60,17 @@ export function AdminUsers({ users }: { users: AdminUser[] }) {
     <section className="workspace-panel"><h2>Usuários</h2>
       <div className="manager-filters">
         <label>Nome ou e-mail<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar usuário" /></label>
-        <label>Perfil<select value={role} onChange={(e) => setRole(e.target.value)}><option value="">Todos</option>
+        <label>Cargo<select value={role} onChange={(e) => setRole(e.target.value)}><option value="">Todos</option>
           {roles.map((item) => <option key={item} value={item}>{roleLabel[item]}</option>)}</select></label>
         <label>Status<select value={active} onChange={(e) => setActive(e.target.value)}>
           <option value="">Todos</option><option value="true">Ativos</option><option value="false">Inativos</option>
         </select></label>
       </div>
       {filtered.length ? <div className="table-scroll"><table className="data-table"><thead><tr>
-        <th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Criado em</th><th>Ações</th>
+        <th>Nome</th><th>E-mail</th><th>Cargo</th><th>Acesso administrativo</th><th>Status</th><th>Criado em</th><th>Ações</th>
       </tr></thead><tbody>{filtered.map((user) => <tr key={user.id}>
         <td>{user.full_name}</td><td>{user.email}</td><td>{roleLabel[user.role]}</td>
+        <td>{user.is_office_admin ? "Admin do escritório" : "—"}</td>
         <td>{user.active ? "Ativo" : "Inativo"}</td>
         <td>{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td><UserEditor user={user} /></td>
       </tr>)}</tbody></table></div> : <p>Nenhum usuário encontrado.</p>}
