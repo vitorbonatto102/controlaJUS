@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type AdminActionState = ActionState;
 const field = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function inviteUser(_state: AdminActionState, form: FormData): Promise<AdminActionState> {
