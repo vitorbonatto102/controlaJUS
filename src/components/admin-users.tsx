@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { inviteUser, updateUser } from "@/app/administracao/actions";
+import { inviteUser } from "@/app/administracao/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { roleLabel, roles, type Role } from "@/lib/auth/roles";
 
 export type AdminUser = { id: string; full_name: string; email: string; role: Role;
-  active: boolean; is_office_admin: boolean; created_at: string };
+  active: boolean; is_office_admin: boolean; created_at: string;
+  updateAction: (state: typeof emptyActionState, form: FormData) => Promise<typeof emptyActionState> };
 
 function Feedback({ state }: { state: { error: string | null; success: string | null } }) {
   return <>{state.error && <p className="form-error-box" role="alert">{state.error}</p>}
@@ -14,8 +15,7 @@ function Feedback({ state }: { state: { error: string | null; success: string | 
 }
 
 function UserEditor({ user }: { user: AdminUser }) {
-  const updateThisUser = updateUser.bind(null, user.id);
-  const [state, action, pending] = useActionState(updateThisUser, emptyActionState);
+  const [state, action, pending] = useActionState(user.updateAction, emptyActionState);
   return <details className="operation-details"><summary>Gerenciar</summary>
     <form action={action} className="operation-form">
       <label>Nome<input name="full_name" defaultValue={user.full_name} minLength={2} maxLength={160} required /></label>

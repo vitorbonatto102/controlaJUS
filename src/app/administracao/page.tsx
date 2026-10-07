@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import { AdminUsers, type AdminUser } from "@/components/admin-users";
+import { updateUser } from "@/app/administracao/actions";
 import { requireOfficeAdmin } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,10 @@ export default async function AdminPage() {
       .select("id,full_name,email,role,active,is_office_admin,created_at")
       .order("created_at", { ascending: false }).range(offset, offset + 199);
     if (error) throw new Error("Não foi possível carregar os usuários.");
-    users.push(...(data ?? []) as AdminUser[]);
+    users.push(...(data ?? []).map((user) => ({
+      ...user,
+      updateAction: updateUser.bind(null, user.id),
+    })) as AdminUser[]);
     if (!data || data.length < 200) break;
   }
   return <DashboardShell profile={profile}>
