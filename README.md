@@ -154,3 +154,9 @@ Os testes SQL existentes cobrem as migrations financeiras e verificam RLS, separ
 ## Vercel
 
 Importe o repositório como projeto Next.js. Configure as três variáveis de `.env.example` em **Project Settings → Environment Variables** nos ambientes necessários. `SUPABASE_SECRET_KEY` deve ficar apenas no ambiente de servidor. Execute as migrations no Supabase **antes** de publicar a versão. Configure a Site URL e templates para o domínio final. O comando de build é `npm run build`; não há dependência de servidor próprio ou cron nesta etapa.
+
+### Diagnóstico de login
+
+O login distingue credenciais inválidas, e-mail não confirmado, limite de tentativas e indisponibilidade do Auth. Falhas operacionais registram somente código, status e nome do erro no servidor, sem senha, token ou e-mail informado.
+
+Se o endereço `NEXT_PUBLIC_SUPABASE_URL` retornar `ENOTFOUND`/`NXDOMAIN`, confira a URL copiada do projeto e seu estado no painel Supabase. Um projeto pausado precisa ser restaurado antes que o login volte a funcionar. Ao mudar o domínio da aplicação, atualize **Authentication → URL Configuration** (Site URL e Redirect URLs) para os fluxos de convite e recuperação. A troca de domínio não altera as senhas cadastradas. Consulte o [guia de DNS do Supabase](https://supabase.com/docs/guides/troubleshooting/nxdomain-error-connecting-to-a-supabase-project).

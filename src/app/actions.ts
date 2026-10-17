@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { homeByRole, isRole } from "@/lib/auth/roles";
+import { getLoginErrorMessage } from "@/lib/auth/login-errors";
 
 export type LoginState = { error: string };
 
@@ -16,7 +17,14 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return { error: "E-mail ou senha inválidos." };
+  if (error || !data.user) {
+    if (error?.code !== "invalid_credentials") {
+      console.warn("Falha no serviço de autenticação", {
+        code: error?.code, status: error?.status, name: error?.name,
+      });
+    }
+    return { error: getLoginErrorMessage(error) };
+  }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
