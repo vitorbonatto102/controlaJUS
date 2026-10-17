@@ -2,6 +2,10 @@
 
 Plataforma interna em Next.js App Router, TypeScript, Supabase Auth, PostgreSQL e Storage. A interface usa português do Brasil, `R$ 1.234,56` e `DD/MM/AAAA`. Os dados ficam isolados por escritório e, no perfil `lawyer`, vinculados ao UUID da própria advogada.
 
+A rota `/` é a landing page pública da Repassum, com apresentação, recursos, segurança e contato. O botão **Acessar** leva a `/login`; `/app` continua direcionando a pessoa autenticada à área do seu cargo. A landing é estática e não consulta perfis ou dados financeiros; os valores no painel de vidro são exemplos identificados como ilustrativos. O bypass no proxy se limita à rota `/`, preservando a autenticação das áreas internas.
+
+O fundo da apresentação fica em `public/landing/repassum-still-life.webp`, otimizado a partir da arte preparada com a referência fornecida. Cormorant Garamond é usada somente na landing, com fontes locais e licença em `src/app/fonts/CormorantGaramond-OFL.txt`; a aplicação mantém Inter. Para habilitar um link de contato por e-mail, defina a variável opcional `REPASSUM_CONTACT_EMAIL` e refaça o build/deploy. Sem ela, a seção orienta a pessoa a procurar o administrador do escritório. Esta etapa não exige migration SQL.
+
 ## Estrutura
 
 ```text

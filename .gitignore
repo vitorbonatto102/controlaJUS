@@ -5,3 +5,4 @@ node_modules/
 .npm-cache/
 *.tsbuildinfo
 .vercel/
+.codex-remote-attachments/
