@@ -1,4 +1,4 @@
-# ControlaJUS
+# Repassum
 
 Plataforma interna em Next.js App Router, TypeScript, Supabase Auth, PostgreSQL e Storage. A interface usa português do Brasil, `R$ 1.234,56` e `DD/MM/AAAA`. Os dados ficam isolados por escritório e, no perfil `lawyer`, vinculados ao UUID da própria advogada.
 
@@ -35,7 +35,7 @@ tests/                       regras e integração SQL via PGlite
 
 1. Instale Node.js 22 e rode `npm ci`.
 2. Crie o projeto Supabase. Copie `.env.example` para `.env.local` e preencha as três variáveis. `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` podem chegar ao navegador; `SUPABASE_SECRET_KEY` é a **secret key de servidor** do mesmo projeto e nunca deve ter prefixo `NEXT_PUBLIC_`.
-3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Em um projeto que já possui `20261002000300_contract_import.sql`, aplique também `20261006000100_offices_rbac.sql` antes de publicar o código desta etapa. O build do Next.js não aplica SQL automaticamente.
+3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para um projeto já atualizado até `20261006000200_rename_initial_office.sql`, execute somente `20261017000100_office_branding.sql` nesta etapa. O build do Next.js não aplica SQL automaticamente.
 4. Em **Authentication → Providers → Email**, mantenha Email habilitado e desative cadastro público (**Allow new users to sign up**). Desative login anônimo. `supabase/config.toml` faz isso no ambiente local da CLI; no projeto hospedado, configure pelo Dashboard.
 5. Em **Authentication → URL Configuration**, informe a Site URL correta (por exemplo, `http://localhost:3001` durante desenvolvimento e a URL da Vercel em produção). Em **Email Templates**, copie [invite.html](supabase/templates/invite.html) para **Invite user** e [recovery.html](supabase/templates/recovery.html) para **Reset password**. Os links abrem páginas com botão de confirmação, evitando consumo automático do token por verificadores de e-mail. Configure SMTP adequado para uso real.
 6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público. A importação usa esse bucket temporariamente porque a Vercel limita o corpo de uma função a 4,5 MB; o arquivo de análise é removido antes da confirmação. O PDF definitivo só é enviado na confirmação. Se a conexão cair imediatamente após o upload, um arquivo não vinculado pode permanecer; faça a limpeza pela API de Storage, nunca apagando diretamente `storage.objects`.
@@ -85,6 +85,16 @@ where id = (select id from auth.users where email = 'admin@outro-escritorio.com'
 
 Após essa configuração, o admin daquele escritório convida o restante da equipe. A interface não permite criar escritórios nem mover pessoas entre eles; essas operações de provisionamento ficam restritas ao operador do Supabase.
 
+### Identidade Repassum e marca do escritório
+
+A marca da plataforma é **Repassum**. Os SVGs originais ficam em `public/branding/repassum/`; a paleta usa petróleo `#123439`, verde `#24A78B` e menta `#B3E8D5`. Botões usam verde mais escuro para garantir contraste com texto branco. Inter Variable é servida localmente por `next/font/local`; sua licença está em `src/app/fonts/OFL.txt`.
+
+O logo do escritório é independente e aparece junto ao nome carregado de `offices`. A migration `20261017000100_office_branding.sql` provisiona o logo original da HP Consultoria Jurídica para o piloto, adiciona `offices.logo_path` e cria o bucket privado `office-logos`. Escritórios sem logo usam o nome e as iniciais, sem condicionais por cliente na interface.
+
+Em **Administração → Identidade do escritório**, qualquer admin do escritório pode enviar ou remover o logo (PNG, JPG ou WebP, até 2 MB). O servidor verifica tamanho, MIME e assinatura do arquivo. Storage e RPC validam o escritório pelo usuário autenticado; o cliente não escolhe qual escritório será alterado. Cada mudança gera auditoria, e o arquivo em uso não pode ser excluído diretamente. URLs assinadas exibem os logos privados; a arte da HP fornecida para o piloto é um arquivo estático público. A alteração não concede acesso financeiro adicional.
+
+Antes de aplicar a nova migration, a plataforma continua exibindo o nome e as iniciais; o formulário de personalização fica indisponível. Depois, recarregue a página. Para o Supabase hospedado, atualize também os assuntos e o conteúdo de **Invite user** e **Reset password** em **Authentication → Email Templates** com os arquivos de `supabase/templates/`, que já usam Repassum. Alterar os arquivos locais não muda automaticamente os templates hospedados. O identificador local `project_id` e o repositório mantêm seus nomes técnicos anteriores para preservar os vínculos existentes.
+
 ## Regras financeiras
 
 - `installments.contractual_amount` é o valor previsto. `payments.amount_paid` é o valor efetivamente recebido, inclusive pagamentos parciais e juros. Uma parcela pode ter vários pagamentos.
@@ -121,6 +131,8 @@ Migrations novas desta etapa:
 | `20261002000200_payment_integrity.sql` | Bloqueio de pagamentos retroativos em meses fechados, lançamento complementar do gestor e auditoria de criações. |
 | `20261002000300_contract_import.sql` | Campos de início condicionado, parcelas pactuadas e honorários adicionais; RPC transacional para cadastro manual ou com PDF. |
 | `20261006000100_offices_rbac.sql` | Tabela `offices`, vínculo de tenant, admin adicional por perfil, políticas RLS e guards para dados, RPC de gestão de usuários e CPF único por escritório. |
+| `20261006000200_rename_initial_office.sql` | Define o nome do escritório piloto como HP Consultoria Jurídica. |
+| `20261017000100_office_branding.sql` | Logo por escritório, marca HP do piloto, Storage privado, políticas por escritório e RPC administrativa com auditoria. |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
@@ -133,7 +145,7 @@ npm run build
 npm test
 ```
 
-Os testes SQL existentes cobrem as migrations financeiras e verificam RLS, separação de valores, pagamentos parciais/múltiplos, mudança de mês, snapshot de fechamento, repasses parciais/múltiplos, reversão, correção posterior, ajustes, auditoria, notificações e alterações administrativas. A nova migration de escritórios ainda precisa entrar no harness PGlite; antes de publicar esta etapa, aplique-a num projeto Supabase de teste e confira o isolamento usando contas em dois escritórios. Os testes do parser cobrem data fixa, condição, pagamento à vista, honorários adicionais, campos ausentes, variações de espaço e PDFs inválidos ou sem texto. PDFs digitalizados sem camada de texto precisam de cadastro manual nesta etapa. O fluxo de e-mail e Storage no projeto hospedado exige uma verificação manual com contas fictícias, pois depende de Supabase Auth, SMTP e Storage externos.
+Os testes SQL existentes cobrem as migrations financeiras e verificam RLS, separação de valores, pagamentos parciais/múltiplos, mudança de mês, snapshot de fechamento, repasses parciais/múltiplos, reversão, correção posterior, ajustes, auditoria, notificações e alterações administrativas. O teste de branding aplica todas as migrations em sequência e verifica dois escritórios, autorização de upload, leitura isolada dos logos, bloqueio de exclusão do arquivo em uso, auditoria e múltiplos admins sem trocar o cargo de advogada. Os testes do parser cobrem data fixa, condição, pagamento à vista, honorários adicionais, campos ausentes, variações de espaço e PDFs inválidos ou sem texto. PDFs digitalizados sem camada de texto precisam de cadastro manual nesta etapa. O fluxo de e-mail e uploads no projeto hospedado exige verificação com contas fictícias, pois depende dos serviços externos Supabase Auth, SMTP e Storage.
 
 ## Vercel
 

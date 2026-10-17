@@ -3,12 +3,14 @@ import { AdminUsers, type AdminUser } from "@/components/admin-users";
 import { updateUser } from "@/app/administracao/actions";
 import { requireOfficeAdmin } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
+import { loadOfficeBrand } from "@/lib/offices/data";
+import { OfficeIdentity } from "@/components/office-identity";
+import { OfficeLogoForm } from "@/components/office-logo-form";
 
 export default async function AdminPage() {
   const profile = await requireOfficeAdmin();
   const supabase = await createClient();
-  const { data: office } = profile.office_id ? await supabase.from("offices")
-    .select("name").eq("id", profile.office_id).single() : { data: null };
+  const office = profile.office_id ? await loadOfficeBrand(profile.office_id) : null;
   const users: AdminUser[] = [];
   for (let offset = 0; ; offset += 200) {
     const { data, error } = await supabase.from("profiles")
@@ -24,6 +26,12 @@ export default async function AdminPage() {
   return <DashboardShell profile={profile}>
     <p className="eyebrow">ADMINISTRAÇÃO</p><h1>Olá, {profile.full_name}</h1>
     <p className="page-description">{office?.name ?? "Seu escritório"} · Convide pessoas, defina cargos e conceda acesso administrativo. Os convites ficam vinculados a este escritório.</p>
+    {office && <section className="workspace-panel office-branding-panel" aria-labelledby="office-brand-title">
+      <div><p className="eyebrow">IDENTIDADE DO ESCRITÓRIO</p><h2 id="office-brand-title">O seu espaço na Repassum</h2>
+        <p>O nome e o logo identificam o ambiente de toda a sua equipe.</p><OfficeIdentity office={office} /></div>
+      {office.brandingReady ? <OfficeLogoForm hasLogo={Boolean(office.logoUrl)} />
+        : <p>A personalização ainda não foi habilitada. Contate o administrador da plataforma.</p>}
+    </section>}
     <AdminUsers users={users} />
   </DashboardShell>;
 }

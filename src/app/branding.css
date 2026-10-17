@@ -1,0 +1,139 @@
+/* Identidade Repassum. Verde claro é destaque; ações usam verde escuro para contraste. */
+html, body { font-family: var(--font-inter), "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; }
+h1, h2, h3 { color: var(--navy); font-optical-sizing: auto; }
+::selection { background: var(--rp-menta); color: var(--navy); }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--teal); }
+.repassum-logo { display: block; width: 186px; height: auto; }
+
+.login-page { min-height: 100svh; display: grid; grid-template-columns: 1.06fr 1fr; background: #fff; }
+.login-intro { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column;
+  justify-content: space-between; min-height: 100svh; padding: clamp(32px, 5vw, 76px); background: var(--navy); color: white; }
+.login-intro::before, .login-intro::after { content: ""; position: absolute; z-index: -1; pointer-events: none;
+  width: 740px; height: 740px; border: 1px solid #b3e8d51c; border-radius: 50%; right: -540px; bottom: -220px;
+  box-shadow: 0 0 0 75px #b3e8d509, 0 0 0 150px #b3e8d505; }
+.login-intro::after { width: 1000px; height: 500px; right: -560px; bottom: -140px; transform: rotate(-32deg);
+  border-color: #24a78b50; box-shadow: none; }
+.login-intro .repassum-logo { width: 224px; }
+.login-story { padding: 64px 0; max-width: 510px; }
+.login-story .eyebrow { color: var(--rp-menta); font-size: .67rem; line-height: 1.7; letter-spacing: .14em; margin-bottom: 24px; }
+.login-story h1 { color: #fff; max-width: 470px; font-weight: 600; font-size: clamp(2.7rem, 4.4vw, 4.5rem);
+  line-height: 1.08; letter-spacing: -.055em; margin-bottom: 25px; }
+.login-story > p:not(.eyebrow) { color: #c3d7d6; font-size: .98rem; line-height: 1.8; max-width: 385px; }
+.login-topics { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 35px; font-size: .72rem; color: var(--rp-menta); }
+.login-topics span { display: flex; align-items: center; gap: 8px; }
+.login-topics span::before { content: ""; width: 4px; height: 4px; background: var(--rp-verde); border-radius: 50%; }
+.login-intro .login-signature { margin: 0; font-size: .7rem; line-height: 1.5; color: #a7c5c2; }
+.login-card { width: min(386px, calc(100% - 48px)); margin: auto; padding: 44px 0; }
+.login-card h2 { font-size: 1.95rem; letter-spacing: -.045em; line-height: 1.2; margin-bottom: 12px; }
+.login-card > p:not(.eyebrow) { font-size: .86rem; color: var(--muted); line-height: 1.65; }
+.login-card .eyebrow { font-size: .66rem; margin-bottom: 18px; }
+.login-form { display: flex; flex-direction: column; margin-top: 32px; gap: 9px; }
+.login-form label { font-weight: 600; font-size: .8rem; margin-top: 10px; }
+.login-form input { width: 100%; height: 50px; border: 1px solid var(--line); border-radius: 9px;
+  padding: 0 14px; background: #fafbf9; color: var(--ink); font-size: .87rem; }
+.login-form input::placeholder { color: #839693; }
+.login-form input:focus { outline: 2px solid var(--rp-menta); border-color: var(--teal); outline-offset: 1px; }
+.login-form button, .simple-page button { margin-top: 16px; border: 0; border-radius: 9px; background: var(--teal);
+  color: white; font-weight: 600; padding: 15px 20px; font-size: .85rem; }
+.login-form button:hover, .primary-button:hover { background: #0f6958; }
+.login-form button:disabled { opacity: .6; cursor: wait; }
+.login-card .back-link { margin: 20px 0 0; font-size: .78rem; }
+.login-card .login-access-note { font-size: .69rem !important; border-top: 1px solid var(--line); margin: 36px 0 0; padding-top: 20px; }
+.form-error { color: #a72d2d; font-size: .88rem; margin: 0; }
+
+.app-shell { min-height: 100svh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+.sidebar { padding: 32px 18px 22px; display: flex; flex-direction: column; background: #f8faf7;
+  border-right: 1px solid var(--line); color: var(--ink); }
+.sidebar-brand { padding: 0 12px 27px; }
+.sidebar-brand > span { display: block; font-size: .51rem; letter-spacing: .16em; color: var(--muted); margin: 2px 0 0 3px; }
+.office-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.sidebar > .office-identity { padding: 20px 10px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.office-mark { width: 52px; height: 52px; flex: none; display: grid; place-items: center; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--navy); font-weight: 600; }
+.office-mark img { width: 100%; height: 100%; object-fit: contain; }
+.office-caption { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.office-caption > span { color: var(--muted); font-size: .51rem; letter-spacing: .13em; }
+.office-caption strong { color: var(--navy); font-size: .76rem; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.sidebar-nav { margin-top: 31px; display: flex; flex-direction: column; gap: 6px; }
+.nav-section-label { margin: 0 14px 9px; color: var(--muted); font-size: .58rem; letter-spacing: .17em; }
+.sidebar-nav a { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-radius: 8px;
+  font-size: .8rem; text-decoration: none; color: var(--muted); font-weight: 500; }
+.sidebar-nav a svg { flex: none; }
+.sidebar-nav a:hover { color: var(--navy); background: #edf3ee; }
+.sidebar-nav .nav-active { color: var(--navy); background: #e0ede6; font-weight: 600; }
+.sidebar-nav .nav-active svg { color: var(--teal); }
+.sidebar-footer { margin-top: auto; border-top: 1px solid var(--line); padding: 22px 11px 0;
+  display: flex; flex-direction: column; gap: 7px; overflow-wrap: anywhere; }
+.sidebar-footer span { color: var(--muted); font-size: .66rem; }
+.sidebar-footer strong { color: var(--navy); font-size: .78rem; font-weight: 600; }
+.app-content { min-width: 0; }
+.topbar { min-height: 72px; border-bottom: 1px solid var(--line); background: #ffffffc9; display: flex;
+  align-items: center; justify-content: space-between; gap: 16px; padding: 12px clamp(20px, 4vw, 64px); font-size: .75rem; }
+.workspace-label { display: flex; align-items: center; gap: 9px; color: var(--muted); min-width: 0; }
+.workspace-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rp-verde); flex: none; }
+.text-button { border: 0; background: none; color: var(--muted); font-size: .72rem; padding: 10px 0; white-space: nowrap; }
+.text-button:hover { color: var(--teal); }
+.text-button span { margin-left: 8px; }
+.dashboard-main { padding: clamp(28px, 4vw, 60px); }
+.dashboard-main h1 { font-size: clamp(1.8rem, 2.5vw, 2.5rem); font-weight: 600; letter-spacing: -.045em; }
+.dashboard-main .eyebrow { font-size: .62rem; }
+.page-description { font-size: .85rem; line-height: 1.7; }
+.metric-card, .workspace-panel, .table-section, .form-panel { box-shadow: none; }
+.metric-card { border-radius: 13px; }
+.financial-card { position: relative; padding-bottom: 29px; }
+.financial-card::after { content: ""; position: absolute; left: 24px; bottom: 17px; width: 32px; height: 3px;
+  border-radius: 4px; background: var(--rp-verde); }
+.financial-card h2 { font-size: .78rem; color: var(--muted); font-weight: 500; }
+.financial-card .metric-value { font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.financial-card p { line-height: 1.65; }
+.new-contract-banner { background: #eaf3ec; border-color: #d4e6d9; }
+.primary-button { font-weight: 600; }
+.secondary-button { color: var(--teal); border-color: var(--line); font-weight: 600; }
+.office-branding-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 340px); gap: 32px; }
+.office-branding-panel .office-identity { margin-top: 26px; }
+.office-branding-panel .office-mark { width: 76px; height: 76px; border-radius: 14px; }
+.office-branding-panel .office-caption strong { font-size: .88rem; }
+.office-logo-form { display: flex; flex-direction: column; gap: 14px; }
+.office-logo-form label { display: flex; flex-direction: column; gap: 9px; font-size: .8rem; font-weight: 600; }
+.office-logo-form input { max-width: 100%; font-size: .75rem; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.office-logo-form small { font-size: .72rem; color: var(--muted); line-height: 1.6; }
+.office-logo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.office-logo-actions button { flex: 1; }
+
+@media (min-width: 761px) { .sidebar { position: sticky; top: 0; height: 100svh; overflow-y: auto; } }
+@media (max-width: 1100px) { .app-shell { grid-template-columns: 225px minmax(0, 1fr); }
+  .sidebar { padding-inline: 13px; } .sidebar-brand .repassum-logo { width: 173px; } }
+@media (max-width: 760px) {
+  .login-page { grid-template-columns: 1fr; }
+  .login-intro { min-height: auto; padding: 28px; }
+  .login-intro .repassum-logo { width: 175px; }
+  .login-story { padding: 35px 0 10px; }
+  .login-story .eyebrow { font-size: .57rem; margin-bottom: 15px; }
+  .login-story h1 { max-width: 390px; font-size: 2.6rem; margin-bottom: 18px; }
+  .login-story > p:not(.eyebrow) { font-size: .84rem; }
+  .login-topics { margin-top: 22px; font-size: .65rem; }
+  .login-signature { display: none; }
+  .login-card { padding: 36px 0; }
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { padding: 20px 20px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    border-right: 0; border-bottom: 1px solid var(--line); }
+  .sidebar-brand { align-self: center; padding: 0; }
+  .sidebar-brand .repassum-logo { width: 154px; }
+  .sidebar-brand > span { display: none; }
+  .sidebar > .office-identity { border: 0; padding: 0; justify-self: end; gap: 8px; }
+  .sidebar .office-mark { width: 38px; height: 38px; border-radius: 8px; }
+  .sidebar .office-caption { max-width: 140px; }
+  .sidebar .office-caption strong { font-size: .65rem; }
+  .sidebar .office-caption > span { font-size: .46rem; }
+  .sidebar-nav { grid-column: 1 / -1; display: flex; flex-direction: row; margin: 0; flex-wrap: wrap; gap: 5px; }
+  .sidebar-nav a { padding: 10px 11px; font-size: .72rem; gap: 7px; }
+  .nav-section-label, .sidebar-footer { display: none; }
+  .topbar { min-height: 50px; padding: 6px 20px; font-size: .65rem; }
+  .text-button { font-size: .66rem; }
+  .dashboard-main { padding: 28px 20px; }
+  .office-branding-panel { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+}
+@media (max-width: 390px) { .sidebar-brand .repassum-logo { width: 130px; }
+  .sidebar .office-caption { max-width: 105px; } .sidebar-nav a { padding-inline: 8px; } }
