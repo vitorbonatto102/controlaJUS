@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function RepassumLogo({ light = false }: { light?: boolean }) {
   return <Image className="repassum-logo" src={`/branding/repassum/repassum-logo${light ? "-branco" : ""}.svg`}
-    alt="Repassum" width={555} height={145} priority />;
+    alt="Repassum" width={455} height={104} priority />;
 }
 
 export function AuthIntro({ title, description }: { title: string; description: string }) {

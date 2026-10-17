@@ -87,7 +87,7 @@ Após essa configuração, o admin daquele escritório convida o restante da equ
 
 ### Identidade Repassum e marca do escritório
 
-A marca da plataforma é **Repassum**. Os SVGs originais ficam em `public/branding/repassum/`; a paleta usa petróleo `#123439`, verde `#24A78B` e menta `#B3E8D5`. Botões usam verde mais escuro para garantir contraste com texto branco. Inter Variable é servida localmente por `next/font/local`; sua licença está em `src/app/fonts/OFL.txt`.
+A marca da plataforma é **Repassum**. Os SVGs ficam em `public/branding/repassum/`; no logotipo, o símbolo forma o R inicial e se une às letras “epassum”. A paleta usa petróleo `#123439`, verde `#24A78B` e menta `#B3E8D5`. Botões usam verde mais escuro para garantir contraste com texto branco. Inter Variable é servida localmente por `next/font/local`; sua licença está em `src/app/fonts/OFL.txt`.
 
 O logo do escritório é independente e aparece junto ao nome carregado de `offices`. A migration `20261017000100_office_branding.sql` provisiona o logo original da HP Consultoria Jurídica para o piloto, adiciona `offices.logo_path` e cria o bucket privado `office-logos`. Escritórios sem logo usam o nome e as iniciais, sem condicionais por cliente na interface.
 
