@@ -70,9 +70,12 @@ export default function Home() {
     <main id="conteudo">
     <section className={styles.hero} id="inicio" aria-labelledby="hero-title">
       <div className={styles.backdrop}>
-        <Image src={stillLife} alt="" fill sizes="100vw" preload placeholder="blur" />
+        <div className={styles.artwork}>
+          <Image src={stillLife} alt="" fill sizes="(max-width: 760px) 975px, (max-aspect-ratio: 3/2) 150vh, 100vw" preload placeholder="blur" />
+          <div className={styles.shade} aria-hidden="true" />
+          <FinancialIllustration />
+        </div>
       </div>
-      <div className={styles.shade} aria-hidden="true" />
       <div className={styles.heroContent}>
         <h1 className={styles.heroTitle} id="hero-title"><span>Contratos</span><span>também</span>
           <span>têm um <em>fluxo.</em></span></h1>
@@ -81,7 +84,6 @@ export default function Home() {
           {resources.map((resource) => <li key={resource.title}><a href="#recursos">{resource.title}</a></li>)}
         </ul>
       </div>
-      <FinancialIllustration />
       <a href="#recursos" className={styles.discover}>Conheça o fluxo <span aria-hidden="true">↓</span></a>
     </section>
     <section className={`${styles.section} ${styles.resources}`} id="recursos" aria-labelledby="resources-title">
