@@ -93,8 +93,10 @@
 .contact :focus-visible { outline-color: #283424; }
 .footer { padding: 36px 6.4%; display: flex; justify-content: space-between; align-items: center; gap: 28px; }
 .footer .brand img { width: 130px; }
-.footer p, .footer > a:last-child { font-size: .66rem; color: #bdc2ae; margin: 0; }
-.footer > a:last-child span { margin-left: 15px; }
+.footerLinks { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 28px; }
+.footer p, .footerLinks a { font-size: .66rem; color: #bdc2ae; margin: 0; }
+.footerLinks a:hover { color: var(--cream); text-decoration: underline; text-underline-offset: 4px; }
+.footerLinks span { margin-left: 8px; }
 
 @media (min-width: 1700px) {
   .heroContent { padding-top: calc(71px + 10vh); }
@@ -150,7 +152,8 @@
   .footer { padding: 30px 26px; flex-wrap: wrap; row-gap: 24px; }
   .footer .brand img { width: 120px; }
   .footer p { font-size: .6rem; }
-  .footer > a:last-child { width: 100%; font-size: .65rem; }
+  .footerLinks { width: 100%; }
+  .footerLinks a { font-size: .65rem; }
 }
 @media (max-width: 360px) {
   .header { margin-inline: 20px; }

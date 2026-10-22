@@ -39,7 +39,7 @@ tests/                       regras e integração SQL via PGlite
 
 1. Instale Node.js 22 e rode `npm ci`.
 2. Crie o projeto Supabase. Copie `.env.example` para `.env.local` e preencha as três variáveis. `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` podem chegar ao navegador; `SUPABASE_SECRET_KEY` é a **secret key de servidor** do mesmo projeto e nunca deve ter prefixo `NEXT_PUBLIC_`.
-3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para um projeto já atualizado até `20261006000200_rename_initial_office.sql`, execute somente `20261017000100_office_branding.sql` nesta etapa. O build do Next.js não aplica SQL automaticamente.
+3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para um projeto já atualizado até `20261017000100_office_branding.sql`, execute somente `20261022000100_contract_client_conflict.sql` nesta etapa. O build do Next.js não aplica SQL automaticamente.
 4. Em **Authentication → Providers → Email**, mantenha Email habilitado e desative cadastro público (**Allow new users to sign up**). Desative login anônimo. `supabase/config.toml` faz isso no ambiente local da CLI; no projeto hospedado, configure pelo Dashboard.
 5. Em **Authentication → URL Configuration**, informe a Site URL correta (por exemplo, `http://localhost:3001` durante desenvolvimento e a URL da Vercel em produção). Em **Email Templates**, copie [invite.html](supabase/templates/invite.html) para **Invite user** e [recovery.html](supabase/templates/recovery.html) para **Reset password**. Os links abrem páginas com botão de confirmação, evitando consumo automático do token por verificadores de e-mail. Configure SMTP adequado para uso real.
 6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público. A importação usa esse bucket temporariamente porque a Vercel limita o corpo de uma função a 4,5 MB; o arquivo de análise é removido antes da confirmação. O PDF definitivo só é enviado na confirmação. Se a conexão cair imediatamente após o upload, um arquivo não vinculado pode permanecer; faça a limpeza pela API de Storage, nunca apagando diretamente `storage.objects`.
@@ -137,6 +137,7 @@ Migrations novas desta etapa:
 | `20261006000100_offices_rbac.sql` | Tabela `offices`, vínculo de tenant, admin adicional por perfil, políticas RLS e guards para dados, RPC de gestão de usuários e CPF único por escritório. |
 | `20261006000200_rename_initial_office.sql` | Define o nome do escritório piloto como HP Consultoria Jurídica. |
 | `20261017000100_office_branding.sql` | Logo por escritório, marca HP do piloto, Storage privado, políticas por escritório e RPC administrativa com auditoria. |
+| `20261022000100_contract_client_conflict.sql` | Corrige o `ON CONFLICT` do cadastro de contratos para o índice parcial de CPF por escritório, preservando cadastros existentes. Pode ser reaplicada. |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
@@ -150,6 +151,10 @@ npm test
 ```
 
 Os testes SQL existentes cobrem as migrations financeiras e verificam RLS, separação de valores, pagamentos parciais/múltiplos, mudança de mês, snapshot de fechamento, repasses parciais/múltiplos, reversão, correção posterior, ajustes, auditoria, notificações e alterações administrativas. O teste de branding aplica todas as migrations em sequência e verifica dois escritórios, autorização de upload, leitura isolada dos logos, bloqueio de exclusão do arquivo em uso, auditoria e múltiplos admins sem trocar o cargo de advogada. Os testes do parser cobrem data fixa, condição, pagamento à vista, honorários adicionais, campos ausentes, variações de espaço e PDFs inválidos ou sem texto. PDFs digitalizados sem camada de texto precisam de cadastro manual nesta etapa. O fluxo de e-mail e uploads no projeto hospedado exige verificação com contas fictícias, pois depende dos serviços externos Supabase Auth, SMTP e Storage.
+
+O teste de cadastro multi-escritório executa todas as migrations e a RPC real: verifica reutilização do cliente no mesmo escritório, CPF igual em escritórios distintos, isolamento RLS, bloqueio da secretaria e rollback de cronograma inválido. A extração de CPF e data tolera palavras/espaços unidos na camada de texto do PDF, mas mantém a validação de CPF e calendário; não corrige dígitos nem realiza OCR de imagens.
+
+Se o cadastro retornar `there is no unique or exclusion constraint matching the ON CONFLICT specification` em um banco já atualizado para múltiplos escritórios, execute `20261022000100_contract_client_conflict.sql` no SQL Editor do Supabase. O deploy da Vercel não aplica essa correção no banco automaticamente.
 
 ## Vercel
 

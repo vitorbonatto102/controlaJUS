@@ -73,6 +73,35 @@ test("âncoras ausentes deixam campos nulos", () => {
   assert.equal(data.hasAdditionalFee, false);
 });
 
+test("parser lê CPF com palavras unidas e data com ano colado pela camada de texto", () => {
+  const data = parseContractText(`CONTRATANTE: Cliente Fictícia, brasileira,
+    RG no1234567890, inscritono CPF sob o no 529.982.247-25, residente nesta cidade.
+    CONTRATADA: Escritório Fictício, inscrito no CPF sob o nº 724.787.130-04.
+    Cruz Alta-RS, 07 de Outubro de2026.`);
+  assert.equal(data.cpf, "529.982.247-25");
+  assert.equal(data.contractDate, "07/10/2026");
+});
+
+test("parser tolera espaços nos separadores e variações da identificação do CPF", () => {
+  for (const identification of ["CPF: 529 . 982 . 247 - 25", "CPF/MF nº 52998224725",
+    "CPF sob o n.º 529.982.247-25", "CPF número 529.982.247-25"]) {
+    const data = parseContractText(`CONTRATANTE: Cliente Fictício, ${identification}.
+      Cruz Alta-RS, 07 / 10 / 2026.`);
+    assert.equal(data.cpf, "529.982.247-25");
+    assert.equal(data.contractDate, "07/10/2026");
+  }
+});
+
+test("parser não usa CPF da contratada nem aceita CPF ou data inválidos", () => {
+  const data = parseContractText(`CONTRATANTE: Cliente Fictício, CPF sob o no 529.982.247-26.
+    CONTRATADA: Escritório Fictício, CPF sob o nº 724.787.130-04.
+    Cruz Alta-RS, 30 de Fevereiro de2026.`);
+  assert.equal(data.cpf, null);
+  assert.equal(data.contractDate, null);
+  assert.equal(parseContractText(`CONTRATANTE: Cliente Fictício, documento ausente.
+    CONTRATADA: Escritório Fictício, CPF: 724.787.130-04.`).cpf, null);
+});
+
 function blankPdf(): Uint8Array {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",

@@ -117,7 +117,11 @@ export default function Home() {
     </main>
     <footer className={styles.footer}>
       <Link href="/#inicio" className={styles.brand} aria-label="Repassum, voltar ao início"><RepassumLogo light /></Link>
-      <p>Clareza em cada etapa.</p><Link href="/login">Acessar a plataforma <span aria-hidden="true">↗</span></Link>
+      <p>Clareza em cada etapa.</p>
+      <div className={styles.footerLinks}>
+        <Link href="/login">Acessar a plataforma <span aria-hidden="true">↗</span></Link>
+        <a href="https://bempronto.vercel.app/" target="_blank" rel="noopener noreferrer">Site por BemPronto <span aria-hidden="true">↗</span></a>
+      </div>
     </footer>
   </div>;
 }

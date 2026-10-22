@@ -1,5 +1,5 @@
 import { parseMoneyBR } from "./finance";
-import { isValidCpf, MAX_PDF_BYTES } from "./validation";
+import { formatCpf, isValidCpf, MAX_PDF_BYTES } from "./validation";
 
 export type ExtractedContractData = {
   contractorName: string | null;
@@ -24,11 +24,11 @@ const monthNames: Record<string, number> = {
   julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
 };
 const monthWord = "janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro";
-const dateSource = `(?:\\d{1,2}[/.]\\d{1,2}[/.]\\d{4}|\\d{1,2}\\s+de\\s+(?:${monthWord})\\s+de\\s+\\d{4})`;
+const dateSource = `(?:\\d{1,2}\\s*[/.]\\s*\\d{1,2}\\s*[/.]\\s*\\d{4}|\\d{1,2}\\s*de\\s*(?:${monthWord})\\s*de\\s*\\d{4})`;
 
 function brazilianDate(value: string): string | null {
-  const numeric = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/.exec(value.trim());
-  const written = new RegExp(`^(\\d{1,2})\\s+de\\s+(${monthWord})\\s+de\\s+(\\d{4})$`, "i").exec(value.trim());
+  const numeric = /^(\d{1,2})\s*[/.]\s*(\d{1,2})\s*[/.]\s*(\d{4})$/.exec(value.trim());
+  const written = new RegExp(`^(\\d{1,2})\\s*de\\s*(${monthWord})\\s*de\\s*(\\d{4})$`, "i").exec(value.trim());
   if (!numeric && !written) return null;
   const day = Number((numeric ?? written)![1]);
   const month = numeric ? Number(numeric[2]) : monthNames[written![2].toLowerCase()
@@ -47,10 +47,13 @@ function moneyAfter(text: string, expression: RegExp): string | null {
 
 export function parseContractText(rawText: string): ExtractedContractData {
   const text = rawText.normalize("NFC").replace(/\s+/g, " ").trim();
-  const contractorName = /\bCONTRATANTE\s*:\s*([^,]{2,160}?)\s*,/i.exec(text)?.[1].trim() ?? null;
-  const cpfMatch = /inscrit[oa]\s+no\s+CPF\s+sob\s+o\s*(?:n\s*[º°o.]?\s*)?(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i
-    .exec(text)?.[1] ?? null;
-  const cpf = cpfMatch && isValidCpf(cpfMatch) ? cpfMatch : null;
+  const contractorText = /\bCONTRATANTE\s*:\s*(.*?)(?=\bCONTRATAD[AO]\s*:|$)/i.exec(text)?.[1] ?? "";
+  const contractorName = /^([^,]{2,160}?)\s*,/i.exec(contractorText)?.[1].trim() ?? null;
+  // A camada de texto pode juntar "inscrito no"; a âncora é CPF na identificação
+  // do contratante, sem capturar documentos da contratada ou corrigir dígitos.
+  const cpfMatch = /\bCPF(?:\s*\/\s*MF)?\s*(?:sob\s*o\s*)?(?:(?:n(?:[.\s]*[º°o])?\.?|n[uú]mero)\s*)?[:–-]?\s*(\d{3}\s*\.?\s*\d{3}\s*\.?\s*\d{3}\s*-?\s*\d{2})(?!\d)/i
+    .exec(contractorText)?.[1] ?? null;
+  const cpf = cpfMatch && isValidCpf(cpfMatch) ? formatCpf(cpfMatch) : null;
 
   const clauseStart = /\b2\.1\.\s*O\s+valor\s+total\s+dos\s+honor[aá]rios\s+advocat[ií]cios\b/i.exec(text);
   const rest = clauseStart ? text.slice(clauseStart.index) : "";
