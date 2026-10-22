@@ -71,7 +71,7 @@ export function SecretaryTable({ rows, lawyers, today }: {
         <td>{row.latestContactAt ? <Link className="row-link" href={`/secretaria/clientes/${row.clientId}#historico`}>
           {formatDateBR(new Date(row.latestContactAt))}</Link> : "—"}</td>
         <td><Link className="row-link" href={`/secretaria/clientes/${row.clientId}#parcela-${row.installmentId}`}>
-          Abrir cliente</Link></td>
+          {row.paidCents > 0 ? "Gerenciar recebimento" : "Registrar pagamento"}</Link></td>
       </tr>)}</tbody></table></div>
       {pageCount > 1 && <div className="pagination"><span>Página {page} de {pageCount}</span>
         <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</button>

@@ -4,20 +4,24 @@ import { useActionState, useState } from "react";
 import { addCollectionNote, registerPayment, revisePayment } from "@/app/secretaria/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { noteTypeLabels, type OperationalContract } from "@/lib/secretary/view";
+import { formatBRL } from "@/lib/formatters";
 
 function ActionFeedback({ error, success }: { error: string | null; success: string | null }) {
   return <>{error && <p className="form-error-box" role="alert">{error}</p>}
     {success && <p className="success-box" role="status">{success}</p>}</>;
 }
 
-export function PaymentForm({ clientId, installmentId }: { clientId: string; installmentId: string }) {
+export function PaymentForm({ clientId, installmentId, contractualCents, dueDate, hasPayments = false }: {
+  clientId: string; installmentId: string; contractualCents: number; dueDate: string; hasPayments?: boolean;
+}) {
   const [state, action, pending] = useActionState(registerPayment, emptyActionState);
-  return <details className="operation-details"><summary>Registrar pagamento</summary>
+  return <details className="operation-details"><summary>{hasPayments ? "Registrar outro pagamento" : "Registrar pagamento"}</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="installment_id" value={installmentId} />
-      <label>Valor efetivamente recebido (R$)<input name="amount_paid" inputMode="decimal" placeholder="1.080,00" required /></label>
-      <label>Data do pagamento<input name="payment_date" type="date" required /></label>
+      <label>Valor efetivamente recebido (R$)<input name="amount_paid" inputMode="decimal"
+        defaultValue={formatBRL(contractualCents / 100).replace(/^R\$\s*/, "")} required /></label>
+      <label>Data do pagamento<input name="payment_date" type="date" defaultValue={dueDate} required /></label>
       <label>Observação (opcional)<textarea name="observation" maxLength={1000} rows={2} /></label>
       <button className="primary-button" disabled={pending} type="submit">{pending ? "Registrando…" : "Confirmar pagamento"}</button>
       <ActionFeedback error={state.error} success={state.success} />
@@ -45,24 +49,34 @@ export function NoteForm({ clientId, contracts }: { clientId: string; contracts:
   </form>;
 }
 
-export function PaymentCorrectionForm({ clientId, paymentId, amount, date }: {
+type PaymentCorrectionProps = {
   clientId: string; paymentId: string; amount: string; date: string;
+};
+
+function PaymentRevisionForm({ clientId, paymentId, amount, date, mode }: PaymentCorrectionProps & {
+  mode: "replace" | "void";
 }) {
   const [state, action, pending] = useActionState(revisePayment, emptyActionState);
-  const [mode, setMode] = useState("replace");
-  return <details className="operation-details"><summary>Corrigir ou estornar</summary>
+  return <details className={`operation-details ${mode === "void" ? "payment-delete" : ""}`}>
+    <summary>{mode === "replace" ? "Editar registro" : "Excluir registro"}</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="payment_id" value={paymentId} />
-      <label>Ação<select name="mode" value={mode} onChange={(e) => setMode(e.target.value)}>
-        <option value="replace">Corrigir lançamento</option><option value="void">Estornar pagamento</option>
-      </select></label>
+      <input type="hidden" name="mode" value={mode} />
+      {mode === "void" && <p className="operation-wide">O registro será retirado do total recebido e o saldo da parcela será recalculado. O histórico será preservado.</p>}
       {mode === "replace" && <><label>Novo valor (R$)<input name="amount_paid" defaultValue={amount} inputMode="decimal" required /></label>
         <label>Nova data<input name="payment_date" type="date" defaultValue={date} required /></label></>}
-      <label>Motivo da correção<textarea name="reason" minLength={5} maxLength={1000} rows={2} required /></label>
+      <label>Motivo da {mode === "void" ? "exclusão" : "edição"}<textarea name="reason" minLength={5} maxLength={1000} rows={2} required /></label>
       <button className="secondary-button" disabled={pending} type="submit">{pending ? "Salvando…" :
-        mode === "void" ? "Confirmar estorno" : "Salvar correção"}</button>
+        mode === "void" ? "Confirmar exclusão" : "Salvar alteração"}</button>
       <ActionFeedback error={state.error} success={state.success} />
     </form>
   </details>;
+}
+
+export function PaymentCorrectionForm(props: PaymentCorrectionProps) {
+  return <div className="payment-correction-actions">
+    <PaymentRevisionForm {...props} mode="replace" />
+    <PaymentRevisionForm {...props} mode="void" />
+  </div>;
 }

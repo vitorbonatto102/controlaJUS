@@ -25,6 +25,8 @@ export default async function ClientOperationPage({ params }: { params: Promise<
     (payment) => ({ ...payment, row: rows.find((row) => row.installmentId === item.id),
       contractId: contract.id })))).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const names = new Map(users.map((user) => [user.id, user.full_name]));
+  const activePaymentsByInstallment = new Map(contracts.flatMap((contract) => contract.installments.map(
+    (item) => [item.id, item.payments.filter((payment) => !payment.voided_at)] as const)));
   const client = contracts[0];
   return <DashboardShell profile={profile}>
     <Link className="back-link" href="/secretaria">← Voltar ao painel</Link>
@@ -42,20 +44,31 @@ export default async function ClientOperationPage({ params }: { params: Promise<
           <td>{contract.installments.length}</td></tr>)}</tbody></table></div>
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Parcelas</h2>
-      <p>Valor contratual e recebido são mantidos separadamente. É possível registrar vários pagamentos por parcela.</p></div></div>
+      <p>Registre recebimentos e edite ou exclua seus lançamentos na própria parcela. Valor e data são sugeridos a partir do contrato.</p></div></div>
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Advogada</th><th>Parcela</th>
         <th>Vencimento</th><th>Valor contratual</th><th>Recebido</th><th>Saldo</th><th>Status</th><th>Ação</th>
-      </tr></thead><tbody>{rows.map((row) => <tr id={`parcela-${row.installmentId}`} key={row.installmentId}>
+      </tr></thead><tbody>{rows.map((row) => {
+        const payments = activePaymentsByInstallment.get(row.installmentId) ?? [];
+        return <tr id={`parcela-${row.installmentId}`} key={row.installmentId}>
         <td>{row.lawyerName}</td><td>{row.installmentLabel}</td><td>{formatDateBR(row.dueDate)}</td>
         <td className="money-cell">{formatBRL(row.contractualCents / 100)}</td>
         <td className="money-cell">{formatBRL(row.paidCents / 100)}</td>
         <td className="money-cell">{formatBRL(row.balanceCents / 100)}</td>
         <td><span className={`status status-${row.status}`}>{operationalStatusLabels[row.status]}</span></td>
-        <td><PaymentForm clientId={id} installmentId={row.installmentId} /></td>
-      </tr>)}</tbody></table></div>
+        <td><div className="installment-payment-actions">
+          {payments.map((payment) => <div className="installment-payment-record" key={payment.id}>
+            <p><strong>{formatBRL(payment.amount_paid)}</strong> · {formatDateBR(payment.payment_date)}</p>
+            {payment.recorded_by === profile.id ? <PaymentCorrectionForm clientId={id} paymentId={payment.id}
+              amount={formatBRL(payment.amount_paid).replace(/^R\$\s*/, "")} date={payment.payment_date} /> :
+              <small>Registrado por {names.get(payment.recorded_by) ?? "outro usuário"}.</small>}
+          </div>)}
+          <PaymentForm clientId={id} installmentId={row.installmentId} contractualCents={row.contractualCents}
+            dueDate={row.dueDate} hasPayments={payments.length > 0} />
+        </div></td>
+      </tr>; })}</tbody></table></div>
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Pagamentos</h2>
-      <p>Correções preservam o lançamento original e exigem motivo. Apenas quem lançou pode corrigir.</p></div></div>
+      <p>Edições e exclusões preservam o lançamento original e exigem motivo. Apenas quem lançou pode corrigir.</p></div></div>
       {paymentRows.length === 0 ? <div className="empty-state"><p>Nenhum recebimento registrado.</p></div> :
         <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th><th>Data</th>
           <th>Valor</th><th>Registrado por</th><th>Observação</th><th>Situação</th><th>Ação</th>
@@ -63,7 +76,7 @@ export default async function ClientOperationPage({ params }: { params: Promise<
           <td>{payment.row?.installmentLabel ?? "—"}</td><td>{formatDateBR(payment.payment_date)}</td>
           <td className="money-cell">{formatBRL(payment.amount_paid)}</td>
           <td>{names.get(payment.recorded_by) ?? "Usuário inativo"}</td><td>{payment.observation || "—"}</td>
-          <td>{payment.voided_at ? <span className="status status-overdue">Estornado</span> :
+          <td>{payment.voided_at ? <span className="status status-overdue">Excluído / estornado</span> :
             payment.replaces_payment_id ? <span className="status status-paid">Corrigido</span> : "Ativo"}
             {payment.void_reason && <small className="payment-reason">Motivo: {payment.void_reason}</small>}</td>
           <td>{!payment.voided_at && payment.recorded_by === profile.id ?

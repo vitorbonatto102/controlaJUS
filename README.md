@@ -114,6 +114,8 @@ Antes de aplicar a nova migration, a plataforma continua exibindo o nome e as in
 
 ## Áreas e segurança
 
+Na operação da secretaria, a coluna **Ação** da própria parcela lista cada recebimento ativo com **Editar registro** e **Excluir registro** para quem o lançou. A edição e a exclusão usam a RPC auditada existente e exigem motivo; excluir estorna o recebimento, preserva o original no histórico e recalcula o saldo, sem apagar a parcela contratual. Em **Registrar pagamento**, o valor normal da parcela e sua data de vencimento já vêm preenchidos e podem ser alterados antes de confirmar. Havendo recebimentos ativos, o formulário aparece como **Registrar outro pagamento**. Continuam valendo a autoria e o bloqueio de meses fechados no banco.
+
 | Perfil | Acesso |
 | --- | --- |
 | `lawyer` | Somente contratos, clientes associados, parcelas, pagamentos, comissões, fechamentos, repasses e notificações da própria conta. Pode cadastrar contrato por PDF ou manualmente, mas não registrar recebimentos ou repasses. |

@@ -99,5 +99,5 @@ export async function revisePayment(_state: SecretaryActionState, form: FormData
   });
   if (error) return { error: "Correção recusada. Verifique se o lançamento é seu, está ativo e não pertence a um mês fechado.", success: null };
   refresh(clientId);
-  return { error: null, success: mode === "replace" ? "Pagamento corrigido com histórico." : "Pagamento estornado com histórico." };
+  return { error: null, success: mode === "replace" ? "Registro atualizado. Os valores foram recalculados." : "Registro excluído do recebimento. Histórico preservado." };
 }
