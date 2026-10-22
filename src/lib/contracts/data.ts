@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 
 const contractSelect = `
-  id, client_id, origin, contract_date, total_contract_value, payment_method,
+  id, client_id, origin, contract_date, total_contract_value, payment_method, success_fee_percentage,
   contract_file_path, contract_file_name,
   payment_start_type, first_due_date, payment_start_condition, last_installment_amount,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
@@ -36,6 +36,7 @@ function normalize(raw: RawContract): ContractRecord {
     id: raw.id, client_id: raw.client_id, client_name: client.full_name,
     client_cpf: client.cpf, origin: raw.origin, contract_date: raw.contract_date,
     total_contract_value: raw.total_contract_value, payment_method: raw.payment_method,
+    success_fee_percentage: raw.success_fee_percentage == null ? null : Number(raw.success_fee_percentage),
     contract_file_path: raw.contract_file_path, contract_file_name: raw.contract_file_name,
     payment_start_type: raw.payment_start_type, first_due_date: raw.first_due_date,
     payment_start_condition: raw.payment_start_condition,
@@ -62,12 +63,19 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
   const supabase = await createClient();
   const pageSize = 100;
   const all: ContractRecord[] = [];
+  let fields = contractSelect;
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await supabase.from("contracts")
-      .select(contractSelect)
+    const fetchPage = () => supabase.from("contracts")
+      .select(fields)
       .eq("lawyer_id", lawyerId)
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
+    let { data, error } = await fetchPage();
+    // Mantém os contratos existentes acessíveis entre o deploy e a migration.
+    if (error?.code === "42703" && error.message.includes("success_fee_percentage")) {
+      fields = fields.replace(", success_fee_percentage", "");
+      ({ data, error } = await fetchPage());
+    }
     if (error) throw new Error("Não foi possível carregar os contratos.");
     const page = (data ?? []) as unknown as RawContract[];
     all.push(...page.map(normalize));
@@ -78,11 +86,17 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
 
 export async function loadLawyerContract(lawyerId: string, contractId: string): Promise<ContractRecord | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("contracts")
-    .select(contractSelect)
+  let fields = contractSelect;
+  const fetchContract = () => supabase.from("contracts")
+    .select(fields)
     .eq("id", contractId)
     .eq("lawyer_id", lawyerId)
     .maybeSingle();
+  let { data, error } = await fetchContract();
+  if (error?.code === "42703" && error.message.includes("success_fee_percentage")) {
+    fields = fields.replace(", success_fee_percentage", "");
+    ({ data, error } = await fetchContract());
+  }
   if (error) throw new Error("Não foi possível carregar o contrato.");
   return data ? normalize(data as unknown as RawContract) : null;
 }

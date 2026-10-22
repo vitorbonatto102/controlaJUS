@@ -23,8 +23,9 @@ export type ContractRecord = {
   client_cpf: string | null;
   origin: string;
   contract_date: string;
-  total_contract_value: number;
-  payment_method: "cash" | "installments" | null;
+  total_contract_value: number | null;
+  payment_method: "cash" | "installments" | "success_only" | null;
+  success_fee_percentage?: number | null;
   contract_file_path: string | null;
   contract_file_name: string | null;
   payment_start_type?: "fixed_date" | "condition" | null;
@@ -82,6 +83,7 @@ export function installmentLabel(item: InstallmentRecord, regularCount: number):
 
 export function buildFinancialRows(contracts: ContractRecord[], today: string): FinancialRow[] {
   return contracts.flatMap((contract) => {
+    if (contract.payment_method === "success_only") return [];
     const regularCount = contract.installments.filter((item) => item.kind === "regular").length;
     return contract.installments.map((item) => {
       const contractualCents = numericToCents(item.contractual_amount);
@@ -112,8 +114,8 @@ export function summarizeContracts(contracts: ContractRecord[], today: string) {
   const month = today.slice(0, 7);
   const rows = buildFinancialRows(contracts, today);
   return {
-    totalContractedCents: contracts.reduce((sum, contract) => sum + numericToCents(contract.total_contract_value), 0),
-    contractedParticipationCents: contracts.reduce((sum, contract) => sum + participationCents(
+    totalContractedCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + numericToCents(contract.total_contract_value), 0),
+    contractedParticipationCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + participationCents(
       numericToCents(contract.total_contract_value), contract.commission_percentage), 0),
     monthlyEstimateCents: rows.filter((row) => row.dueDate.startsWith(month))
       .reduce((sum, row) => sum + row.estimatedCents, 0),

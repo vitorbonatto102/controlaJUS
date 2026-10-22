@@ -274,7 +274,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
               .map((item) => ({ value: item, label: item }))} />
           <FieldCorrection table="contracts" recordId={contract.id} field="contract_date"
             current={contract.contract_date} label="Data do contrato" />
-          {data.contractTotals.find((item) => item.id === contract.id) &&
+          {data.contractTotals.find((item) => item.id === contract.id)?.total_contract_value != null &&
             <FieldCorrection table="contracts" recordId={contract.id} field="total_contract_value"
               current={String(data.contractTotals.find((item) => item.id === contract.id)?.total_contract_value)}
               label="Valor do contrato" />}

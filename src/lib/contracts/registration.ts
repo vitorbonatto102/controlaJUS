@@ -7,7 +7,8 @@ export type ContractFormValues = {
   cpf: string;
   contractDate: string;
   total: string;
-  method: "" | "cash" | "installments";
+  method: "" | "cash" | "installments" | "success_only";
+  successFeePercentage: string;
   count: string;
   installmentValue: string;
   lastInstallmentValue: string;
@@ -25,22 +26,25 @@ export type ContractFormValues = {
   percentage: string;
 };
 
-export type ContractPreview = {
+type PreviewBase = {
   rows: ScheduleRow[];
-  totalCents: number;
-  installmentCents: number;
   lastInstallmentCents: number | null;
-  installmentCount: number;
-  sumCents: number;
   differenceCents: number;
   additionalFeeAmountCents: number | null;
   percentage: number;
   contractDate: string;
   firstDueDate: string | null;
 };
+export type ContractPreview = PreviewBase & ({
+  method: "success_only"; successFeePercentage: number;
+  totalCents: null; installmentCents: null; installmentCount: 0; sumCents: null;
+} | {
+  method: "cash" | "installments"; successFeePercentage: null;
+  totalCents: number; installmentCents: number; installmentCount: number; sumCents: number;
+});
 
 export const blankContractForm: ContractFormValues = {
-  clientName: "", cpf: "", contractDate: "", total: "", method: "", count: "",
+  clientName: "", cpf: "", contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
@@ -64,6 +68,17 @@ export function prepareContract(values: ContractFormValues): ContractPreview {
   if (!ORIGINS.some((origin) => origin === values.origin)) throw new Error("Selecione a origem da contratação.");
   const percentage = Number(values.percentage);
   if (!PERCENTAGES.some((item) => item === percentage)) throw new Error("Selecione um percentual permitido.");
+  if (values.method === "success_only") {
+    const rawPercentage = values.successFeePercentage.trim().replace(",", ".");
+    const successFeePercentage = Number(rawPercentage);
+    if (!/^\d{1,3}(?:\.\d{1,2})?$/.test(rawPercentage) || successFeePercentage <= 0 || successFeePercentage > 100) {
+      throw new Error("Informe o percentual cobrado do cliente no êxito, entre 0,01% e 100%.");
+    }
+    return { method: "success_only", successFeePercentage, rows: [], totalCents: null,
+      installmentCents: null, installmentCount: 0, lastInstallmentCents: null,
+      sumCents: null, differenceCents: 0, additionalFeeAmountCents: null,
+      percentage, contractDate, firstDueDate: null };
+  }
   const totalCents = parseMoneyBR(values.total);
   if (totalCents === null || totalCents <= 0) throw new Error("Informe o valor total contratado.");
   if (values.method !== "cash" && values.method !== "installments") {
@@ -125,7 +140,7 @@ export function prepareContract(values: ContractFormValues): ContractPreview {
     rows = schedule.rows;
     sumCents = schedule.sumCents;
   }
-  return { rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
+  return { method: values.method, successFeePercentage: null, rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
     differenceCents: totalCents - sumCents, additionalFeeAmountCents,
     percentage, contractDate, firstDueDate };
 }

@@ -19,7 +19,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
   if (!contract) notFound();
   const { criado } = await searchParams;
   const rows = buildFinancialRows([contract], todayInSaoPaulo());
-  const totalCents = numericToCents(contract.total_contract_value);
+  const totalCents = contract.total_contract_value === null ? null : numericToCents(contract.total_contract_value);
   const paymentRows = contract.installments.flatMap((item) => item.payments.map((payment) => ({
     ...payment, installmentLabel: rows.find((row) => row.installmentId === item.id)?.installmentLabel ?? "—",
   }))).sort((a, b) => b.payment_date.localeCompare(a.payment_date));
@@ -34,11 +34,13 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <div><dt>CPF</dt><dd>{contract.client_cpf ? formatCpf(contract.client_cpf) : "—"}</dd></div>
         <div><dt>Origem</dt><dd>{contract.origin}</dd></div>
         <div><dt>Data do contrato</dt><dd>{formatDateBR(contract.contract_date)}</dd></div>
-        <div><dt>Valor contratado</dt><dd>{formatBRL(totalCents / 100)}</dd></div>
+        <div><dt>Valor contratado</dt><dd>{totalCents === null ? "A apurar após o êxito" : formatBRL(totalCents / 100)}</dd></div>
         <div><dt>Minha participação</dt><dd>{contract.commission_percentage}%</dd></div>
-        <div><dt>Participação contratual estimada</dt><dd>{formatBRL(participationCents(totalCents, contract.commission_percentage) / 100)}</dd></div>
+        <div><dt>Participação contratual estimada</dt><dd>{totalCents === null ? "Depende do valor recebido" : formatBRL(participationCents(totalCents, contract.commission_percentage) / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{contract.payment_method === "cash" ? "À vista" :
-          contract.payment_method === "installments" ? "Parcelado" : "Não informada"}</dd></div>
+          contract.payment_method === "installments" ? "Parcelado" : contract.payment_method === "success_only" ? "Apenas no êxito" : "Não informada"}</dd></div>
+        {contract.success_fee_percentage != null && <div><dt>Honorários cobrados do cliente no êxito</dt>
+          <dd>{contract.success_fee_percentage.toLocaleString("pt-BR")}% sobre o resultado da ação</dd></div>}
         {contract.payment_start_type === "condition" && <div><dt>Início dos pagamentos</dt>
           <dd>{contract.payment_start_condition}</dd></div>}
         {contract.last_installment_amount != null && <div><dt>Última parcela contratada</dt>
@@ -61,7 +63,9 @@ export default async function ContractDetailPage({ params, searchParams }: {
       <p>Pagamentos são lançados pela secretaria. Esta página é somente para consulta.</p>
     </div></div>
       {rows.length === 0 ? <div className="empty-state"><p>{contract.payment_start_type === "condition" ?
-        "Aguardando definição do primeiro vencimento." : "Nenhuma parcela cadastrada."}</p></div> :
+        "Aguardando definição do primeiro vencimento." : contract.payment_method === "success_only" ?
+        "Aguardando êxito da ação, sem valor ou vencimentos definidos." : "Nenhuma parcela cadastrada."}</p>
+        <Link className="row-link" href="/acompanhamento">Acompanhar condições do contrato →</Link></div> :
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th>
         <th>Vencimento</th><th>Valor contratual</th><th>Valor pago</th><th>Diferença</th><th>Data do pagamento</th>
         <th>Participação estimada</th><th>Comissão efetiva</th><th>Status</th></tr></thead>

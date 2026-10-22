@@ -7,6 +7,7 @@ import { homeByRole, type Role } from "@/lib/auth/roles";
 export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }) {
   const pathname = usePathname();
   const links = [{ href: homeByRole[role], label: "Visão geral", icon: "overview" }];
+  links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
   if (isAdmin) links.push({ href: "/administracao", label: "Administração", icon: "settings" });
   return <nav className="sidebar-nav" aria-label="Navegação principal">

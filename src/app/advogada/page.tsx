@@ -8,6 +8,7 @@ import { summarizeContracts, todayInSaoPaulo } from "@/lib/contracts/view";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { loadClosings, loadClosingDetails, loadNotifications } from "@/lib/finance/data";
 import { numericToCents } from "@/lib/contracts/finance";
+import { followUpReasons } from "@/lib/contracts/follow-up";
 
 export default async function LawyerPage() {
   const profile = await requireRole("lawyer");
@@ -47,7 +48,7 @@ export default async function LawyerPage() {
       <h1>Olá, {firstName} 👋</h1>
       <p className="page-description">Veja um resumo dos seus contratos e da sua previsão financeira.</p></div>
     <section className="card-grid lawyer-cards" aria-label="Resumo financeiro">
-      <FinancialCard title="Total em contratos fechados" value={formatBRL(summary.totalContractedCents / 100)} hint="Valor total contratado" />
+      <FinancialCard title="Total em contratos fechados" value={formatBRL(summary.totalContractedCents / 100)} hint="Principal conhecido; êxito a apurar fica em Acompanhamento" />
       <FinancialCard title="Minha participação contratada" value={formatBRL(summary.contractedParticipationCents / 100)} hint="Previsão contratual, ainda não recebida" />
       <FinancialCard title="Estimativa deste mês" value={formatBRL(summary.monthlyEstimateCents / 100)} hint="Sobre parcelas com vencimento neste mês" />
       <FinancialCard title="Participação efetivamente gerada neste mês" value={formatBRL(summary.monthlyGeneratedCents / 100)} hint={summary.monthlyGeneratedCents ? "Sobre valores efetivamente pagos" : "Aguardando lançamentos de recebimentos"} />
@@ -84,6 +85,9 @@ export default async function LawyerPage() {
           <td>{row.count}</td><td>{formatBRL(row.balanceCents / 100)}</td>
           <td>{formatBRL(row.potentialCents / 100)}</td></tr>)}</tbody></table></div> : <p>Nenhuma parcela inadimplente.</p>}
     </section>
+    <section className="new-contract-banner"><div><h2>Acompanhamento de ações</h2>
+      <p>{contracts.filter((contract) => followUpReasons(contract).length > 0).length} contratos com êxito, honorários adicionais ou início condicionado.</p></div>
+      <Link className="secondary-button" href="/acompanhamento">Ver acompanhamento →</Link></section>
     <LawyerTable rows={summary.rows} />
   </DashboardShell>;
 }

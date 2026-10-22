@@ -86,9 +86,9 @@ function ContractDataFields({ values, set, note, cpfNotice, checkCpf }: {
         <input inputMode="numeric" maxLength={10} value={values.contractDate}
           onChange={(event) => set("contractDate", dateInput(event.target.value))} placeholder="DD/MM/AAAA" />
         <FieldNote note={note("contractDate")} /></label>
-        <label>Valor total contratado<input inputMode="decimal" value={values.total}
+        {values.method !== "success_only" && <label>Valor total contratado<input inputMode="decimal" value={values.total}
           onChange={(event) => set("total", event.target.value)} onBlur={() => set("total", moneyInput(values.total))}
-          placeholder="R$ 4.000,00" /><FieldNote note={note("total")} /></label></div>
+          placeholder="R$ 4.000,00" /><FieldNote note={note("total")} /></label>}</div>
     </section>
     <section className="form-panel"><Heading number="04" title="Forma de pagamento"
       description="As datas só serão criadas quando houver um primeiro vencimento definido." />
@@ -97,8 +97,17 @@ function ContractDataFields({ values, set, note, cpfNotice, checkCpf }: {
           onChange={() => { set("method", "cash"); set("count", "1"); set("lastInstallmentValue", ""); }} /> À vista</label>
         <label><input type="radio" name="payment-method" checked={values.method === "installments"}
           onChange={() => { set("method", "installments"); if (values.count === "1") set("count", ""); }} /> Parcelado</label>
+        <label><input type="radio" name="payment-method" checked={values.method === "success_only"}
+          onChange={() => set("method", "success_only")} /> Apenas no êxito</label>
       </div><FieldNote note={note("method")} />
-      {values.method && <div className="form-grid">
+      {values.method === "success_only" && <div className="condition-block">
+        <label>Percentual cobrado do cliente no êxito (%)
+          <input type="number" min="0.01" max="100" step="0.01" value={values.successFeePercentage}
+            onChange={(event) => set("successFeePercentage", event.target.value)} placeholder="30" />
+        </label>
+        <p>O valor depende do resultado da ação. Este contrato ficará em Acompanhamento, sem valor a cobrar, parcelas ou vencimentos definidos.</p>
+      </div>}
+      {values.method && values.method !== "success_only" && <div className="form-grid">
         {values.method === "installments" && <label>Quantidade de parcelas
           <input type="number" min="1" max="120" value={values.count}
             onChange={(event) => set("count", event.target.value)} placeholder="20" />
@@ -115,7 +124,7 @@ function ContractDataFields({ values, set, note, cpfNotice, checkCpf }: {
             placeholder="Informe se houver diferença de centavos" />
           <small className="extraction-hint">O valor informado aparecerá na revisão do cronograma.</small></label>}
       </div>}
-      {values.method && <><div className="start-choice" role="group" aria-label="Início dos pagamentos">
+      {values.method && values.method !== "success_only" && <><div className="start-choice" role="group" aria-label="Início dos pagamentos">
         <label><input type="radio" name="payment-start" checked={values.paymentStartType === "fixed_date"}
           onChange={() => { set("paymentStartType", "fixed_date"); set("paymentStartCondition", ""); }} /> Data fixa</label>
         <label><input type="radio" name="payment-start" checked={values.paymentStartType === "condition"}
@@ -159,7 +168,7 @@ function InternalFields({ values, set, note }: {
           onChange={(event) => set("percentage", event.target.value)}><option value="">Selecione</option>
           {PERCENTAGES.map((percentage) => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label></div>
     </section>
-    <section className="additional-fee-panel"><div><p className="eyebrow">HONORÁRIOS ADICIONAIS</p>
+    {values.method !== "success_only" && <section className="additional-fee-panel"><div><p className="eyebrow">HONORÁRIOS ADICIONAIS</p>
       <p>Obrigação eventual do cliente, separada da participação da advogada.</p></div>
       <label className="checkbox-label"><input type="checkbox" checked={values.hasAdditionalFee}
         onChange={(event) => set("hasAdditionalFee", event.target.checked)} /> Contrato prevê honorários adicionais</label>
@@ -176,7 +185,7 @@ function InternalFields({ values, set, note }: {
             onChange={(event) => set("additionalFeeAmount", event.target.value)}
             onBlur={() => set("additionalFeeAmount", moneyInput(values.additionalFeeAmount))}
             placeholder="Valor ainda não informado" /></label></div>}
-    </section>
+    </section>}
   </>;
 }
 
@@ -184,42 +193,46 @@ function Review({ values, preview, file, saving, onBack, onConfirm }: {
   values: ContractFormValues; preview: ContractPreview; file: File | null; saving: boolean;
   onBack: () => void; onConfirm: () => void;
 }) {
-  const pending = values.paymentStartType === "condition";
+  const successOnly = preview.method === "success_only";
+  const pending = successOnly || values.paymentStartType === "condition";
   return <div className="review-content">
     <section className="form-panel"><Heading number="✓" title="Revise as informações"
       description="Confira os dados. Você pode voltar e corrigir qualquer campo." />
       <dl className="review-grid"><div><dt>Contratante</dt><dd>{values.clientName.trim()}</dd></div>
         <div><dt>CPF</dt><dd>{formatCpf(values.cpf)}</dd></div>
         <div><dt>Data do contrato</dt><dd>{values.contractDate}</dd></div>
-        <div><dt>Valor total</dt><dd>{formatBRL(preview.totalCents / 100)}</dd></div>
-        <div><dt>Forma de pagamento</dt><dd>{values.method === "cash" ? "À vista" : "Parcelado"}</dd></div>
+        <div><dt>Valor total</dt><dd>{preview.totalCents === null ? "A apurar após o êxito" : formatBRL(preview.totalCents / 100)}</dd></div>
+        <div><dt>Forma de pagamento</dt><dd>{successOnly ? "Apenas no êxito" : values.method === "cash" ? "À vista" : "Parcelado"}</dd></div>
+        {successOnly ? <div><dt>Honorários cobrados do cliente</dt><dd>{preview.successFeePercentage.toLocaleString("pt-BR")}% sobre o resultado da ação</dd></div> :
         <div><dt>Parcelas</dt><dd>{preview.installmentCount} × {formatBRL(preview.installmentCents / 100)}{
           preview.lastInstallmentCents !== null ? ` · última: ${formatBRL(preview.lastInstallmentCents / 100)}` : ""}</dd></div>
-        <div><dt>Início dos pagamentos</dt><dd>{pending ? values.paymentStartCondition : values.firstDue}</dd></div>
+        }
+        <div><dt>Início dos pagamentos</dt><dd>{successOnly ? "Depende do êxito da ação" : pending ? values.paymentStartCondition : values.firstDue}</dd></div>
         <div><dt>Origem</dt><dd>{values.origin}</dd></div>
         <div><dt>Minha participação</dt><dd>{preview.percentage}%</dd></div>
         <div><dt>PDF</dt><dd>{file?.name ?? "Cadastro manual sem PDF"}</dd></div></dl>
-      {values.hasAdditionalFee && <p className="review-additional">
+      {!successOnly && values.hasAdditionalFee && <p className="review-additional">
         Honorários adicionais previstos: {values.additionalFeePercentage ? `${values.additionalFeePercentage}%` : "percentual não informado"} sobre {
           values.additionalFeeBasis || "base não informada"} — {preview.additionalFeeAmountCents === null ?
           "valor ainda não informado" : formatBRL(preview.additionalFeeAmountCents / 100)}.
       </p>}
     </section>
     <section className="form-panel"><h2>Revisar cronograma</h2>
-      {pending ? <div className="pending-schedule"><strong>Aguardando definição do primeiro vencimento</strong>
-        <p>Nenhuma parcela será criada até que exista uma data real para iniciar os pagamentos.</p></div> :
+      {pending ? <div className="pending-schedule"><strong>{successOnly ? "Aguardando êxito da ação" : "Aguardando definição do primeiro vencimento"}</strong>
+        <p>{successOnly ? "Acompanhe a ação na aba Acompanhamento. Não há valor ou data de pagamento definidos." :
+          "Nenhuma parcela será criada até que exista uma data real para iniciar os pagamentos."}</p></div> :
         <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th>
           <th>Vencimento</th><th>Valor contratual</th></tr></thead><tbody>
           {preview.rows.map((row) => <tr key={row.installment_number}><td>{row.kind === "down_payment" ?
             "Entrada" : `${row.regular_number}/${preview.installmentCount}`}</td>
             <td>{formatDateBR(row.due_date)}</td><td className="money-cell">{formatBRL(row.amount_cents / 100)}</td></tr>)}
         </tbody></table></div>}
-      <div className={`schedule-balance ${preview.differenceCents ? "has-difference" : ""}`}>
+      {!successOnly && <div className={`schedule-balance ${preview.differenceCents ? "has-difference" : ""}`}>
         <span>Valor total do contrato <strong>{formatBRL(preview.totalCents / 100)}</strong></span>
         <span>{pending ? "Total previsto" : "Total do cronograma"}
           <strong>{formatBRL(preview.sumCents / 100)}</strong></span>
         <span>Diferença <strong>{formatBRL(preview.differenceCents / 100)}</strong></span>
-      </div>
+      </div>}
       {preview.differenceCents !== 0 && <p className="validation-note" role="alert">
         Os valores extraídos não fecham exatamente com o valor total do contrato. Confira antes de continuar.
       </p>}
@@ -248,8 +261,24 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
   const [saving, setSaving] = useState(false);
 
   const set: SetField = (key, value) => {
-    setValues((current) => ({ ...current, [key]: value }));
-    setExtractedFields((current) => { const next = new Set(current); next.delete(key); return next; });
+    setValues((current) => ({ ...current, [key]: value,
+      ...(key === "method" && value === "success_only" ? {
+        total: "", count: "", installmentValue: "", lastInstallmentValue: "",
+        firstDue: "", paymentStartType: "" as const, paymentStartCondition: "",
+        hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
+        additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
+      } : {}),
+    }));
+    setExtractedFields((current) => {
+      const next = new Set(current);
+      next.delete(key);
+      if (key === "method" && value === "success_only") {
+        for (const field of ["total", "count", "installmentValue", "lastInstallmentValue", "firstDue",
+          "paymentStartType", "paymentStartCondition", "hasAdditionalFee", "additionalFeePercentage",
+          "additionalFeeBasis", "additionalFeeAmount"] as const) next.delete(field);
+      }
+      return next;
+    });
     if (key === "cpf") setCpfNotice("");
   };
   const note = (field: EditKey): string | null => {
@@ -360,12 +389,16 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v2", {
+      const common = {
         p_contract_id: contractId, p_client_name: values.clientName.trim(),
         p_cpf: onlyDigits(values.cpf), p_contract_date: preview.contractDate,
-        p_total_cents: preview.totalCents, p_origin: values.origin,
-        p_percentage: preview.percentage, p_payment_method: values.method,
+        p_origin: values.origin, p_percentage: preview.percentage,
         p_file_path: filePath, p_file_name: file?.name ?? null,
+      };
+      const { error: saveError } = preview.method === "success_only" ?
+        await supabase.rpc("create_success_contract", { ...common, p_success_fee_percentage: preview.successFeePercentage }) :
+        await supabase.rpc("create_lawyer_contract_v2", { ...common,
+        p_total_cents: preview.totalCents, p_payment_method: preview.method,
         p_schedule: preview.rows, p_payment_start_type: values.paymentStartType,
         p_first_due_date: preview.firstDueDate,
         p_payment_start_condition: values.paymentStartType === "condition" ? values.paymentStartCondition.trim() : null,
@@ -377,7 +410,8 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
         p_additional_fee_amount_cents: preview.additionalFeeAmountCents,
         p_last_installment_cents: preview.lastInstallmentCents,
       });
-      if (saveError) throw new Error(saveError.message);
+      if (saveError) throw new Error(preview.method === "success_only" && saveError.code === "PGRST202" ?
+        "O cadastro apenas no êxito ainda não está disponível. Peça ao administrador para concluir a atualização." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();

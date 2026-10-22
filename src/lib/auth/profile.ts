@@ -36,6 +36,13 @@ export async function requireOfficeAdmin() {
   return profile;
 }
 
+export async function requireActiveProfile() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (!profile.active || !profile.office_id) redirect("/acesso-pendente");
+  return profile;
+}
+
 export async function requireRole(role: Role) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");

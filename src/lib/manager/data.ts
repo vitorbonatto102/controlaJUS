@@ -10,7 +10,7 @@ export type ManagerWorkspace = {
   notes: OperationalNote[];
   lawyers: { id: string; full_name: string; active: boolean }[];
   terms: { contract_id: string; commission_percentage: number }[];
-  contractTotals: { id: string; total_contract_value: number }[];
+  contractTotals: { id: string; total_contract_value: number | null }[];
   commissions: { id: string; payment_id: string; lawyer_id: string;
     commission_percentage: number; commission_amount: number }[];
   closings: Closing[];
@@ -56,10 +56,10 @@ export async function loadManagerWorkspace(): Promise<ManagerWorkspace> {
           error: { message: string } | null;
         }>),
     loadClosings(), loadClosingDetails(), loadAuditEntries(),
-    allPages<{ id: string; total_contract_value: number }>((from, to) =>
+    allPages<{ id: string; total_contract_value: number | null }>((from, to) =>
       supabase.from("contracts").select("id,total_contract_value").order("id")
         .range(from, to) as unknown as Promise<{
-          data: { id: string; total_contract_value: number }[] | null;
+          data: { id: string; total_contract_value: number | null }[] | null;
           error: { message: string } | null;
         }>),
   ]);
@@ -67,7 +67,7 @@ export async function loadManagerWorkspace(): Promise<ManagerWorkspace> {
     ...operational, lawyers,
     terms: terms.map((item) => ({ ...item, commission_percentage: Number(item.commission_percentage) })),
     contractTotals: contractTotals.map((item) => ({ ...item,
-      total_contract_value: Number(item.total_contract_value) })),
+      total_contract_value: item.total_contract_value === null ? null : Number(item.total_contract_value) })),
     commissions: commissions.map((item) => ({ ...item,
       commission_percentage: Number(item.commission_percentage),
       commission_amount: Number(item.commission_amount) })),

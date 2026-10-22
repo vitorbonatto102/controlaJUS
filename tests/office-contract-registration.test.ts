@@ -88,5 +88,31 @@ test("cadastro com todas as migrations reutiliza CPF no escritório e isola clie
     await asUser(lawyer);
     await register(randomUUID());
     assert.equal((await db.query("select id from public.clients")).rows.length, 1);
+    const successId = randomUUID();
+    const success = (id: string, percentage: number | null = 30) => db.query(`select public.create_success_contract(
+      $1::uuid, 'Cliente Teste', '52998224725', '2026-10-07'::date, 'Cliente próprio', 40::smallint,
+      $2::numeric, null::text, null::text)`, [id, percentage]);
+    await success(successId);
+    const saved = (await db.query<{ total_contract_value: number | null; success_fee_percentage: string }>(
+      "select total_contract_value,success_fee_percentage from public.contracts where id=$1", [successId])).rows[0];
+    assert.equal(saved.total_contract_value, null);
+    assert.equal(Number(saved.success_fee_percentage), 30);
+    assert.equal((await db.query("select id from public.installments where contract_id=$1", [successId])).rows.length, 0);
+    await assert.rejects(success(randomUUID(), null), /percentual cobrado/);
+    await assert.rejects(success(randomUUID(), 101), /percentual cobrado/);
+    // Mesmo o gestor não pode lançar parcelas fictícias nesse contrato por API.
+    await db.exec("reset role; reset request.jwt.claim.sub");
+    await assert.rejects(db.query(`insert into public.installments(contract_id,installment_number,regular_number,due_date,contractual_amount)
+      values ($1,1,1,'2026-12-10',100)`, [successId]), /não possui valor/);
+    await assert.rejects(db.query("update public.contracts set total_contract_value=100 where id=$1", [successId]), /contracts_success_terms_check/);
+    await asUser(otherLawyer);
+    assert.equal((await db.query("select id from public.contracts where id=$1", [successId])).rows.length, 0);
+    await asUser(secretary);
+    assert.equal((await db.query("select id from public.contracts where id=$1", [successId])).rows.length, 1);
+    assert.equal((await db.query("select contract_id from public.contract_financial_terms where contract_id=$1", [successId])).rows.length, 0);
+    await assert.rejects(success(randomUUID()), /Acesso não autorizado/);
+    await db.exec("reset role; reset request.jwt.claim.sub");
+    // A nova migration também pode ser reaplicada pelo SQL Editor.
+    await db.exec(await readFile(new URL("20261022000200_success_only_contracts.sql", migrations), "utf8"));
   } finally { await db.close(); }
 });

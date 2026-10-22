@@ -39,7 +39,7 @@ tests/                       regras e integração SQL via PGlite
 
 1. Instale Node.js 22 e rode `npm ci`.
 2. Crie o projeto Supabase. Copie `.env.example` para `.env.local` e preencha as três variáveis. `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` podem chegar ao navegador; `SUPABASE_SECRET_KEY` é a **secret key de servidor** do mesmo projeto e nunca deve ter prefixo `NEXT_PUBLIC_`.
-3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para um projeto já atualizado até `20261017000100_office_branding.sql`, execute somente `20261022000100_contract_client_conflict.sql` nesta etapa. O build do Next.js não aplica SQL automaticamente.
+3. Aplique as migrations na ordem dos nomes, com `supabase db push` após vincular o projeto pela CLI ou executando cada arquivo em **Supabase → SQL Editor**. As migrations anteriores não foram reescritas. Para um projeto já atualizado até `20261022000100_contract_client_conflict.sql`, execute somente `20261022000200_success_only_contracts.sql` nesta etapa. O build do Next.js não aplica SQL automaticamente.
 4. Em **Authentication → Providers → Email**, mantenha Email habilitado e desative cadastro público (**Allow new users to sign up**). Desative login anônimo. `supabase/config.toml` faz isso no ambiente local da CLI; no projeto hospedado, configure pelo Dashboard.
 5. Em **Authentication → URL Configuration**, informe a Site URL correta (por exemplo, `http://localhost:3001` durante desenvolvimento e a URL da Vercel em produção). Em **Email Templates**, copie [invite.html](supabase/templates/invite.html) para **Invite user** e [recovery.html](supabase/templates/recovery.html) para **Reset password**. Os links abrem páginas com botão de confirmação, evitando consumo automático do token por verificadores de e-mail. Configure SMTP adequado para uso real.
 6. Confira o bucket privado `contract-pdfs` criado pelas migrations. Ele aceita somente PDF de até 10 MiB. Não o torne público. A importação usa esse bucket temporariamente porque a Vercel limita o corpo de uma função a 4,5 MB; o arquivo de análise é removido antes da confirmação. O PDF definitivo só é enviado na confirmação. Se a conexão cair imediatamente após o upload, um arquivo não vinculado pode permanecer; faça a limpeza pela API de Storage, nunca apagando diretamente `storage.objects`.
@@ -138,6 +138,7 @@ Migrations novas desta etapa:
 | `20261006000200_rename_initial_office.sql` | Define o nome do escritório piloto como HP Consultoria Jurídica. |
 | `20261017000100_office_branding.sql` | Logo por escritório, marca HP do piloto, Storage privado, políticas por escritório e RPC administrativa com auditoria. |
 | `20261022000100_contract_client_conflict.sql` | Corrige o `ON CONFLICT` do cadastro de contratos para o índice parcial de CPF por escritório, preservando cadastros existentes. Pode ser reaplicada. |
+| `20261022000200_success_only_contracts.sql` | Forma de pagamento apenas no êxito, percentual cobrado do cliente, valor principal desconhecido (`NULL`), RPC com validação de escritório/PDF e bloqueios de cronogramas fictícios. |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
@@ -155,6 +156,14 @@ Os testes SQL existentes cobrem as migrations financeiras e verificam RLS, separ
 O teste de cadastro multi-escritório executa todas as migrations e a RPC real: verifica reutilização do cliente no mesmo escritório, CPF igual em escritórios distintos, isolamento RLS, bloqueio da secretaria e rollback de cronograma inválido. A extração de CPF e data tolera palavras/espaços unidos na camada de texto do PDF, mas mantém a validação de CPF e calendário; não corrige dígitos nem realiza OCR de imagens.
 
 Se o cadastro retornar `there is no unique or exclusion constraint matching the ON CONFLICT specification` em um banco já atualizado para múltiplos escritórios, execute `20261022000100_contract_client_conflict.sql` no SQL Editor do Supabase. O deploy da Vercel não aplica essa correção no banco automaticamente.
+
+### Apenas no êxito e acompanhamento
+
+No cadastro, **Forma de pagamento → Apenas no êxito** pede o percentual contratual cobrado do cliente (por exemplo, 30%). A data de assinatura do contrato e os dados internos continuam no cadastro; nenhum valor principal, parcela, entrada ou vencimento é exigido. `success_fee_percentage` é separado da participação da advogada em `contract_financial_terms`. O valor principal permanece desconhecido (`NULL`), sem gerar estimativas financeiras ou inadimplência.
+
+O menu **Acompanhamento** (`/acompanhamento`) reúne automaticamente contratos apenas no êxito, com honorários adicionais/proveito econômico ou com início condicionado. Os filtros de tipo, cliente e advogada podem ser combinados; um contrato que atende a dois motivos aparece uma única vez. As advogadas consultam somente seus contratos. Secretaria e gestão consultam os contratos do próprio escritório, e a consulta operacional não inclui percentuais internos nem comissões. A secretaria pode abrir o histórico existente do cliente.
+
+A RPC `create_success_contract` usa a usuária autenticada como responsável e obtém o escritório no banco. A criação é atômica, inclusive o reaproveitamento do cliente e a gravação da participação interna. Constraints e triggers impedem valor artificial ou parcelas em contratos apenas no êxito. O acompanhamento é manual; converter um resultado em cobrança e definir seus valores/vencimentos exige um fluxo posterior. Para verificar esta mudança sem executar toda a suíte: `node --import tsx --test tests/success-contracts.test.ts tests/office-contract-registration.test.ts`.
 
 ## Vercel
 
