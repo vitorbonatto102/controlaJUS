@@ -16,6 +16,7 @@ export type OperationalContract = {
   client_name: string; client_cpf: string | null; origin: string;
   contract_date: string; installments: OperationalInstallment[];
   contractors?: ContractParty[];
+  service_name?: string | null;
 };
 export type OperationalNote = {
   id: string; client_id: string; contract_id: string | null; installment_id: string | null;

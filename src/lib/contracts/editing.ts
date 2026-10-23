@@ -3,6 +3,7 @@ import type { ContractRecord } from "./view";
 import { ORIGINS } from "./validation";
 import { formatBRL, formatDateBR } from "../formatters";
 import { getContractParties, MAX_CONTRACTORS } from "./parties";
+import { validateServiceName } from "./service";
 
 const amount = (value: number | null | undefined) => value == null ? "" : formatBRL(value);
 
@@ -18,6 +19,7 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
   return { ...blankContractForm, clientName: contract.client_name, cpf: contract.client_cpf ?? "",
     additionalContractors: getContractParties(contract).filter((party) => party.clientId !== contract.client_id)
       .map((party) => ({ fullName: party.fullName, cpf: party.cpf ?? "" })),
+    serviceName: contract.service_name ?? "",
     contractDate: formatDateBR(contract.contract_date), total: amount(contract.total_contract_value),
     method: contract.payment_method ?? "", successFeePercentage: contract.success_fee_percentage?.toString() ?? "",
     count: (contract.installment_count ?? (regular.length || (contract.payment_method === "cash" ? 1 : ""))).toString(),
@@ -56,7 +58,8 @@ export function parseEditValues(raw: unknown): ContractFormValues {
 
 export function prepareContractEdit(values: ContractFormValues, metadataOnly: boolean) {
   if (!ORIGINS.some((origin) => origin === values.origin)) throw new Error("Selecione a origem da contratação.");
-  const base = { origin: values.origin, contract_date: brazilianToIso(values.contractDate) };
+  const base = { origin: values.origin, contract_date: brazilianToIso(values.contractDate),
+    service_name: validateServiceName(values.serviceName) };
   if (metadataOnly) return { changes: base, schedule: null };
   // The client relationship is immutable here; identity is not being created or edited.
   const preview = prepareContract(values, { validateClient: false });

@@ -47,8 +47,8 @@ export function FollowUpList({ contracts, role }: { contracts: FollowUpContract[
       <label>Valor principal<select value={filters.valueStatus} onChange={(event) => setFilter("valueStatus", event.target.value)}>
         <option value="">Todos</option><option value="known">Com valor definido</option><option value="unknown">A apurar no êxito</option>
       </select></label>
-      <label className={styles.termsFilter}>Condição ou base dos honorários<input type="search" value={filters.terms}
-        onChange={(event) => setFilter("terms", event.target.value)} placeholder="Ex.: alvará, indenização, proveito econômico" /></label>
+      <label className={styles.termsFilter}>Serviço, condição ou base dos honorários<input type="search" value={filters.terms}
+        onChange={(event) => setFilter("terms", event.target.value)} placeholder="Ex.: revisional, alvará, indenização" /></label>
       <button type="button" className="secondary-button" onClick={() => setFilters(emptyFollowUpFilters)}>Limpar filtros</button>
       {invalidDates && <p className={styles.dateError} id="follow-up-date-error" role="alert">A data inicial deve ser anterior ou igual à data final.</p>}
     </div>
@@ -61,6 +61,7 @@ export function FollowUpList({ contracts, role }: { contracts: FollowUpContract[
         <p className={styles.responsible}>CPF: {(contract.contractors?.length ? contract.contractors.map((party) => party.cpf) : [contract.clientCpf])
           .map((cpf) => cpf ? formatCpf(cpf) : "Não informado").join(" / ")} · Origem: {contract.origin}</p>
         <dl>
+          <div><dt>Serviço contratado / nome da ação</dt><dd>{contract.serviceName || "Não informado"}</dd></div>
           <div><dt>Valor principal</dt><dd>{contract.totalValue === null ? "A apurar após o êxito" : formatBRL(contract.totalValue)}</dd></div>
           {contract.successFeePercentage !== null && <div><dt>Honorários cobrados do cliente</dt><dd>{percentage(contract.successFeePercentage)} sobre o resultado da ação</dd></div>}
           {contract.has_additional_fee && <div><dt>Honorários adicionais eventuais</dt>

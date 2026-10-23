@@ -4,7 +4,7 @@ import { blankContractForm, prepareContract } from "../src/lib/contracts/registr
 import { filterFollowUpContracts, followUpReasons, type FollowUpContract } from "../src/lib/contracts/follow-up";
 import { summarizeContracts, type ContractRecord } from "../src/lib/contracts/view";
 
-const form = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", contractDate: "07/10/2026",
+const form = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação indenizatória", contractDate: "07/10/2026",
   method: "success_only" as const, successFeePercentage: "30", origin: "Cliente próprio", percentage: "40" };
 
 test("apenas no êxito exige somente percentual e não fabrica valores, parcelas ou vencimentos", () => {

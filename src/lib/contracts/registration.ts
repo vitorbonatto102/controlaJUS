@@ -2,11 +2,13 @@ import { parseMoneyBR } from "./finance";
 import { buildSchedule, parseIsoDate, type ScheduleRow } from "./schedule";
 import { isValidCpf, ORIGINS, PERCENTAGES } from "./validation";
 import { validateContractors, type ContractorInput } from "./parties";
+import { validateServiceName } from "./service";
 
 export type ContractFormValues = {
   clientName: string;
   cpf: string;
   additionalContractors: ContractorInput[];
+  serviceName: string;
   contractDate: string;
   total: string;
   method: "" | "cash" | "installments" | "success_only";
@@ -46,7 +48,7 @@ export type ContractPreview = PreviewBase & ({
 });
 
 export const blankContractForm: ContractFormValues = {
-  clientName: "", cpf: "", additionalContractors: [], contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
+  clientName: "", cpf: "", additionalContractors: [], serviceName: "", contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
@@ -62,6 +64,7 @@ export function brazilianToIso(value: string): string {
 }
 
 export function prepareContract(values: ContractFormValues, { validateClient = true } = {}): ContractPreview {
+  validateServiceName(values.serviceName);
   if (validateClient && (values.clientName.trim().length < 2 || values.clientName.trim().length > 160)) {
     throw new Error("Informe o nome completo do contratante.");
   }

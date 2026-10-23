@@ -43,7 +43,7 @@ test("cadastro valida todos os CPFs, recusa duplicação e conta os valores do c
   validateContractors(parties);
   assert.throws(() => validateContractors([parties[0], parties[0]]), /mesmo CPF/);
   assert.throws(() => validateContractors([parties[0], { ...parties[1], cpf: "" }]), /contratante 2/);
-  const preview = prepareContract({ ...blankContractForm, clientName: parties[0].fullName, cpf: parties[0].cpf,
+  const preview = prepareContract({ ...blankContractForm, clientName: parties[0].fullName, cpf: parties[0].cpf, serviceName: "Ação revisional",
     additionalContractors: [parties[1]], contractDate: "22/10/2026", total: "1.000,00", method: "cash",
     installmentValue: "1.000,00", count: "1", paymentStartType: "fixed_date", firstDue: "10/11/2026",
     origin: "Cliente próprio", percentage: "40" });

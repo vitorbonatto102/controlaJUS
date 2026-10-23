@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { saveLawyerContract } from "@/app/advogada/contratos/actions";
-import { ContractDataFields, ContractReview, InternalFields } from "@/components/new-contract-form";
+import { ContractDataFields, ContractReview, ContractServiceField, InternalFields } from "@/components/new-contract-form";
 import { emptyActionState } from "@/lib/action-state";
 import { contractToForm, prepareContractEdit } from "@/lib/contracts/editing";
 import { prepareContract, type ContractFormValues, type ContractPreview } from "@/lib/contracts/registration";
@@ -73,11 +73,12 @@ export function EditContractForm({ contract, lawyerId, financialLocked }: {
     <input type="hidden" name="metadata_only" value={financialLocked ? "yes" : "no"} />
     <input type="hidden" name="values" value={JSON.stringify(values)} />
     {financialLocked && <div className="success-box">Este contrato já possui histórico de pagamentos ou cobranças por parcela.
-      Você pode alterar a origem, a data do contrato e o PDF. Para corrigir valores, percentuais ou parcelas, solicite a correção ao gestor.</div>}
+      Você pode alterar o serviço contratado, a origem, a data do contrato e o PDF. Para corrigir valores, percentuais ou parcelas, solicite a correção ao gestor.</div>}
     {(error || state.error) && <div className="form-error-box" role="alert">{error || state.error}</div>}
     {!reviewing && <fieldset disabled={pending}>{financialLocked ? <section className="form-panel"><h2>Dados do contrato</h2>
       <p className="field-hint">Contratante: {contract.client_name}. O cadastro do cliente permanece vinculado.</p>
-      <div className="form-grid"><label>Origem da contratação<select value={values.origin} onChange={(event) => set("origin", event.target.value)}>
+      <div className="form-grid"><ContractServiceField value={values.serviceName} onChange={(value) => set("serviceName", value)} />
+        <label>Origem da contratação<select value={values.origin} onChange={(event) => set("origin", event.target.value)}>
         {ORIGINS.map((origin) => <option key={origin}>{origin}</option>)}</select></label>
         <label>Data do contrato<input value={values.contractDate} placeholder="DD/MM/AAAA" maxLength={10}
           onChange={(event) => set("contractDate", event.target.value)} /></label></div></section> : <>
@@ -97,6 +98,7 @@ export function EditContractForm({ contract, lawyerId, financialLocked }: {
     {reviewing ? preview ? <ContractReview values={values} preview={preview} file={file} existingFileName={contract.contract_file_name}
       saving={pending} confirmLabel="Salvar alterações" onBack={() => setReviewing(false)} onConfirm={() => formRef.current?.requestSubmit()} /> :
       <section className="form-panel"><h2>Revise as alterações</h2><dl className="review-grid"><div><dt>Origem</dt><dd>{values.origin}</dd></div>
+        <div><dt>Serviço contratado / nome da ação</dt><dd>{values.serviceName.trim()}</dd></div>
         <div><dt>Data do contrato</dt><dd>{values.contractDate}</dd></div><div><dt>PDF</dt><dd>{file?.name ?? contract.contract_file_name ?? "Sem PDF"}</dd></div></dl>
         <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setReviewing(false)} disabled={pending}>Voltar</button>
           <button className="primary-button" type="submit" disabled={pending}>{pending ? "Salvando..." : "Salvar alterações"}</button></div></section> :

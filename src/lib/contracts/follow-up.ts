@@ -25,6 +25,7 @@ export type FollowUpContract = FollowUpTerms & {
   id: string; clientId: string; clientName: string; lawyerId: string; lawyerName: string;
   clientCpf: string | null; origin: string;
   contractors?: ContractParty[];
+  serviceName?: string | null;
   contractDate: string; totalValue: number | null; successFeePercentage: number | null;
   additionalFeePercentage: number | null; additionalFeeBasis: string | null;
   additionalFeeAmount: number | null; paymentCondition: string | null;
@@ -58,6 +59,6 @@ export function filterFollowUpContracts(contracts: FollowUpContract[], filters: 
       (!filters.dateTo || contract.contractDate <= filters.dateTo) &&
       (!filters.paymentMethod || contract.payment_method === filters.paymentMethod) &&
       (!filters.valueStatus || (filters.valueStatus === "known" ? contract.totalValue !== null : contract.totalValue === null)) &&
-      (!terms || normalize(`${contract.paymentCondition ?? ""} ${contract.additionalFeeBasis ?? ""}`).includes(terms));
+      (!terms || normalize(`${contract.serviceName ?? ""} ${contract.paymentCondition ?? ""} ${contract.additionalFeeBasis ?? ""}`).includes(terms));
   });
 }

@@ -3,6 +3,7 @@ import type { CurrentProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import type { FollowUpContract } from "./follow-up";
 import { loadContractParties } from "./parties-data";
+import { loadContractServices } from "./service-data";
 
 type RawContract = {
   id: string; client_id: string; lawyer_id: string; contract_date: string; origin: string;
@@ -57,7 +58,9 @@ export async function loadFollowUpContracts(profile: CurrentProfile): Promise<Fo
     })));
     if (rows.length < 100) break;
   }
-  const parties = await loadContractParties(contracts.map((contract) => contract.id));
+  const ids = contracts.map((contract) => contract.id);
+  const [parties, services] = await Promise.all([loadContractParties(ids), loadContractServices(ids)]);
   return contracts.map((contract) => ({ ...contract, contractors: parties.get(contract.id),
+    serviceName: services.get(contract.id) ?? null,
     clientName: parties.get(contract.id)?.map((party) => party.fullName).join(" / ") || contract.clientName }));
 }

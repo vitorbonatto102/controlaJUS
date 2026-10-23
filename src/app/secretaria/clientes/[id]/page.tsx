@@ -41,9 +41,9 @@ export default async function ClientOperationPage({ params }: { params: Promise<
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Contratos</h2>
       <p>Vínculos operacionais deste cliente.</p></div></div>
-      <div className="table-scroll"><table className="financial-table"><thead><tr><th>Advogada</th><th>Origem</th>
+      <div className="table-scroll"><table className="financial-table"><thead><tr><th>Advogada</th><th>Serviço contratado</th><th>Origem</th>
         <th>Data do contrato</th><th>Contratantes</th><th>Parcelas</th></tr></thead><tbody>{contracts.map((contract) => <tr key={contract.id}>
-          <td>{contract.lawyer_name}</td><td>{contract.origin}</td><td>{formatDateBR(contract.contract_date)}</td>
+          <td>{contract.lawyer_name}</td><td>{contract.service_name || "Não informado"}</td><td>{contract.origin}</td><td>{formatDateBR(contract.contract_date)}</td>
           <td>{contractClientLabel(contract)}</td><td>{contract.installments.length}</td></tr>)}</tbody></table></div>
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Parcelas</h2>

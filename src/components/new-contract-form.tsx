@@ -12,6 +12,7 @@ import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { MAX_CONTRACTORS } from "@/lib/contracts/parties";
 import { prepareContractEdit } from "@/lib/contracts/editing";
+import { MAX_SERVICE_NAME_LENGTH } from "@/lib/contracts/service";
 
 type Mode = "choose" | "import" | "manual";
 type EditKey = keyof ContractFormValues;
@@ -67,6 +68,17 @@ function ImportPanel({ mode, file, reading, stage, error, onFile, onManual }: {
   </section>;
 }
 
+export function ContractServiceField({ value, onChange, note }: {
+  value: string; onChange: (value: string) => void; note?: string | null;
+}) {
+  return <label className="span-2">Serviço contratado / nome da ação
+    <input value={value} onChange={(event) => onChange(event.target.value)} required minLength={2}
+      maxLength={MAX_SERVICE_NAME_LENGTH} placeholder="Ex.: Ação revisional de financiamento" />
+    <span className="field-hint">Identifique o serviço para consultar e cobrar os honorários no futuro.</span>
+    <FieldNote note={note ?? null} />
+  </label>;
+}
+
 export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, readOnlyClient = false }: {
   values: ContractFormValues; set: SetField; note: (field: EditKey) => string | null;
   cpfNotice: string; checkCpf: () => void;
@@ -98,7 +110,8 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
     </section>
     <section className="form-panel"><Heading number="03" title="Contrato"
       description="Honorários principais contratados com o cliente." />
-      <div className="form-grid"><label>Data do contrato
+      <div className="form-grid"><ContractServiceField value={values.serviceName}
+        onChange={(value) => set("serviceName", value)} note={note("serviceName")} /><label>Data do contrato
         <input inputMode="numeric" maxLength={10} value={values.contractDate}
           onChange={(event) => set("contractDate", dateInput(event.target.value))} placeholder="DD/MM/AAAA" />
         <FieldNote note={note("contractDate")} /></label>
@@ -219,6 +232,7 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
         <div><dt>CPF</dt><dd>{formatCpf(values.cpf)}</dd></div>
         {values.additionalContractors.map((party, index) => <div key={index}><dt>Contratante {index + 2}</dt>
           <dd>{party.fullName.trim()} · CPF {formatCpf(party.cpf)}</dd></div>)}
+        <div><dt>Serviço contratado / nome da ação</dt><dd>{values.serviceName.trim()}</dd></div>
         <div><dt>Data do contrato</dt><dd>{values.contractDate}</dd></div>
         <div><dt>Valor total</dt><dd>{preview.totalCents === null ? "A apurar após o êxito" : formatBRL(preview.totalCents / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{successOnly ? "Apenas no êxito" : values.method === "cash" ? "À vista" : "Parcelado"}</dd></div>
@@ -412,36 +426,14 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const common = {
-        p_contract_id: contractId, p_client_name: values.clientName.trim(),
-        p_cpf: onlyDigits(values.cpf), p_contract_date: preview.contractDate,
-        p_origin: values.origin, p_percentage: preview.percentage,
-        p_file_path: filePath, p_file_name: file?.name ?? null,
-      };
-      const multiple = values.additionalContractors.length > 0;
-      const { error: saveError } = multiple ? await supabase.rpc("create_contract_with_parties", {
+      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v3", {
         p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
           ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
         p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
         p_file_path: filePath, p_file_name: file?.name ?? null,
-      }) : preview.method === "success_only" ?
-        await supabase.rpc("create_success_contract", { ...common, p_success_fee_percentage: preview.successFeePercentage }) :
-        await supabase.rpc("create_lawyer_contract_v2", { ...common,
-        p_total_cents: preview.totalCents, p_payment_method: preview.method,
-        p_schedule: preview.rows, p_payment_start_type: values.paymentStartType,
-        p_first_due_date: preview.firstDueDate,
-        p_payment_start_condition: values.paymentStartType === "condition" ? values.paymentStartCondition.trim() : null,
-        p_installment_count: preview.installmentCount, p_installment_cents: preview.installmentCents,
-        p_has_additional_fee: values.hasAdditionalFee,
-        p_additional_fee_percentage: values.hasAdditionalFee && values.additionalFeePercentage ?
-          Number(values.additionalFeePercentage) : null,
-        p_additional_fee_basis: values.hasAdditionalFee ? values.additionalFeeBasis.trim() || null : null,
-        p_additional_fee_amount_cents: preview.additionalFeeAmountCents,
-        p_last_installment_cents: preview.lastInstallmentCents,
       });
-      if (saveError) throw new Error(multiple && saveError.code === "PGRST202" ?
-        "Peça ao administrador para aplicar a atualização de múltiplos contratantes no Supabase." : preview.method === "success_only" && saveError.code === "PGRST202" ?
-        "O cadastro apenas no êxito ainda não está disponível. Peça ao administrador para concluir a atualização." : saveError.message);
+      if (saveError) throw new Error(saveError.code === "PGRST202" ?
+        "Peça ao administrador para aplicar a atualização do serviço contratado no Supabase." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();

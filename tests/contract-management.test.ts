@@ -6,7 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { contractToForm, parseEditValues, prepareContractEdit } from "../src/lib/contracts/editing";
 import { blankContractForm, prepareContract } from "../src/lib/contracts/registration";
 
-const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725",
+const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
   contractDate: "22/10/2026", total: "1.200,00", method: "cash" as const, installmentValue: "1.200,00",
   count: "1", paymentStartType: "fixed_date" as const, firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "45" };
 
@@ -16,13 +16,13 @@ test("edição reutiliza validação e cronograma, preservando a identificação
   assert.equal(result.schedule?.[0].amount_cents, 120000);
   assert.throws(() => prepareContractEdit({ ...values, total: "1.100,00" }, false), /cronograma/);
   assert.throws(() => parseEditValues({ ...values, hasEntry: "false" }), /dados/);
-  assert.deepEqual(prepareContractEdit(values, true).changes, { origin: "Cliente próprio", contract_date: "2026-10-22" });
+  assert.deepEqual(prepareContractEdit(values, true).changes, { origin: "Cliente próprio", contract_date: "2026-10-22", service_name: "Ação revisional" });
   assert.throws(() => prepareContract({ ...values, cpf: "" }), /CPF/);
 });
 
 test("contrato condicionado carrega condições e parcelas previstas mesmo sem cronograma", () => {
   const form = contractToForm({ id: "id", client_id: "client", client_name: "Cliente", client_cpf: null,
-    origin: "Cliente próprio", contract_date: "2026-10-22", total_contract_value: 3000,
+    origin: "Cliente próprio", service_name: "Ação revisional", contract_date: "2026-10-22", total_contract_value: 3000,
     payment_method: "installments", payment_start_type: "condition", payment_start_condition: "Após liberação dos valores",
     installment_count: 3, installment_amount: 1000, commission_percentage: 40,
     contract_file_path: null, contract_file_name: null, installments: [] });

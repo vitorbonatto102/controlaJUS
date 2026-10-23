@@ -39,6 +39,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
     <div className="detail-grid"><section className="form-panel"><h2>Dados gerais</h2>
       <dl className="review-grid">{getContractParties(contract).map((party, index) => <div key={party.clientId}>
         <dt>Contratante {index + 1}</dt><dd>{party.fullName}<br />CPF: {party.cpf ? formatCpf(party.cpf) : "—"}</dd></div>)}
+        <div><dt>Serviço contratado / nome da ação</dt><dd>{contract.service_name || "Não informado"}</dd></div>
         <div><dt>Origem</dt><dd>{contract.origin}</dd></div>
         <div><dt>Data do contrato</dt><dd>{formatDateBR(contract.contract_date)}</dd></div>
         <div><dt>Valor contratado</dt><dd>{totalCents === null ? "A apurar após o êxito" : formatBRL(totalCents / 100)}</dd></div>

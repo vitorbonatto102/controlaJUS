@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { loadContractParties } from "@/lib/contracts/parties-data";
+import { loadContractServices } from "@/lib/contracts/service-data";
 import type { LawyerOption, OperationalContract, OperationalInstallment, OperationalNote, OperationalPayment } from "./view";
 
 type RawContract = {
@@ -58,7 +59,8 @@ export async function loadSecretaryWorkspace(): Promise<{
         }>),
   ]);
   const names = new Map(profiles.map((profile) => [profile.id, profile.full_name]));
-  const partiesByContract = await loadContractParties(rawContracts.map((contract) => contract.id));
+  const ids = rawContracts.map((contract) => contract.id);
+  const [partiesByContract, services] = await Promise.all([loadContractParties(ids), loadContractServices(ids)]);
   const paymentsByInstallment = new Map<string, OperationalPayment[]>();
   for (const payment of rawPayments) {
     const existing = paymentsByInstallment.get(payment.installment_id) ?? [];
@@ -85,6 +87,7 @@ export async function loadSecretaryWorkspace(): Promise<{
         lawyer_name: names.get(contract.lawyer_id) ?? "Advogada inativa",
         client_name: client.full_name, client_cpf: client.cpf, origin: contract.origin,
         contractors: partiesByContract.get(contract.id),
+        service_name: services.get(contract.id) ?? null,
         contract_date: contract.contract_date,
         installments: (installmentsByContract.get(contract.id) ?? [])
           .sort((a, b) => a.installment_number - b.installment_number),

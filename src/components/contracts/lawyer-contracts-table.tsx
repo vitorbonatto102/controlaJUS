@@ -18,7 +18,7 @@ export function LawyerContractsTable({ contracts }: { contracts: ContractRecord[
   const [page, setPage] = useState(1);
   const origins = useMemo(() => [...new Set(contracts.map((contract) => contract.origin))].sort(), [contracts]);
   const filtered = useMemo(() => contracts.filter((contract) =>
-    contractClientLabel(contract).toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) &&
+    `${contractClientLabel(contract)} ${contract.service_name ?? ""}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) &&
     (!origin || contract.origin === origin) && (!method || contract.payment_method === method))
     .sort((a, b) => b.contract_date.localeCompare(a.contract_date) || a.client_name.localeCompare(b.client_name, "pt-BR")),
   [contracts, search, origin, method]);
@@ -28,17 +28,18 @@ export function LawyerContractsTable({ contracts }: { contracts: ContractRecord[
     <p className="eyebrow">CADASTROS</p><h2 id="contracts-list-title">Meus contratos</h2>
     <p>Inclui contratos com parcelas, apenas no êxito e com início condicionado.</p></div>
     <span className="record-count">{filtered.length} contratos</span></div>
-    <div className={styles.filters} role="group" aria-label="Filtros dos contratos"><label>Cliente
-      <input type="search" placeholder="Buscar pelo nome" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></label>
+    <div className={styles.filters} role="group" aria-label="Filtros dos contratos"><label>Cliente ou serviço
+      <input type="search" placeholder="Nome do cliente ou da ação" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></label>
       <label>Origem<select value={origin} onChange={(event) => { setOrigin(event.target.value); setPage(1); }}>
         <option value="">Todas</option>{origins.map((item) => <option key={item}>{item}</option>)}</select></label>
       <label>Forma de pagamento<select value={method} onChange={(event) => { setMethod(event.target.value); setPage(1); }}>
         <option value="">Todas</option>{Object.entries(methods).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <button className="clear-button" type="button" onClick={() => { setSearch(""); setOrigin(""); setMethod(""); setPage(1); }}>Limpar filtros</button></div>
     {filtered.length ? <><div className="table-scroll"><table className="financial-table"><thead><tr>
-      <th>Contratantes</th><th>Data do contrato</th><th>Origem</th><th>Forma de pagamento</th><th>Valor contratado</th><th>PDF</th><th>Ações</th>
+      <th>Contratantes</th><th>Serviço contratado</th><th>Data do contrato</th><th>Origem</th><th>Forma de pagamento</th><th>Valor contratado</th><th>PDF</th><th>Ações</th>
     </tr></thead><tbody>{filtered.slice((currentPage - 1) * 20, currentPage * 20).map((contract) => <tr key={contract.id}>
-      <td className="client-cell">{contractClientLabel(contract)}</td><td>{formatDateBR(contract.contract_date)}</td><td>{contract.origin}</td>
+      <td className="client-cell">{contractClientLabel(contract)}</td><td>{contract.service_name || "Não informado"}</td>
+      <td>{formatDateBR(contract.contract_date)}</td><td>{contract.origin}</td>
       <td>{contract.payment_method ? methods[contract.payment_method] : "Não informada"}</td>
       <td className="money-cell">{contract.total_contract_value === null ? "A apurar no êxito" : formatBRL(contract.total_contract_value)}</td>
       <td>{contract.contract_file_path ? <a className="row-link" href={`/advogada/contratos/${contract.id}/pdf`} target="_blank" rel="noopener noreferrer">Abrir PDF ↗</a> : "Sem PDF"}</td>

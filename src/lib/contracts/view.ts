@@ -23,6 +23,7 @@ export type ContractRecord = {
   client_name: string;
   client_cpf: string | null;
   contractors?: ContractParty[];
+  service_name?: string | null;
   origin: string;
   contract_date: string;
   total_contract_value: number | null;

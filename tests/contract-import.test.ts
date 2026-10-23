@@ -128,7 +128,7 @@ test("PDF inválido ou sem texto extraível é recusado", async () => {
 });
 
 test("revisão condicionada não gera cronograma nem soma adicional à comissão", () => {
-  const preview = prepareContract({ ...blankContractForm,
+  const preview = prepareContract({ ...blankContractForm, serviceName: "Ação revisional",
     clientName: "ALEXANDRE PINALLI GHENO", cpf: "724.787.130-04",
     contractDate: "21/05/2026", total: "R$ 4.000,00", method: "installments",
     count: "20", installmentValue: "R$ 200,00", paymentStartType: "condition",
@@ -144,7 +144,7 @@ test("revisão condicionada não gera cronograma nem soma adicional à comissão
 });
 
 test("diferença legítima de centavo exige última parcela explícita", () => {
-  const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725",
+  const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
     contractDate: "21/05/2026", total: "R$ 1.000,00", method: "installments" as const,
     count: "3", installmentValue: "R$ 333,33", paymentStartType: "fixed_date" as const,
     firstDue: "10/06/2026", origin: "Cliente próprio", percentage: "40" };
