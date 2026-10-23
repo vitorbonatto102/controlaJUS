@@ -34,7 +34,7 @@ export async function loadSecretaryWorkspace(): Promise<{
   // DTO operacional: nunca consulta contract_financial_terms, commissions ou closings.
   const [rawContracts, rawInstallments, rawPayments, rawNotes, profiles] = await Promise.all([
     allPages<RawContract>((from, to) => supabase.from("contracts").select(`
-      id, client_id, lawyer_id, origin, contract_date, clients (full_name, cpf)
+      id, client_id, lawyer_id, origin, contract_date, clients!contracts_client_id_fkey (full_name, cpf)
     `).order("id").range(from, to) as unknown as Promise<{ data: RawContract[] | null; error: { message: string } | null }>),
     allPages<RawInstallment>((from, to) => supabase.from("installments")
       .select("id, contract_id, installment_number, kind, regular_number, due_date, contractual_amount")

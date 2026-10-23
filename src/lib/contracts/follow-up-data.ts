@@ -28,7 +28,7 @@ export async function loadFollowUpContracts(profile: CurrentProfile): Promise<Fo
       let query = supabase.from("contracts").select(`id, client_id, lawyer_id, contract_date, origin,
         total_contract_value, payment_method, ${includeSuccessFee ? "success_fee_percentage," : ""} has_additional_fee,
         additional_fee_percentage, additional_fee_basis, additional_fee_amount,
-        payment_start_type, payment_start_condition, clients(full_name,cpf),
+        payment_start_type, payment_start_condition, clients!contracts_client_id_fkey(full_name,cpf),
         lawyer:profiles!contracts_lawyer_id_fkey(full_name)`)
         .eq("office_id", profile.office_id)
         .or("payment_method.eq.success_only,has_additional_fee.eq.true,payment_start_type.eq.condition")

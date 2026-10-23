@@ -9,7 +9,7 @@ const contractSelect = `
   contract_file_path, contract_file_name,
   payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
-  clients (full_name, cpf),
+  clients!contracts_client_id_fkey (full_name, cpf),
   contract_financial_terms (commission_percentage),
   installments (
     id, installment_number, kind, regular_number, due_date, contractual_amount,

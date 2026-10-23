@@ -16,6 +16,8 @@ A leitura aceita o cabeçalho tradicional e apresentações como “de um lado .
 
 RLS mantém a separação entre escritórios e advogadas, incluindo o acesso ao cadastro dos contratantes adicionais. A secretaria continua recebendo apenas o DTO operacional. Pagamentos, comissões, principal e parcelas são contados uma única vez por contrato, sem rateio automático entre as pessoas.
 
+No PostgREST, o contratante de referência é consultado explicitamente por `clients!contracts_client_id_fkey(...)`, e cada pessoa vinculada por `clients!contract_parties_client_id_fkey(...)`. A tabela de vínculos também cria um relacionamento muitos-para-muitos; usar apenas `clients(...)` a partir de `contracts` torna a consulta ambígua (`PGRST201`).
+
 Detalhes, listagens, Carteira e Acompanhamento exibem as pessoas vinculadas. Os filtros de cliente/CPF reconhecem também os demais contratantes. A secretaria pode acessar o contrato pelo cadastro de qualquer pessoa vinculada, lançar pagamentos e registrar cobranças no mesmo histórico contratual. A edição financeira preserva as identidades vinculadas, conforme a regra já existente de não alterar o cadastro compartilhado do cliente nessa tela.
 
 Enquanto a migration não for aplicada, a consulta continua mostrando o primeiro contratante e o cadastro de uma pessoa continua disponível. Para salvar várias pessoas é necessária a nova RPC.

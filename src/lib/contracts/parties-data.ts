@@ -9,7 +9,7 @@ export async function loadContractParties(contractIds: string[]) {
   for (let offset = 0; offset < contractIds.length; offset += 40) {
     // At most 40 contracts × 20 parties, below the API's default row limit.
     const { data, error } = await supabase.from("contract_parties")
-      .select("contract_id,position,clients(id,full_name,cpf)")
+      .select("contract_id,position,clients!contract_parties_client_id_fkey(id,full_name,cpf)")
       .in("contract_id", contractIds.slice(offset, offset + 40)).order("position");
     // Old contracts remain accessible during the interval before the migration.
     if (error && (["42P01", "PGRST205"].includes(error.code) ||
