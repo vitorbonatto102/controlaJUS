@@ -14,8 +14,9 @@ export function SecretaryTable({ rows, lawyers, today }: {
 }) {
   const [filters, setFilters] = useState<OperationalFilters>(blank);
   const [page, setPage] = useState(1);
-  const clients = useMemo(() => [...new Map(rows.map((row) => [row.clientId,
-    { id: row.clientId, name: row.clientName }])).values()]
+  const clients = useMemo(() => [...new Map(rows.flatMap((row) => (row.contractors ??
+    [{ clientId: row.clientId, fullName: row.clientName }]).map((party) => [party.clientId,
+      { id: party.clientId, name: party.fullName }] as const))).values()]
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")), [rows]);
   const years = useMemo(() => [...new Set(rows.map((row) => row.dueDate.slice(0, 4)))].sort().reverse(), [rows]);
   const origins = useMemo(() => [...new Set(rows.map((row) => row.origin))].sort(), [rows]);
@@ -68,9 +69,9 @@ export function SecretaryTable({ rows, lawyers, today }: {
         <td className="money-cell">{row.paidCents ? formatBRL(row.paidCents / 100) : "—"}</td>
         <td>{row.latestPaymentDate ? formatDateBR(row.latestPaymentDate) : "—"}</td>
         <td><span className={`status status-${row.status}`}>{operationalStatusLabels[row.status]}</span></td>
-        <td>{row.latestContactAt ? <Link className="row-link" href={`/secretaria/clientes/${row.clientId}#historico`}>
+        <td>{row.latestContactAt ? <Link className="row-link" href={`/secretaria/clientes/${filters.clientId || row.clientId}#historico`}>
           {formatDateBR(new Date(row.latestContactAt))}</Link> : "—"}</td>
-        <td><Link className="row-link" href={`/secretaria/clientes/${row.clientId}#parcela-${row.installmentId}`}>
+        <td><Link className="row-link" href={`/secretaria/clientes/${filters.clientId || row.clientId}#parcela-${row.installmentId}`}>
           {row.paidCents > 0 ? "Gerenciar recebimento" : "Registrar pagamento"}</Link></td>
       </tr>)}</tbody></table></div>
       {pageCount > 1 && <div className="pagination"><span>Página {page} de {pageCount}</span>

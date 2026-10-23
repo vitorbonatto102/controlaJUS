@@ -5,6 +5,7 @@ import { NoteForm, PaymentCorrectionForm, PaymentForm } from "@/components/secre
 import { requireRole } from "@/lib/auth/profile";
 import { todayInSaoPaulo } from "@/lib/contracts/view";
 import { formatCpf } from "@/lib/contracts/validation";
+import { getContractParties, contractClientLabel } from "@/lib/contracts/parties";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { loadSecretaryWorkspace } from "@/lib/secretary/data";
 import { buildOperationalRows, noteTypeLabels, operationalStatusLabels } from "@/lib/secretary/view";
@@ -16,9 +17,10 @@ export default async function ClientOperationPage({ params }: { params: Promise<
   const { id } = await params;
   if (!uuidPattern.test(id)) notFound();
   const { contracts: allContracts, notes: allNotes, users } = await loadSecretaryWorkspace();
-  const contracts = allContracts.filter((contract) => contract.client_id === id);
+  const contracts = allContracts.filter((contract) => getContractParties(contract).some((party) => party.clientId === id));
   if (!contracts.length) notFound();
-  const notes = allNotes.filter((note) => note.client_id === id)
+  const contractIds = new Set(contracts.map((contract) => contract.id));
+  const notes = allNotes.filter((note) => note.client_id === id || (note.contract_id !== null && contractIds.has(note.contract_id)))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const rows = buildOperationalRows(contracts, notes, todayInSaoPaulo());
   const paymentRows = contracts.flatMap((contract) => contract.installments.flatMap((item) => item.payments.map(
@@ -27,21 +29,22 @@ export default async function ClientOperationPage({ params }: { params: Promise<
   const names = new Map(users.map((user) => [user.id, user.full_name]));
   const activePaymentsByInstallment = new Map(contracts.flatMap((contract) => contract.installments.map(
     (item) => [item.id, item.payments.filter((payment) => !payment.voided_at)] as const)));
-  const client = contracts[0];
+  const client = getContractParties(contracts[0]).find((party) => party.clientId === id);
+  if (!client) notFound();
   return <DashboardShell profile={profile}>
     <Link className="back-link" href="/secretaria">← Voltar ao painel</Link>
-    <p className="eyebrow">CLIENTE</p><h1>{client.client_name}</h1>
+    <p className="eyebrow">CLIENTE</p><h1>{client.fullName}</h1>
     <p className="page-description">Contratos, parcelas, pagamentos e histórico de cobrança.</p>
     <section className="form-panel secretary-client-summary"><h2>Dados básicos</h2>
-      <dl className="review-grid"><div><dt>CPF</dt><dd>{client.client_cpf ? formatCpf(client.client_cpf) : "—"}</dd></div>
+      <dl className="review-grid"><div><dt>CPF</dt><dd>{client.cpf ? formatCpf(client.cpf) : "—"}</dd></div>
         <div><dt>Advogada responsável</dt><dd>{[...new Set(contracts.map((contract) => contract.lawyer_name))].join(", ")}</dd></div></dl>
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Contratos</h2>
       <p>Vínculos operacionais deste cliente.</p></div></div>
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Advogada</th><th>Origem</th>
-        <th>Data do contrato</th><th>Parcelas</th></tr></thead><tbody>{contracts.map((contract) => <tr key={contract.id}>
+        <th>Data do contrato</th><th>Contratantes</th><th>Parcelas</th></tr></thead><tbody>{contracts.map((contract) => <tr key={contract.id}>
           <td>{contract.lawyer_name}</td><td>{contract.origin}</td><td>{formatDateBR(contract.contract_date)}</td>
-          <td>{contract.installments.length}</td></tr>)}</tbody></table></div>
+          <td>{contractClientLabel(contract)}</td><td>{contract.installments.length}</td></tr>)}</tbody></table></div>
     </section>
     <section className="table-section"><div className="section-heading"><div><h2>Parcelas</h2>
       <p>Registre recebimentos e edite ou exclua seus lançamentos na própria parcela. Valor e data são sugeridos a partir do contrato.</p></div></div>

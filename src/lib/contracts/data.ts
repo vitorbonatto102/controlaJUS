@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { loadContractParties } from "./parties-data";
 import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 
 const contractSelect = `
@@ -84,7 +85,8 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
     all.push(...page.map(normalize));
     if (page.length < pageSize) break;
   }
-  return all;
+  const parties = await loadContractParties(all.map((contract) => contract.id));
+  return all.map((contract) => ({ ...contract, contractors: parties.get(contract.id) }));
 }
 
 export async function loadLawyerContract(lawyerId: string, contractId: string): Promise<ContractRecord | null> {
@@ -101,5 +103,8 @@ export async function loadLawyerContract(lawyerId: string, contractId: string): 
     ({ data, error } = await fetchContract());
   }
   if (error) throw new Error("Não foi possível carregar o contrato.");
-  return data ? normalize(data as unknown as RawContract) : null;
+  if (!data) return null;
+  const contract = normalize(data as unknown as RawContract);
+  const parties = await loadContractParties([contract.id]);
+  return { ...contract, contractors: parties.get(contract.id) };
 }

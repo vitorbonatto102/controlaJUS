@@ -134,5 +134,50 @@ test("gestão de contratos aplica isolamento, validação, auditoria e proteçã
     await assert.rejects(edit(noted, await version(noted), { contract_file_path: `contracts/${other}/${noted}/${randomUUID()}.pdf`, contract_file_name: "outro.pdf" }, null), /PDF não encontrado/);
     await db.exec("reset role; reset request.jwt.claim.sub");
     await db.exec(await readFile(new URL("20261022000300_lawyer_contract_management.sql", migrations), "utf8"));
+    await asUser(lawyer);
+    const multi = randomUUID();
+    const parties = [{ fullName: "Cliente Teste", cpf: "52998224725" }, { fullName: "Segunda Pessoa Fictícia", cpf: "11144477735" }];
+    const createMulti = (contractId: string, people = parties) => db.query(`select public.create_contract_with_parties(
+      $1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)`, [contractId, JSON.stringify(people), JSON.stringify(prepared.changes), JSON.stringify(prepared.schedule)]);
+    await createMulti(multi);
+    const links = (await db.query<{ client_id: string }>("select client_id from public.contract_parties where contract_id=$1 order by position", [multi])).rows;
+    assert.equal(links.length, 2);
+    assert.equal((await db.query(`select cl.id from public.contract_parties p join public.clients cl on cl.id=p.client_id
+      where p.contract_id=$1`, [multi])).rows.length, 2);
+    assert.equal((await db.query("select id from public.installments where contract_id=$1", [multi])).rows.length, 1);
+    const entryPlan = prepareContractEdit({ ...values, method: "installments", total: "3.000,00", count: "4",
+      installmentValue: "650,00", hasEntry: true, entryValue: "400,00", entryDue: "04/06/2026", firstDue: "10/07/2026" }, false);
+    const entryId = randomUUID();
+    await db.query("select public.create_contract_with_parties($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
+      [entryId, JSON.stringify(parties), JSON.stringify(entryPlan.changes), JSON.stringify(entryPlan.schedule)]);
+    const entryTotal = (await db.query<{ count: number; total: string }>("select count(*)::integer as count,sum(contractual_amount) as total from public.installments where contract_id=$1", [entryId])).rows[0];
+    assert.equal(entryTotal.count, 5); assert.equal(Number(entryTotal.total), 3000);
+    const successPlan = prepareContractEdit({ ...values, method: "success_only", successFeePercentage: "30" }, false);
+    const multiSuccess = randomUUID();
+    await db.query("select public.create_contract_with_parties($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
+      [multiSuccess, JSON.stringify(parties), JSON.stringify(successPlan.changes), JSON.stringify(successPlan.schedule)]);
+    assert.equal((await db.query("select id from public.installments where contract_id=$1", [multiSuccess])).rows.length, 0);
+    await assert.rejects(createMulti(randomUUID(), [parties[0], parties[0]]), /mesmo CPF/);
+    const failedId = randomUUID();
+    await assert.rejects(createMulti(failedId, [parties[0], { ...parties[1], cpf: "11144477700" }]), /CPF válido/);
+    assert.equal((await db.query("select id from public.contracts where id=$1", [failedId])).rows.length, 0);
+    await assert.rejects(db.query("delete from public.contract_parties where contract_id=$1", [multi]), /permission denied/);
+    await asUser(colleague);
+    assert.equal((await db.query("select client_id from public.contract_parties where contract_id=$1", [multi])).rows.length, 0);
+    assert.equal((await db.query("select id from public.clients where id=$1", [links[1].client_id])).rows.length, 0);
+    await asUser(other);
+    assert.equal((await db.query("select client_id from public.contract_parties where contract_id=$1", [multi])).rows.length, 0);
+    await asUser(secretary);
+    assert.equal((await db.query("select client_id from public.contract_parties where contract_id=$1", [multi])).rows.length, 2);
+    await assert.rejects(createMulti(randomUUID()), /autorizado/);
+    const multiInstallment = (await db.query<{ id: string }>("select id from public.installments where contract_id=$1", [multi])).rows[0].id;
+    await db.query(`insert into public.collection_notes(client_id,contract_id,installment_id,note_type,content)
+      values($1,$2,$3,'collection','Contato com o segundo contratante')`, [links[1].client_id, multi, multiInstallment]);
+    const multiPayment = (await db.query<{ id: string }>("insert into public.payments(installment_id,payment_date,amount_paid) values($1,'2026-12-10',1200) returning id", [multiInstallment])).rows[0].id;
+    assert.equal((await db.query("select id from public.commissions where payment_id=$1", [multiPayment])).rows.length, 0);
+    await asUser(lawyer);
+    assert.equal(Number((await db.query<{ commission_amount: string }>("select commission_amount from public.commissions where payment_id=$1", [multiPayment])).rows[0].commission_amount), 540);
+    await db.exec("reset role; reset request.jwt.claim.sub");
+    await db.exec(await readFile(new URL("20261022000400_multiple_contractors.sql", migrations), "utf8"));
   } finally { await db.close(); }
 });

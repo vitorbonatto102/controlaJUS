@@ -1,4 +1,5 @@
 import { numericToCents } from "@/lib/contracts/finance";
+import { contractClientLabel, getContractParties } from "@/lib/contracts/parties";
 import { buildOperationalRows } from "@/lib/secretary/view";
 import type { ManagerWorkspace } from "./data";
 
@@ -8,6 +9,7 @@ export type ManagerPaymentRow = {
   installmentLabel: string; dueDate: string; contractualCents: number;
   paidCents: number; paymentDate: string; percentage: number; commissionCents: number;
   status: string; corrected: boolean; replacesPaymentId: string | null;
+  clientIds?: string[];
 };
 
 export function buildManagerPaymentRows(data: ManagerWorkspace, today: string): ManagerPaymentRow[] {
@@ -24,7 +26,7 @@ export function buildManagerPaymentRows(data: ManagerWorkspace, today: string): 
       if (!commission) throw new Error("Pagamento sem comissão gerada.");
       return {
         paymentId: payment.id, contractId: contract.id, clientId: contract.client_id,
-        clientName: contract.client_name, lawyerId: contract.lawyer_id,
+        clientName: contractClientLabel(contract), clientIds: getContractParties(contract).map((party) => party.clientId), lawyerId: contract.lawyer_id,
         lawyerName: contract.lawyer_name, origin: contract.origin, installmentId: installment.id,
         installmentLabel: installmentRow.installmentLabel, dueDate: installment.due_date,
         contractualCents: numericToCents(installment.contractual_amount),
@@ -55,7 +57,7 @@ export function filterManagerRows(rows: ManagerPaymentRow[], filters: ManagerFil
 }
 
 export function managerTotals(rows: ManagerPaymentRow[], transferredCents: number) {
-  const clients = new Set(rows.map((row) => row.clientId));
+  const clients = new Set(rows.flatMap((row) => row.clientIds ?? [row.clientId]));
   const receivedCents = rows.reduce((sum, row) => sum + row.paidCents, 0);
   const commissionCents = rows.reduce((sum, row) => sum + row.commissionCents, 0);
   return { receivedCents, commissionCents, transferredCents,

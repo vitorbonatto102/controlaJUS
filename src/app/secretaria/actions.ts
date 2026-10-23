@@ -10,6 +10,14 @@ import { createClient } from "@/lib/supabase/server";
 export type SecretaryActionState = ActionState;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+async function contractIncludesClient(supabase: Awaited<ReturnType<typeof createClient>>,
+  contract: { id: string; client_id: string }, clientId: string) {
+  if (contract.client_id === clientId) return true;
+  const { data, error } = await supabase.from("contract_parties").select("client_id")
+    .eq("contract_id", contract.id).eq("client_id", clientId).maybeSingle();
+  return !error && !!data;
+}
+
 function field(form: FormData, name: string): string { return String(form.get(name) ?? "").trim(); }
 function validDate(value: string): boolean {
   try { formatDateBR(value); return true; } catch { return false; }
@@ -34,9 +42,9 @@ export async function registerPayment(_state: SecretaryActionState, form: FormDa
   }
   const supabase = await createClient();
   const { data: installment, error: lookupError } = await supabase.from("installments")
-    .select("id, contracts!inner(client_id)").eq("id", installmentId).maybeSingle();
-  const relation = installment?.contracts as unknown as { client_id: string } | null;
-  if (lookupError || relation?.client_id !== clientId) {
+    .select("id, contracts!inner(id,client_id)").eq("id", installmentId).maybeSingle();
+  const relation = installment?.contracts as unknown as { id: string; client_id: string } | null;
+  if (lookupError || !relation || !await contractIncludesClient(supabase, relation, clientId)) {
     return { error: "Parcela não pertence a este cliente.", success: null };
   }
   const { error } = await supabase.from("payments").insert({
@@ -86,10 +94,10 @@ export async function revisePayment(_state: SecretaryActionState, form: FormData
   }
   const supabase = await createClient();
   const { data: payment, error: lookupError } = await supabase.from("payments")
-    .select("id, installments!inner(contracts!inner(client_id))")
+    .select("id, installments!inner(contracts!inner(id,client_id))")
     .eq("id", paymentId).maybeSingle();
-  const installment = payment?.installments as unknown as { contracts: { client_id: string } } | null;
-  if (lookupError || installment?.contracts?.client_id !== clientId) {
+  const installment = payment?.installments as unknown as { contracts: { id: string; client_id: string } } | null;
+  if (lookupError || !installment?.contracts || !await contractIncludesClient(supabase, installment.contracts, clientId)) {
     return { error: "Pagamento não pertence a este cliente.", success: null };
   }
   const { error } = await supabase.rpc("revise_secretary_payment", {

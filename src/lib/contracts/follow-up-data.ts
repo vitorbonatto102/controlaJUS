@@ -2,6 +2,7 @@ import "server-only";
 import type { CurrentProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import type { FollowUpContract } from "./follow-up";
+import { loadContractParties } from "./parties-data";
 
 type RawContract = {
   id: string; client_id: string; lawyer_id: string; contract_date: string; origin: string;
@@ -56,5 +57,7 @@ export async function loadFollowUpContracts(profile: CurrentProfile): Promise<Fo
     })));
     if (rows.length < 100) break;
   }
-  return contracts;
+  const parties = await loadContractParties(contracts.map((contract) => contract.id));
+  return contracts.map((contract) => ({ ...contract, contractors: parties.get(contract.id),
+    clientName: parties.get(contract.id)?.map((party) => party.fullName).join(" / ") || contract.clientName }));
 }

@@ -1,3 +1,5 @@
+import type { ContractParty } from "./parties";
+
 export const followUpLabels = {
   success_only: "Apenas no êxito",
   additional_fee: "Honorários adicionais / proveito econômico",
@@ -22,6 +24,7 @@ export function followUpReasons(contract: FollowUpTerms): FollowUpReason[] {
 export type FollowUpContract = FollowUpTerms & {
   id: string; clientId: string; clientName: string; lawyerId: string; lawyerName: string;
   clientCpf: string | null; origin: string;
+  contractors?: ContractParty[];
   contractDate: string; totalValue: number | null; successFeePercentage: number | null;
   additionalFeePercentage: number | null; additionalFeeBasis: string | null;
   additionalFeeAmount: number | null; paymentCondition: string | null;
@@ -48,7 +51,8 @@ export function filterFollowUpContracts(contracts: FollowUpContract[], filters: 
     return reasons.length > 0 && (!filters.reason || reasons.some((reason) => reason === filters.reason)) &&
       (!filters.lawyerId || contract.lawyerId === filters.lawyerId) &&
       (!client || normalize(contract.clientName).includes(client)) &&
-      (!cpf || (contract.clientCpf?.replace(/\D/g, "") ?? "").includes(cpf)) &&
+      (!cpf || (contract.contractors?.length ? contract.contractors.map((party) => party.cpf) : [contract.clientCpf])
+        .some((value) => (value?.replace(/\D/g, "") ?? "").includes(cpf))) &&
       (!filters.origin || contract.origin === filters.origin) &&
       (!filters.dateFrom || contract.contractDate >= filters.dateFrom) &&
       (!filters.dateTo || contract.contractDate <= filters.dateTo) &&

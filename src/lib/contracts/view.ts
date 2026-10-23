@@ -1,4 +1,5 @@
 import { numericToCents, participationCents } from "./finance";
+import { contractClientLabel, type ContractParty } from "./parties";
 
 export type PaymentRecord = {
   id: string;
@@ -21,6 +22,7 @@ export type ContractRecord = {
   client_id: string;
   client_name: string;
   client_cpf: string | null;
+  contractors?: ContractParty[];
   origin: string;
   contract_date: string;
   total_contract_value: number | null;
@@ -98,7 +100,7 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
       const latestPaymentDate = activePayments.reduce<string | null>((latest, payment) =>
         !latest || payment.payment_date > latest ? payment.payment_date : latest, null);
       return {
-        contractId: contract.id, clientId: contract.client_id, clientName: contract.client_name,
+        contractId: contract.id, clientId: contract.client_id, clientName: contractClientLabel(contract),
         origin: contract.origin, installmentId: item.id,
         installmentLabel: installmentLabel(item, regularCount), dueDate: item.due_date,
         contractualCents, paidCents: activePayments.length ? paidCents : null,

@@ -1,7 +1,10 @@
 import { parseMoneyBR } from "./finance";
 import { formatCpf, isValidCpf, MAX_PDF_BYTES } from "./validation";
+import { extractContractors, type ExtractedContractor } from "./extraction-parties";
 
 export type ExtractedContractData = {
+  contractors: ExtractedContractor[];
+  warnings: string[];
   contractorName: string | null;
   cpf: string | null;
   contractDate: string | null;
@@ -10,6 +13,8 @@ export type ExtractedContractData = {
   installmentCount: number | null;
   installmentValue: string | null;
   firstDueDate: string | null;
+  entryValue: string | null;
+  entryDueDate: string | null;
   paymentStartType: "fixed_date" | "condition" | null;
   paymentStartCondition: string | null;
   hasAdditionalFee: boolean;
@@ -24,9 +29,11 @@ const monthNames: Record<string, number> = {
   julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
 };
 const monthWord = "janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro";
-const dateSource = `(?:\\d{1,2}\\s*[/.]\\s*\\d{1,2}\\s*[/.]\\s*\\d{4}|\\d{1,2}\\s*de\\s*(?:${monthWord})\\s*de\\s*\\d{4})`;
+const dateSource = `(?:[\\dOIilü]{1,2}\\s*[/.]\\s*[\\dOIilü]{1,2}\\s*[/.]\\s*[\\dOIilü]{4}|[\\dOIilü]{1,2}\\s*de\\s*(?:${monthWord})\\s*(?:de|d\\.e|cie)\\s*[\\dOIilü]{4})`;
 
 function brazilianDate(value: string): string | null {
+  value = value.replace(/\b[\dOIilü]{1,4}\b/g, (token) => token.replace(/[Oü]/g, "0").replace(/[Iil]/g, "1"))
+    .replace(/\b(?:d\.e|cie)\b/gi, "de");
   const numeric = /^(\d{1,2})\s*[/.]\s*(\d{1,2})\s*[/.]\s*(\d{4})$/.exec(value.trim());
   const written = new RegExp(`^(\\d{1,2})\\s*de\\s*(${monthWord})\\s*de\\s*(\\d{4})$`, "i").exec(value.trim());
   if (!numeric && !written) return null;
@@ -48,29 +55,33 @@ function moneyAfter(text: string, expression: RegExp): string | null {
 export function parseContractText(rawText: string): ExtractedContractData {
   const text = rawText.normalize("NFC").replace(/\s+/g, " ").trim();
   const contractorText = /\bCONTRATANTE\s*:\s*(.*?)(?=\bCONTRATAD[AO]\s*:|$)/i.exec(text)?.[1] ?? "";
-  const contractorName = /^([^,]{2,160}?)\s*,/i.exec(contractorText)?.[1].trim() ?? null;
+  const contractors = extractContractors(text);
+  const contractorName = contractors[0]?.fullName ?? /^([^,]{2,160}?)\s*,/i.exec(contractorText)?.[1].trim() ?? null;
   // A camada de texto pode juntar "inscrito no"; a âncora é CPF na identificação
   // do contratante, sem capturar documentos da contratada ou corrigir dígitos.
   const cpfMatch = /\bCPF(?:\s*\/\s*MF)?\s*(?:sob\s*o\s*)?(?:(?:n(?:[.\s]*[º°o])?\.?|n[uú]mero)\s*)?[:–-]?\s*(\d{3}\s*\.?\s*\d{3}\s*\.?\s*\d{3}\s*-?\s*\d{2})(?!\d)/i
     .exec(contractorText)?.[1] ?? null;
-  const cpf = cpfMatch && isValidCpf(cpfMatch) ? formatCpf(cpfMatch) : null;
+  const cpf = contractors.length ? contractors[0].cpf : cpfMatch && isValidCpf(cpfMatch) ? formatCpf(cpfMatch) : null;
 
-  const clauseStart = /\b2\.1\.\s*O\s+valor\s+total\s+dos\s+honor[aá]rios\s+advocat[ií]cios\b/i.exec(text);
+  const clauseStart = /\b(?:Em\s+contrapresta[çc][aã]o|O\s+valor\s+total\s+dos\s+honor[aá]rios\s+advocat[ií]cios)\b/i.exec(text);
   const rest = clauseStart ? text.slice(clauseStart.index) : "";
-  const clauseEnd = /\b2\.1\.1\b|\b2\.2\./.exec(rest);
+  const clauseEnd = /\b\d{1,2}\.\d{1,2}(?:\.\d{1,2})?\.?\s+(?=\p{L})/u.exec(rest);
   const clause = rest.slice(0, clauseEnd?.index ?? 1800);
-  const totalValue = moneyAfter(clause, /[ée]\s+de\s*R\$\s*([\d.,]*\d)/i);
-  const countMatch = /a\s+serem\s+pagos\s+em\s+(\d{1,3})(?:\s*\([^)]*\))?\s+parcelas\b/i.exec(clause);
+  const totalValue = moneyAfter(clause, /(?:[ée]|valor(?:\s+total)?)\s+de\s*R\$\s*([\d.,]*\d)/i);
+  const countMatch = /\b(\d{1,3})(?:\s*\([^)]*\))?\s+parcelas\b/i.exec(clause);
   const installmentCount = countMatch ? Number(countMatch[1]) : null;
   const regularValue = moneyAfter(clause,
-    /parcelas\s+mensais\s+e\s+sucessivas\s+de\s*R\$\s*([\d.,]*\d)/i);
+    /parcelas(?:\s+mensais(?:\s+e\s+sucessivas)?)?\s+(?:no\s+valor\s+)?de\s*R(?:\$|[-\s]*S)\s*([\d.,]*\d)/i);
   const cash = /(?:pagamento|pagos?|quitad[oa]s?)\s+(?:ser[aá]\s+)?(?:feito\s+)?[àa]\s+vista\b/i.test(clause);
   const paymentType = installmentCount !== null ? "installments" : cash ? "cash" : null;
   const installmentValue = regularValue ?? (cash ? totalValue : null);
 
   const dueAnchor = new RegExp(
-    `(?:primeiro\\s+vencimento|vencimento\\s+da\\s+primeira\\s+parcela|primeira\\s+parcela\\s+vencer[aá]\\s+em|in[ií]cio\\s+dos\\s+pagamentos\\s+em|com\\s+vencimento\\s+em)\\s*[:–-]?\\s*(?:ser[aá]\\s+)?(?:em\\s+|no\\s+dia\\s+)?(${dateSource})`, "i");
+    `(?:primeiro\\s+vencimento|vencimento\\s+da\\s+primeira(?:\\s+parcela)?(?:\\s+para)?|primeira\\s+(?:parcela\\s+)?(?:prevista|programada)\\s+para|primeira\\s+parcela\\s+vencer[aá]\\s+em|in[ií]cio\\s+dos\\s+pagamentos\\s+em|com\\s+vencimento\\s+em)\\s*[:–-]?\\s*(?:ser[aá]\\s+)?(?:em\\s+|no\\s+dia\\s+|o\\s+dia\\s+)?(${dateSource})`, "i");
   const firstDueDate = brazilianDate(dueAnchor.exec(clause)?.[1] ?? "");
+  const entryClause = /\bentrada\b(.*?)(?=\bmais\s+\d|;|$)/i.exec(clause)?.[0] ?? "";
+  const entryValue = moneyAfter(entryClause, /entrada\s+(?:no\s+valor\s+)?de\s*R\$\s*([\d.,]*\d)/i);
+  const entryDueDate = entryValue ? brazilianDate(new RegExp(`(?:pago|pagamento|vencimento)\\s*(?:no\\s+dia|em)?\\s*(${dateSource})`, "i").exec(entryClause)?.[1] ?? "") : null;
   const conditionMatch = /in[ií]cio\s+dos\s+pagamentos\s+(?:(?:ocorrer[aá]|se\s+dar[aá])\s+)?(?:somente\s+)?ap[oó]s\s+([^.;]{5,500}(?:\/(?:ou|e)\s*[^.;]{1,100})?)/i.exec(clause);
   const paymentStartCondition = !firstDueDate && conditionMatch ?
     `Após ${conditionMatch[1].trim().replace(/[,.\s]+$/, "")}` : null;
@@ -82,13 +93,15 @@ export function parseContractText(rawText: string): ExtractedContractData {
   const additionalFeePercentage = hasAdditionalFee && additionalMatch ? Number(additionalMatch[1]) : null;
   const additionalFeeBasis = hasAdditionalFee && additionalMatch ? additionalMatch[2].replace(/\s+/g, " ").toLowerCase() : null;
 
-  const footer = new RegExp(`\\b[\\p{L}][\\p{L}\\s]{1,80}\\s*[-–/]\\s*[A-Z]{2}\\s*,\\s*(${dateSource})`, "giu");
+  const footer = new RegExp(`\\b[\\p{L}][\\p{L}\\s]{1,80}\\s*[-–/,]\\s*[A-Z]{2}\\s*,\\s*(${dateSource})`, "giu");
   const footerDates = [...text.matchAll(footer)];
   const contractDate = brazilianDate(footerDates.at(-1)?.[1] ?? "");
 
   return {
+    contractors, warnings: contractors.some((party) => !party.cpf || !party.fullName || /[§{}\\]/.test(party.fullName)) ?
+      ["Há dados de contratantes ilegíveis ou incompletos no PDF. Confira os nomes e preencha os CPFs não identificados."] : [],
     contractorName, cpf, contractDate, totalValue, paymentType, installmentCount,
-    installmentValue, firstDueDate,
+    installmentValue, firstDueDate, entryValue, entryDueDate,
     paymentStartType: firstDueDate ? "fixed_date" : paymentStartCondition ? "condition" : null,
     paymentStartCondition, hasAdditionalFee, additionalFeePercentage, additionalFeeBasis,
   };

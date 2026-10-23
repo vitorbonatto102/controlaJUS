@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth/profile";
 import { loadLawyerContract } from "@/lib/contracts/data";
 import { buildFinancialRows, statusLabels, todayInSaoPaulo } from "@/lib/contracts/view";
 import { numericToCents, participationCents } from "@/lib/contracts/finance";
+import { getContractParties, contractClientLabel } from "@/lib/contracts/parties";
 import { formatCpf } from "@/lib/contracts/validation";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 
@@ -31,13 +32,13 @@ export default async function ContractDetailPage({ params, searchParams }: {
     <Link className="back-link" href="/advogada/contratos">← Voltar aos contratos</Link>
     {criado === "1" && <div className="success-box" role="status">Contrato cadastrado com sucesso.</div>}
     {editado === "1" && <div className="success-box" role="status">Contrato atualizado com histórico de alterações.</div>}
-    <p className="eyebrow">DETALHES DO CONTRATO</p><h1>{contract.client_name}</h1>
+    <p className="eyebrow">DETALHES DO CONTRATO</p><h1>{contractClientLabel(contract)}</h1>
     <p className="page-description">Dados gerais, documento e cronograma financeiro.</p>
     <section className={styles.toolbar} aria-label="Gerenciar este contrato"><ContractActions id={id}
       version={contract.updated_at ?? ""} hasPayments={contractHasPayments(contract)} showView={false} /></section>
     <div className="detail-grid"><section className="form-panel"><h2>Dados gerais</h2>
-      <dl className="review-grid"><div><dt>Cliente</dt><dd>{contract.client_name}</dd></div>
-        <div><dt>CPF</dt><dd>{contract.client_cpf ? formatCpf(contract.client_cpf) : "—"}</dd></div>
+      <dl className="review-grid">{getContractParties(contract).map((party, index) => <div key={party.clientId}>
+        <dt>Contratante {index + 1}</dt><dd>{party.fullName}<br />CPF: {party.cpf ? formatCpf(party.cpf) : "—"}</dd></div>)}
         <div><dt>Origem</dt><dd>{contract.origin}</dd></div>
         <div><dt>Data do contrato</dt><dd>{formatDateBR(contract.contract_date)}</dd></div>
         <div><dt>Valor contratado</dt><dd>{totalCents === null ? "A apurar após o êxito" : formatBRL(totalCents / 100)}</dd></div>

@@ -1,4 +1,5 @@
 import { numericToCents } from "@/lib/contracts/finance";
+import { getContractParties, contractClientLabel, type ContractParty } from "@/lib/contracts/parties";
 
 export type OperationalPayment = {
   id: string; installment_id: string; payment_date: string; amount_paid: number;
@@ -14,6 +15,7 @@ export type OperationalContract = {
   id: string; client_id: string; lawyer_id: string; lawyer_name: string;
   client_name: string; client_cpf: string | null; origin: string;
   contract_date: string; installments: OperationalInstallment[];
+  contractors?: ContractParty[];
 };
 export type OperationalNote = {
   id: string; client_id: string; contract_id: string | null; installment_id: string | null;
@@ -34,6 +36,7 @@ export type OperationalRow = {
   installmentId: string; installmentLabel: string; dueDate: string; origin: string;
   contractualCents: number; paidCents: number; balanceCents: number;
   latestPaymentDate: string | null; latestContactAt: string | null; status: OperationalStatus;
+  contractors?: ContractParty[];
 };
 export type OperationalFilters = {
   lawyerId: string; clientId: string; month: string; year: string;
@@ -57,11 +60,12 @@ export function buildOperationalRows(contracts: OperationalContract[], notes: Op
       const active = item.payments.filter((payment) => !payment.voided_at);
       const contractualCents = numericToCents(item.contractual_amount);
       const paidCents = active.reduce((sum, payment) => sum + numericToCents(payment.amount_paid), 0);
-      const contacts = notes.filter((note) => note.client_id === contract.client_id &&
+      const contractors = getContractParties(contract);
+      const contacts = notes.filter((note) => contractors.some((party) => party.clientId === note.client_id) &&
         (note.installment_id === item.id || (note.installment_id === null &&
           (note.contract_id === null || note.contract_id === contract.id))));
       return {
-        contractId: contract.id, clientId: contract.client_id, clientName: contract.client_name,
+        contractId: contract.id, clientId: contract.client_id, clientName: contractClientLabel(contract), contractors,
         lawyerId: contract.lawyer_id, lawyerName: contract.lawyer_name, installmentId: item.id,
         installmentLabel: item.kind === "down_payment" ? "Entrada" :
           `${item.regular_number ?? item.installment_number}/${regularCount}`,
@@ -81,7 +85,7 @@ export function filterOperationalRows(rows: OperationalRow[], filters: Operation
   today: string): OperationalRow[] {
   return rows.filter((row) =>
     (!filters.lawyerId || row.lawyerId === filters.lawyerId) &&
-    (!filters.clientId || row.clientId === filters.clientId) &&
+    (!filters.clientId || row.clientId === filters.clientId || !!row.contractors?.some((party) => party.clientId === filters.clientId)) &&
     (!filters.month || row.dueDate.slice(5, 7) === filters.month) &&
     (!filters.year || row.dueDate.slice(0, 4) === filters.year) &&
     (!filters.dueDate || row.dueDate === filters.dueDate) &&

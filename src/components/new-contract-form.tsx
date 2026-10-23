@@ -10,6 +10,8 @@ import { formatCpf, hasPdfSignature, isValidCpf, isValidPdf, onlyDigits,
   ORIGINS, PERCENTAGES } from "@/lib/contracts/validation";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { MAX_CONTRACTORS } from "@/lib/contracts/parties";
+import { prepareContractEdit } from "@/lib/contracts/editing";
 
 type Mode = "choose" | "import" | "manual";
 type EditKey = keyof ContractFormValues;
@@ -55,7 +57,7 @@ function ImportPanel({ mode, file, reading, stage, error, onFile, onManual }: {
     <span className="upload-limit">Somente PDF · até 10 MB</span>
     {reading && <div className="import-progress" role="status"><strong>Lendo contrato...</strong><span>{stage}</span></div>}
     {mode === "import" && file && !reading && <div className="import-result" role="status">
-      <strong>Contrato analisado com sucesso</strong><span>{file.name}</span>
+      <strong>Leitura do contrato concluída</strong><span>{file.name}</span>
       <p>Os dados encontrados foram preenchidos abaixo. Confira antes de continuar.</p>
     </div>}
     {error && <div className="form-error-box" role="alert">{error}</div>}
@@ -71,8 +73,8 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
   readOnlyClient?: boolean;
 }) {
   return <>
-    <section className="form-panel"><Heading number="02" title="Contratante"
-      description="Confirme a identificação da pessoa contratante." />
+    <section className="form-panel"><Heading number="02" title="Contratantes"
+      description="Inclua todas as pessoas contratantes. O valor e o cronograma abaixo são do contrato inteiro." />
       <div className="form-grid"><label className="span-2">Nome completo
         <input maxLength={160} readOnly={readOnlyClient} value={values.clientName} onChange={(event) => set("clientName", event.target.value)}
           placeholder="Nome completo" /><FieldNote note={note("clientName")} /></label>
@@ -80,6 +82,19 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
           onChange={(event) => set("cpf", formatCpf(event.target.value))} onBlur={checkCpf}
           placeholder="000.000.000-00" /><FieldNote note={note("cpf")} /></label></div>
       {cpfNotice && <p className="field-hint" role="status">{cpfNotice}</p>}
+      {values.additionalContractors.map((party, index) => <div className="additional-contractor" key={index}>
+        <h3>Contratante {index + 2}</h3><div className="form-grid"><label className="span-2">Nome completo do contratante {index + 2}
+          <input maxLength={160} readOnly={readOnlyClient} value={party.fullName} onChange={(event) => set("additionalContractors",
+            values.additionalContractors.map((item, position) => position === index ? { ...item, fullName: event.target.value } : item))} /></label>
+          <label>CPF do contratante {index + 2}<input inputMode="numeric" maxLength={14} readOnly={readOnlyClient} value={party.cpf}
+            onChange={(event) => set("additionalContractors", values.additionalContractors.map((item, position) => position === index ?
+              { ...item, cpf: formatCpf(event.target.value) } : item))} placeholder="000.000.000-00" /></label></div>
+        {!readOnlyClient && <button className="text-button" type="button" onClick={() => set("additionalContractors",
+          values.additionalContractors.filter((_, position) => position !== index))}>Remover contratante {index + 2}</button>}
+      </div>)}
+      {!readOnlyClient && <button className="secondary-button" type="button" style={{ marginTop: 20 }}
+        disabled={values.additionalContractors.length + 1 >= MAX_CONTRACTORS}
+        onClick={() => set("additionalContractors", [...values.additionalContractors, { fullName: "", cpf: "" }])}>+ Adicionar contratante</button>}
     </section>
     <section className="form-panel"><Heading number="03" title="Contrato"
       description="Honorários principais contratados com o cliente." />
@@ -202,6 +217,8 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
       description="Confira os dados. Você pode voltar e corrigir qualquer campo." />
       <dl className="review-grid"><div><dt>Contratante</dt><dd>{values.clientName.trim()}</dd></div>
         <div><dt>CPF</dt><dd>{formatCpf(values.cpf)}</dd></div>
+        {values.additionalContractors.map((party, index) => <div key={index}><dt>Contratante {index + 2}</dt>
+          <dd>{party.fullName.trim()} · CPF {formatCpf(party.cpf)}</dd></div>)}
         <div><dt>Data do contrato</dt><dd>{values.contractDate}</dd></div>
         <div><dt>Valor total</dt><dd>{preview.totalCents === null ? "A apurar após o êxito" : formatBRL(preview.totalCents / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{successOnly ? "Apenas no êxito" : values.method === "cash" ? "À vista" : "Parcelado"}</dd></div>
@@ -261,6 +278,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
   const [importError, setImportError] = useState("");
   const [cpfNotice, setCpfNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
 
   const set: SetField = (key, value) => {
     setValues((current) => ({ ...current, [key]: value,
@@ -293,6 +311,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
   const applyExtracted = (data: ExtractedContractData) => {
     const next: ContractFormValues = { ...blankContractForm,
       clientName: data.contractorName ?? "", cpf: formatCpf(data.cpf ?? ""),
+      additionalContractors: (data.contractors ?? []).slice(1).map((party) => ({ fullName: party.fullName ?? "", cpf: formatCpf(party.cpf ?? "") })),
       contractDate: data.contractDate ?? "", total: data.totalValue ? moneyInput(data.totalValue) : "",
       method: data.paymentType ?? "", count: data.installmentCount?.toString() ?? "",
       installmentValue: data.installmentValue ? moneyInput(data.installmentValue) : "",
@@ -301,6 +320,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
       hasAdditionalFee: data.hasAdditionalFee,
       additionalFeePercentage: data.additionalFeePercentage?.toString() ?? "",
       additionalFeeBasis: data.additionalFeeBasis ?? "",
+      hasEntry: !!data.entryValue, entryValue: data.entryValue ? moneyInput(data.entryValue) : "", entryDue: data.entryDueDate ?? "",
     };
     const extracted = new Set<EditKey>();
     for (const key of ["clientName", "cpf", "contractDate", "total", "method", "count",
@@ -310,6 +330,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
     }
     setValues(next);
     setExtractedFields(extracted);
+    setExtractionWarnings(data.warnings ?? []);
   };
 
   const importFile = async (selected: File) => {
@@ -397,7 +418,13 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
         p_origin: values.origin, p_percentage: preview.percentage,
         p_file_path: filePath, p_file_name: file?.name ?? null,
       };
-      const { error: saveError } = preview.method === "success_only" ?
+      const multiple = values.additionalContractors.length > 0;
+      const { error: saveError } = multiple ? await supabase.rpc("create_contract_with_parties", {
+        p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
+          ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
+        p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
+        p_file_path: filePath, p_file_name: file?.name ?? null,
+      }) : preview.method === "success_only" ?
         await supabase.rpc("create_success_contract", { ...common, p_success_fee_percentage: preview.successFeePercentage }) :
         await supabase.rpc("create_lawyer_contract_v2", { ...common,
         p_total_cents: preview.totalCents, p_payment_method: preview.method,
@@ -412,7 +439,8 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
         p_additional_fee_amount_cents: preview.additionalFeeAmountCents,
         p_last_installment_cents: preview.lastInstallmentCents,
       });
-      if (saveError) throw new Error(preview.method === "success_only" && saveError.code === "PGRST202" ?
+      if (saveError) throw new Error(multiple && saveError.code === "PGRST202" ?
+        "Peça ao administrador para aplicar a atualização de múltiplos contratantes no Supabase." : preview.method === "success_only" && saveError.code === "PGRST202" ?
         "O cadastro apenas no êxito ainda não está disponível. Peça ao administrador para concluir a atualização." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
@@ -428,6 +456,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
   const manual = () => {
     setValues({ ...blankContractForm }); setExtractedFields(new Set()); setFile(null);
     setMode("manual"); setPhase("edit"); setPreview(null); setImportError(""); setError("");
+    setExtractionWarnings([]);
   };
 
   return <div className="contract-form-wrap">
@@ -438,6 +467,9 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
     {phase === "edit" && <ImportPanel mode={mode} file={file} reading={reading} stage={readingStage}
       error={importError} onFile={(selected) => void importFile(selected)} onManual={manual} />}
     {mode === "manual" && phase === "edit" && <p className="manual-status">Cadastro manual sem contrato em PDF.</p>}
+    {mode === "import" && phase === "edit" && <div className="success-box" role="status">
+      {values.additionalContractors.length + 1} {values.additionalContractors.length ? "contratantes identificados" : "contratante para conferir"}. Confira nomes, CPFs e valores antes de continuar.
+      {extractionWarnings.map((warning) => <p key={warning}>{warning}</p>)}</div>}
     {error && <div className="form-error-box" role="alert">{error}</div>}
     {mode !== "choose" && phase === "edit" && <form className="contract-form" noValidate onSubmit={review}>
       <ContractDataFields values={values} set={set} note={note} cpfNotice={cpfNotice} checkCpf={() => void checkCpf()} />

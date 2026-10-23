@@ -58,7 +58,8 @@ export function FollowUpList({ contracts, role }: { contracts: FollowUpContract[
         <div className={styles.tags}>{followUpReasons(contract).map((item) => <span key={item}>{followUpLabels[item]}</span>)}</div>
         <h2>{contract.clientName}</h2>
         <p className={styles.responsible}>{contract.lawyerName} · Contrato de {formatDateBR(contract.contractDate)}</p>
-        <p className={styles.responsible}>CPF: {contract.clientCpf ? formatCpf(contract.clientCpf) : "Não informado"} · Origem: {contract.origin}</p>
+        <p className={styles.responsible}>CPF: {(contract.contractors?.length ? contract.contractors.map((party) => party.cpf) : [contract.clientCpf])
+          .map((cpf) => cpf ? formatCpf(cpf) : "Não informado").join(" / ")} · Origem: {contract.origin}</p>
         <dl>
           <div><dt>Valor principal</dt><dd>{contract.totalValue === null ? "A apurar após o êxito" : formatBRL(contract.totalValue)}</dd></div>
           {contract.successFeePercentage !== null && <div><dt>Honorários cobrados do cliente</dt><dd>{percentage(contract.successFeePercentage)} sobre o resultado da ação</dd></div>}

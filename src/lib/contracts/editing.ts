@@ -2,6 +2,7 @@ import { blankContractForm, brazilianToIso, prepareContract, type ContractFormVa
 import type { ContractRecord } from "./view";
 import { ORIGINS } from "./validation";
 import { formatBRL, formatDateBR } from "../formatters";
+import { getContractParties, MAX_CONTRACTORS } from "./parties";
 
 const amount = (value: number | null | undefined) => value == null ? "" : formatBRL(value);
 
@@ -15,6 +16,8 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
     .sort((a, b) => a.installment_number - b.installment_number);
   const entry = contract.installments.find((item) => item.kind === "down_payment");
   return { ...blankContractForm, clientName: contract.client_name, cpf: contract.client_cpf ?? "",
+    additionalContractors: getContractParties(contract).filter((party) => party.clientId !== contract.client_id)
+      .map((party) => ({ fullName: party.fullName, cpf: party.cpf ?? "" })),
     contractDate: formatDateBR(contract.contract_date), total: amount(contract.total_contract_value),
     method: contract.payment_method ?? "", successFeePercentage: contract.success_fee_percentage?.toString() ?? "",
     count: (contract.installment_count ?? (regular.length || (contract.payment_method === "cash" ? 1 : ""))).toString(),
@@ -36,6 +39,14 @@ export function parseEditValues(raw: unknown): ContractFormValues {
   const record = raw as Record<string, unknown>;
   const values = { ...blankContractForm };
   for (const key of Object.keys(blankContractForm) as (keyof ContractFormValues)[]) {
+    if (key === "additionalContractors") {
+      const parties = record[key];
+      if (!Array.isArray(parties) || parties.length >= MAX_CONTRACTORS || parties.some((party) =>
+        !party || typeof party.fullName !== "string" || typeof party.cpf !== "string" || party.fullName.length > 160 || party.cpf.length > 14))
+        throw new Error("Confira os contratantes do contrato.");
+      values.additionalContractors = parties.map((party) => ({ fullName: party.fullName, cpf: party.cpf }));
+      continue;
+    }
     if (typeof record[key] !== typeof blankContractForm[key]) throw new Error("Confira os dados do contrato.");
     if (typeof record[key] === "string" && record[key].length > 1000) throw new Error("Campo muito longo.");
     Object.assign(values, { [key]: record[key] });

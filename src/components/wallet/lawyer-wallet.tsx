@@ -6,6 +6,7 @@ import { LawyerTable } from "@/components/lawyer-table";
 import { followUpReasons } from "@/lib/contracts/follow-up";
 import { buildWallet, monthLabel, walletBalance, type WalletTransfer } from "@/lib/contracts/wallet";
 import type { ContractRecord } from "@/lib/contracts/view";
+import { getContractParties } from "@/lib/contracts/parties";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { MonthlyOutlook, OriginChart, ParticipationChart } from "./wallet-charts";
 import styles from "./wallet.module.css";
@@ -26,12 +27,12 @@ export function LawyerWallet({ contracts, transfers, today, children }: {
   const [clientId, setClientId] = useState("");
   const [origin, setOrigin] = useState("");
   const balance = useMemo(() => walletBalance(contracts, transfers), [contracts, transfers]);
-  const clients = useMemo(() => [...new Map(contracts.map((contract) => [contract.client_id,
-    { id: contract.client_id, name: contract.client_name }])).values()]
+  const clients = useMemo(() => [...new Map(contracts.flatMap((contract) => getContractParties(contract).map((party) => [party.clientId,
+    { id: party.clientId, name: party.fullName }] as const))).values()]
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")), [contracts]);
   const origins = useMemo(() => [...new Set(contracts.map((contract) => contract.origin))].sort(), [contracts]);
   const filteredContracts = useMemo(() => contracts.filter((contract) =>
-    (!clientId || contract.client_id === clientId) && (!origin || contract.origin === origin)), [contracts, clientId, origin]);
+    (!clientId || getContractParties(contract).some((party) => party.clientId === clientId)) && (!origin || contract.origin === origin)), [contracts, clientId, origin]);
   const wallet = useMemo(() => buildWallet(filteredContracts, today, referenceMonth), [filteredContracts, today, referenceMonth]);
   const followUpCount = filteredContracts.filter((contract) => followUpReasons(contract).length > 0).length;
 

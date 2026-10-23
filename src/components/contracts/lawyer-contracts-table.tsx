@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ContractRecord } from "@/lib/contracts/view";
 import { contractHasPayments } from "@/lib/contracts/editing";
+import { contractClientLabel } from "@/lib/contracts/parties";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { ContractActions } from "./contract-actions";
 import styles from "./contract-management.module.css";
@@ -17,7 +18,7 @@ export function LawyerContractsTable({ contracts }: { contracts: ContractRecord[
   const [page, setPage] = useState(1);
   const origins = useMemo(() => [...new Set(contracts.map((contract) => contract.origin))].sort(), [contracts]);
   const filtered = useMemo(() => contracts.filter((contract) =>
-    contract.client_name.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) &&
+    contractClientLabel(contract).toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) &&
     (!origin || contract.origin === origin) && (!method || contract.payment_method === method))
     .sort((a, b) => b.contract_date.localeCompare(a.contract_date) || a.client_name.localeCompare(b.client_name, "pt-BR")),
   [contracts, search, origin, method]);
@@ -35,9 +36,9 @@ export function LawyerContractsTable({ contracts }: { contracts: ContractRecord[
         <option value="">Todas</option>{Object.entries(methods).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <button className="clear-button" type="button" onClick={() => { setSearch(""); setOrigin(""); setMethod(""); setPage(1); }}>Limpar filtros</button></div>
     {filtered.length ? <><div className="table-scroll"><table className="financial-table"><thead><tr>
-      <th>Cliente</th><th>Data do contrato</th><th>Origem</th><th>Forma de pagamento</th><th>Valor contratado</th><th>PDF</th><th>Ações</th>
+      <th>Contratantes</th><th>Data do contrato</th><th>Origem</th><th>Forma de pagamento</th><th>Valor contratado</th><th>PDF</th><th>Ações</th>
     </tr></thead><tbody>{filtered.slice((currentPage - 1) * 20, currentPage * 20).map((contract) => <tr key={contract.id}>
-      <td className="client-cell">{contract.client_name}</td><td>{formatDateBR(contract.contract_date)}</td><td>{contract.origin}</td>
+      <td className="client-cell">{contractClientLabel(contract)}</td><td>{formatDateBR(contract.contract_date)}</td><td>{contract.origin}</td>
       <td>{contract.payment_method ? methods[contract.payment_method] : "Não informada"}</td>
       <td className="money-cell">{contract.total_contract_value === null ? "A apurar no êxito" : formatBRL(contract.total_contract_value)}</td>
       <td>{contract.contract_file_path ? <a className="row-link" href={`/advogada/contratos/${contract.id}/pdf`} target="_blank" rel="noopener noreferrer">Abrir PDF ↗</a> : "Sem PDF"}</td>

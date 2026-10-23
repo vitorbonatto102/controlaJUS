@@ -1,10 +1,12 @@
 import { parseMoneyBR } from "./finance";
 import { buildSchedule, parseIsoDate, type ScheduleRow } from "./schedule";
 import { isValidCpf, ORIGINS, PERCENTAGES } from "./validation";
+import { validateContractors, type ContractorInput } from "./parties";
 
 export type ContractFormValues = {
   clientName: string;
   cpf: string;
+  additionalContractors: ContractorInput[];
   contractDate: string;
   total: string;
   method: "" | "cash" | "installments" | "success_only";
@@ -44,7 +46,7 @@ export type ContractPreview = PreviewBase & ({
 });
 
 export const blankContractForm: ContractFormValues = {
-  clientName: "", cpf: "", contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
+  clientName: "", cpf: "", additionalContractors: [], contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
@@ -64,6 +66,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     throw new Error("Informe o nome completo do contratante.");
   }
   if (validateClient && !isValidCpf(values.cpf)) throw new Error("Informe um CPF válido.");
+  if (validateClient) validateContractors([{ fullName: values.clientName, cpf: values.cpf }, ...values.additionalContractors]);
   const contractDate = brazilianToIso(values.contractDate);
   if (!ORIGINS.some((origin) => origin === values.origin)) throw new Error("Selecione a origem da contratação.");
   const percentage = Number(values.percentage);
