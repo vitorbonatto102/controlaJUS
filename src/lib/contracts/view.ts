@@ -89,10 +89,9 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
       const contractualCents = numericToCents(item.contractual_amount);
       const activePayments = item.payments.filter((payment) => !payment.voided_at);
       const paidCents = activePayments.reduce((sum, payment) => sum + numericToCents(payment.amount_paid), 0);
-      const commissionCents = activePayments.reduce((sum, payment) => sum + (
-        payment.commissions ? numericToCents(payment.commissions.commission_amount) :
-          participationCents(numericToCents(payment.amount_paid), contract.commission_percentage)
-      ), 0);
+      const hasCommission = activePayments.some((payment) => payment.commissions !== null);
+      const commissionCents = activePayments.reduce((sum, payment) => sum +
+        numericToCents(payment.commissions?.commission_amount ?? 0), 0);
       const latestPaymentDate = activePayments.reduce<string | null>((latest, payment) =>
         !latest || payment.payment_date > latest ? payment.payment_date : latest, null);
       return {
@@ -103,7 +102,7 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
         differenceCents: activePayments.length ? paidCents - contractualCents : null,
         latestPaymentDate, percentage: contract.commission_percentage,
         estimatedCents: participationCents(contractualCents, contract.commission_percentage),
-        commissionCents: activePayments.length ? commissionCents : null,
+        commissionCents: hasCommission ? commissionCents : null,
         status: installmentStatus(contractualCents, paidCents, item.due_date, today),
       };
     });
@@ -121,10 +120,8 @@ export function summarizeContracts(contracts: ContractRecord[], today: string) {
       .reduce((sum, row) => sum + row.estimatedCents, 0),
     monthlyGeneratedCents: contracts.reduce((sum, contract) => sum + contract.installments.reduce(
       (itemSum, item) => itemSum + item.payments.filter((payment) => !payment.voided_at && payment.payment_date.startsWith(month))
-        .reduce((paymentSum, payment) => paymentSum + (
-          payment.commissions ? numericToCents(payment.commissions.commission_amount) :
-            participationCents(numericToCents(payment.amount_paid), contract.commission_percentage)
-        ), 0), 0), 0),
+        .reduce((paymentSum, payment) => paymentSum +
+          numericToCents(payment.commissions?.commission_amount ?? 0), 0), 0), 0),
     rows,
   };
 }

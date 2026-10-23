@@ -3,62 +3,53 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
-import { filterFinancialRows, statusLabels, type FinancialRow, type TableFilters } from "@/lib/contracts/view";
+import { statusLabels, type FinancialRow } from "@/lib/contracts/view";
+import { filterWalletRows, monthLabel } from "@/lib/contracts/wallet";
 
-const emptyFilters: TableFilters = { month: "", year: "", clientId: "", origin: "", status: "" };
-const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const emptyFilters = { allPeriods: false, status: "", dueDate: "" };
 
-export function LawyerTable({ rows }: { rows: FinancialRow[] }) {
-  const [filters, setFilters] = useState<TableFilters>(emptyFilters);
+export function LawyerTable({ rows, referenceMonth, today }: {
+  rows: FinancialRow[]; referenceMonth: string; today: string;
+}) {
+  const [filters, setFilters] = useState(emptyFilters);
   const [page, setPage] = useState(1);
-  const clients = useMemo(() => [...new Map(rows.map((row) => [row.clientId,
-    { id: row.clientId, name: row.clientName }])).values()]
-    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")), [rows]);
-  const origins = useMemo(() => [...new Set(rows.map((row) => row.origin))].sort(), [rows]);
-  const years = useMemo(() => [...new Set(rows.map((row) => row.dueDate.slice(0, 4)))].sort().reverse(), [rows]);
-  const filtered = useMemo(() => filterFinancialRows(rows, filters), [rows, filters]);
+  const filtered = useMemo(() => filterWalletRows(rows, { ...filters, referenceMonth }, today),
+    [rows, filters, referenceMonth, today]);
   const pageSize = 25;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const setFilter = (key: keyof TableFilters, value: string) => {
-    setFilters((current) => ({ ...current, [key]: value }));
+  const setFilter = (key: "status" | "dueDate", value: string) => {
+    setFilters((current) => ({ ...current, [key]: value,
+      allPeriods: key === "dueDate" && value ? true : current.allPeriods }));
     setPage(1);
   };
 
   return <section className="table-section" aria-labelledby="receipts-title">
     <div className="section-heading"><div><p className="eyebrow">ACOMPANHAMENTO</p>
       <h2 id="receipts-title">Meus recebimentos e contratos</h2>
-      <p>Valores previstos e recebimentos registrados para os seus contratos.</p></div>
+      <p>Valores acumulados por parcela. Cliente e origem seguem os filtros do painel.</p></div>
       <span className="record-count">{filtered.length} {filtered.length === 1 ? "parcela" : "parcelas"}</span>
     </div>
-    {rows.length > 0 && <div className="filters" aria-label="Filtros da tabela">
-      <label>Mês<select value={filters.month} onChange={(event) => setFilter("month", event.target.value)}>
-        <option value="">Todos</option>{months.map((month, index) => <option key={month} value={String(index + 1).padStart(2, "0")}>{month}</option>)}
-      </select></label>
-      <label>Ano<select value={filters.year} onChange={(event) => setFilter("year", event.target.value)}>
-        <option value="">Todos</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}
-      </select></label>
-      <label>Cliente<select value={filters.clientId} onChange={(event) => setFilter("clientId", event.target.value)}>
-        <option value="">Todos</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
-      </select></label>
-      <label>Origem<select value={filters.origin} onChange={(event) => setFilter("origin", event.target.value)}>
-        <option value="">Todas</option>{origins.map((origin) => <option key={origin} value={origin}>{origin}</option>)}
-      </select></label>
+    <div className="filters" aria-label="Filtros das parcelas">
+      <label>Vencimentos<select value={filters.allPeriods ? "all" : "reference"} onChange={(event) => {
+        setFilters((current) => ({ ...current, allPeriods: event.target.value === "all", dueDate: "" })); setPage(1);
+      }}><option value="reference">{monthLabel(referenceMonth)}</option><option value="all">Todos os períodos</option></select></label>
       <label>Status<select value={filters.status} onChange={(event) => setFilter("status", event.target.value)}>
         <option value="">Todos</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        <option value="delinquent">Inadimplente (inclui parciais)</option>
       </select></label>
+      <label>Vencimento exato<input type="date" value={filters.dueDate} onChange={(event) => setFilter("dueDate", event.target.value)} /></label>
       <button className="clear-button" type="button" onClick={() => { setFilters(emptyFilters); setPage(1); }}>Limpar filtros</button>
-    </div>}
-    {rows.length === 0 ? <div className="empty-state"><h3>Nenhum contrato cadastrado</h3>
-      <p>Cadastre seu primeiro cliente e contrato para acompanhar as parcelas aqui.</p>
+    </div>
+    {rows.length === 0 ? <div className="empty-state"><h3>Nenhuma parcela com cronograma definido</h3>
+      <p>Confira os filtros. Contratos apenas no êxito ou ainda sem data ficam em Acompanhamento.</p>
       <Link className="primary-button" href="/advogada/novo-contrato">+ Novo cliente / contrato</Link></div> :
       filtered.length === 0 ? <div className="empty-state"><h3>Nenhuma parcela encontrada</h3>
         <p>Ajuste ou limpe os filtros para ver outros períodos e contratos.</p></div> :
       <><div className="table-scroll"><table className="financial-table"><thead><tr>
         <th>Cliente</th><th>Origem</th><th>Parcela</th><th>Vencimento</th>
-        <th>Valor contratual</th><th>Valor efetivamente pago</th><th>Diferença</th><th>Data do pagamento</th>
-        <th>Minha %</th><th>Participação estimada</th><th>Comissão efetiva</th><th>Status</th><th>Ações</th>
+        <th>Valor contratual</th><th>Valor efetivamente pago</th><th>Diferença</th><th>Último pagamento</th>
+        <th>Minha %</th><th>Participação contratada</th><th>Comissão efetiva registrada</th><th>Status</th><th>Ações</th>
       </tr></thead><tbody>{visible.map((row) => <tr key={row.installmentId}>
         <td className="client-cell">{row.clientName}</td><td>{row.origin}</td>
         <td>{row.installmentLabel}</td><td>{formatDateBR(row.dueDate)}</td>

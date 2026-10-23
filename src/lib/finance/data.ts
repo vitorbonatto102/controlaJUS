@@ -72,6 +72,17 @@ export async function loadClosings(lawyerId?: string) {
   }));
 }
 
+export async function loadLawyerTransfers(lawyerId: string) {
+  const supabase = await createClient();
+  const transfers = await allPages<Transfer>((from, to) => supabase.from("commission_transfers")
+    .select("id,closing_id,lawyer_id,amount,payment_date,notes,reversed_at,reversal_reason")
+    .eq("lawyer_id", lawyerId)
+    .order("payment_date", { ascending: false }).order("id").range(from, to) as unknown as Promise<{
+      data: Transfer[] | null; error: { message: string } | null;
+    }>);
+  return transfers.map((transfer) => ({ ...transfer, amount: Number(transfer.amount) }));
+}
+
 export async function loadClosingDetails() {
   const supabase = await createClient();
   const [items, transfers, adjustments] = await Promise.all([

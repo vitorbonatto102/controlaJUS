@@ -7,6 +7,7 @@ import { homeByRole, type Role } from "@/lib/auth/roles";
 export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }) {
   const pathname = usePathname();
   const links = [{ href: homeByRole[role], label: "Visão geral", icon: "overview" }];
+  if (role === "lawyer") links.push({ href: "/advogada/carteira", label: "Carteira", icon: "wallet" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
   if (isAdmin) links.push({ href: "/administracao", label: "Administração", icon: "settings" });
@@ -22,7 +23,8 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
             <rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" />
             <rect x="14" y="14" width="7" height="7" rx="1.5" /></> : icon === "notifications" ? <>
               <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" />
-            </> : <><rect x="4" y="3" width="16" height="18" rx="2" />
+            </> : icon === "wallet" ? <><path d="M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v11H6a3 3 0 0 1-3-3V6" />
+              <path d="M20 12h-5v5h5M17 14.5h.01" /></> : <><rect x="4" y="3" width="16" height="18" rx="2" />
               <path d="M8 8h8M8 12h4M8 16h8" /></>}
         </svg>{label}</Link>;
     })}

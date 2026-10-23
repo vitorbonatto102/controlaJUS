@@ -25,7 +25,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
   }))).sort((a, b) => b.payment_date.localeCompare(a.payment_date));
 
   return <DashboardShell profile={profile}>
-    <Link className="back-link" href="/advogada">← Voltar ao painel</Link>
+    <Link className="back-link" href="/advogada/carteira">← Voltar à carteira</Link>
     {criado === "1" && <div className="success-box" role="status">Contrato cadastrado com sucesso.</div>}
     <p className="eyebrow">DETALHES DO CONTRATO</p><h1>{contract.client_name}</h1>
     <p className="page-description">Dados gerais, documento e cronograma financeiro.</p>
@@ -67,7 +67,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
         "Aguardando êxito da ação, sem valor ou vencimentos definidos." : "Nenhuma parcela cadastrada."}</p>
         <Link className="row-link" href="/acompanhamento">Acompanhar condições do contrato →</Link></div> :
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th>
-        <th>Vencimento</th><th>Valor contratual</th><th>Valor pago</th><th>Diferença</th><th>Data do pagamento</th>
+        <th>Vencimento</th><th>Valor contratual</th><th>Valor pago</th><th>Diferença</th><th>Último pagamento</th>
         <th>Participação estimada</th><th>Comissão efetiva</th><th>Status</th></tr></thead>
         <tbody>{rows.map((row) => <tr key={row.installmentId}><td>{row.installmentLabel}</td>
           <td>{formatDateBR(row.dueDate)}</td><td className="money-cell">{formatBRL(row.contractualCents / 100)}</td>
@@ -89,8 +89,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
       </tr></thead><tbody>{paymentRows.map((payment) => <tr key={payment.id}>
         <td>{payment.installmentLabel}</td><td>{formatDateBR(payment.payment_date)}</td>
         <td className="money-cell">{formatBRL(Number(payment.amount_paid))}</td>
-        <td className="money-cell">{payment.voided_at ? "—" : formatBRL(payment.commissions ? Number(payment.commissions.commission_amount) :
-          participationCents(numericToCents(payment.amount_paid), contract.commission_percentage) / 100)}</td>
+        <td className="money-cell">{payment.voided_at ? "—" : payment.commissions ?
+          formatBRL(Number(payment.commissions.commission_amount)) : "Aguardando apuração"}</td>
         <td>{payment.voided_at ? "Estornado" : "Ativo"}</td>
       </tr>)}</tbody></table></div>}
     </section>
