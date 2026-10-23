@@ -114,7 +114,7 @@ export async function loadNotifications(userId: string) {
   return allPages<Notification>((from, to) => {
     return supabase.from("notifications")
       .select("id,user_id,type,title,message,related_record_id,read_at,created_at")
-      .eq("user_id", userId).order("created_at", { ascending: false }).range(from, to) as unknown as Promise<{
+      .eq("user_id", userId).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to) as unknown as Promise<{
         data: Notification[] | null; error: { message: string } | null;
       }>;
   });

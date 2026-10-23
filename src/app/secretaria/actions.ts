@@ -26,6 +26,7 @@ function refresh(clientId: string) {
   revalidatePath("/secretaria");
   revalidatePath(`/secretaria/clientes/${clientId}`);
   revalidatePath("/advogada");
+  revalidatePath("/advogada/notificacoes");
   revalidatePath("/advogada/contratos", "layout");
 }
 

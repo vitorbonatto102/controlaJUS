@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { ContractActions } from "@/components/contracts/contract-actions";
 import { contractHasPayments } from "@/lib/contracts/editing";
+import { loadContractCollectionNotes } from "@/lib/contracts/management-data";
+import { noteTypeLabels } from "@/lib/secretary/view";
 import styles from "@/components/contracts/contract-management.module.css";
 import { requireRole } from "@/lib/auth/profile";
 import { loadLawyerContract } from "@/lib/contracts/data";
@@ -21,6 +23,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const contract = await loadLawyerContract(profile.id, id);
   if (!contract) notFound();
+  const collectionNotes = await loadContractCollectionNotes(id);
   const { criado, editado } = await searchParams;
   const rows = buildFinancialRows([contract], todayInSaoPaulo());
   const totalCents = contract.total_contract_value === null ? null : numericToCents(contract.total_contract_value);
@@ -94,13 +97,21 @@ export default async function ContractDetailPage({ params, searchParams }: {
       {paymentRows.length === 0 ? <div className="empty-state"><p>Nenhum pagamento registrado até agora.</p></div> :
       <div className="table-scroll"><table className="financial-table"><thead><tr>
         <th>Parcela</th><th>Data do pagamento</th><th>Valor efetivamente pago</th><th>Comissão gerada</th><th>Situação</th>
-      </tr></thead><tbody>{paymentRows.map((payment) => <tr key={payment.id}>
+      </tr></thead><tbody>{paymentRows.map((payment) => <tr key={payment.id} id={`pagamento-${payment.id}`}>
         <td>{payment.installmentLabel}</td><td>{formatDateBR(payment.payment_date)}</td>
         <td className="money-cell">{formatBRL(Number(payment.amount_paid))}</td>
         <td className="money-cell">{payment.voided_at ? "—" : payment.commissions ?
           formatBRL(Number(payment.commissions.commission_amount)) : "Aguardando apuração"}</td>
         <td>{payment.voided_at ? "Estornado" : "Ativo"}</td>
       </tr>)}</tbody></table></div>}
+    </section>
+    <section className="form-panel"><h2>Histórico de cobrança</h2>
+      <p className="field-hint">Anotações da equipe vinculadas a este contrato.</p>
+      {collectionNotes.length === 0 ? <p className="muted-text">Nenhuma anotação registrada.</p> :
+        <ol className="notes-timeline">{collectionNotes.map((note) => <li key={note.id} id={`cobranca-${note.id}`}>
+          <strong>{noteTypeLabels[note.note_type] ?? "Anotação"} · {new Date(note.created_at)
+            .toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</strong><p>{note.content}</p>
+        </li>)}</ol>}
     </section>
   </DashboardShell>;
 }
