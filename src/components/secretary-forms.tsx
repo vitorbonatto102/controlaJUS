@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { addCollectionNote, registerPayment, revisePayment } from "@/app/secretaria/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { noteTypeLabels, type OperationalContract } from "@/lib/secretary/view";
@@ -14,8 +14,18 @@ function ActionFeedback({ error, success }: { error: string | null; success: str
 export function PaymentForm({ clientId, installmentId, contractualCents, dueDate, hasPayments = false }: {
   clientId: string; installmentId: string; contractualCents: number; dueDate: string; hasPayments?: boolean;
 }) {
-  const [state, action, pending] = useActionState(registerPayment, emptyActionState);
-  return <details className="operation-details"><summary>{hasPayments ? "Registrar outro pagamento" : "Registrar pagamento"}</summary>
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [state, action, pending] = useActionState(async (previous: typeof emptyActionState, form: FormData) => {
+    const result = await registerPayment(previous, form);
+    if (result.success && detailsRef.current) {
+      const details = detailsRef.current;
+      const hadFocus = details.contains(document.activeElement);
+      details.open = false;
+      if (hadFocus) details.querySelector("summary")?.focus({ preventScroll: true });
+    }
+    return result;
+  }, emptyActionState);
+  return <><details ref={detailsRef} className="operation-details"><summary>{hasPayments ? "Registrar outro pagamento" : "Registrar pagamento"}</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="installment_id" value={installmentId} />
@@ -24,9 +34,11 @@ export function PaymentForm({ clientId, installmentId, contractualCents, dueDate
       <label>Data do pagamento<input name="payment_date" type="date" defaultValue={dueDate} required /></label>
       <label>Observação (opcional)<textarea name="observation" maxLength={1000} rows={2} /></label>
       <button className="primary-button" disabled={pending} type="submit">{pending ? "Registrando…" : "Confirmar pagamento"}</button>
-      <ActionFeedback error={state.error} success={state.success} />
+      <ActionFeedback error={state.error} success={null} />
     </form>
-  </details>;
+  </details>
+    {!pending && state.success && <p className="field-hint" role="status">{state.success}</p>}
+  </>;
 }
 
 export function NoteForm({ clientId, contracts }: { clientId: string; contracts: OperationalContract[] }) {
