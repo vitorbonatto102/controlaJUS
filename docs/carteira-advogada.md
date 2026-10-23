@@ -10,12 +10,19 @@ Os cálculos ficam em `src/lib/contracts/wallet.ts`, em centavos inteiros. A int
 
 ## Como interpretar os indicadores
 
+A abertura da página destaca somente a previsão do mês selecionado:
+
+- **Total das parcelas do mês:** soma integral dos valores contratuais das parcelas com vencimento no mês, incluindo as já pagas ou parcialmente pagas.
+- **Minha comissão prevista no mês:** soma da participação em cada uma dessas parcelas, usando o percentual gravado no respectivo contrato. É a expectativa para o mês inteiro se todos pagarem conforme o contrato, sem descontar o que já foi pago. Não é o valor do repasse nem uma previsão da data em que a advogada receberá do escritório.
+
+Recebimentos efetivos, saldo a receber do escritório, gráficos e fechamentos ficam na seção recolhida **Recebimentos, repasses e histórico**:
+
 - **Contratos no mês anterior:** contagem pela data do contrato, relativa ao mês selecionado. A soma considera apenas valores conhecidos; contratos sem valor são contados e sinalizados como a apurar.
 - **Recebido dos clientes:** soma de cada pagamento válido pela sua própria data, mesmo quando a parcela venceu em outro mês. Inclui juros e multa efetivamente recebidos.
 - **Comissão gerada:** soma das comissões persistidas dos pagamentos válidos. Não é recalculada com percentuais atuais nem substituída por uma estimativa quando não há comissão registrada.
-- **Previsão mensal:** saldo positivo de cada parcela contratual, descontados pagamentos válidos, multiplicado pelo percentual histórico do contrato. Pagamentos antecipados saem da previsão. Não é uma promessa de data de repasse.
+- **Previsão para os próximos meses:** saldo positivo de cada parcela contratual, descontados pagamentos válidos, multiplicado pelo percentual histórico do contrato. Pagamentos antecipados saem dessa previsão de saldo restante. Não é uma promessa de data de repasse.
 - **Participação em atraso:** a mesma estimativa de saldo pendente para vencimentos anteriores à data atual em São Paulo, incluindo parcelas parcialmente pagas.
-- **Saldo a repassar:** todas as comissões válidas da advogada menos todos os repasses não estornados. Excesso de repasse aparece separadamente. Inclui comissões ainda sem fechamento; não soma ajustes de fechamentos novamente, pois as correções já estão refletidas nos pagamentos/comissões atuais.
+- **Comissões a receber do escritório:** todas as comissões válidas da advogada menos todos os repasses não estornados. Excesso de repasse aparece separadamente. Inclui comissões ainda sem fechamento; não soma ajustes de fechamentos novamente, pois as correções já estão refletidas nos pagamentos/comissões atuais.
 
 ## Filtros
 
