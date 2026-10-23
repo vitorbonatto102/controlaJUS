@@ -12,6 +12,8 @@ import { confirmClosing, correctField, correctPayment, recordLatePayment,
   registerTransfer, reverseTransfer } from "@/app/gestor/actions";
 import type { AuditEntry, Closing } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
+import { contractClientLabel } from "@/lib/contracts/parties";
+import correctionStyles from "./manager-corrections.module.css";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
   "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -194,6 +196,9 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
   const delinquency = managerDelinquency(data, today, { lawyerId, month, year, client });
   const delinquentCount = delinquency.reduce((sum, row) => sum + row.installmentCount, 0);
   const selectedLawyer = data.lawyers.find((item) => item.id === lawyerId);
+  const correctionContracts = useMemo(() => data.contracts.filter((item) => item.lawyer_id === lawyerId)
+    .sort((a, b) => contractClientLabel(a).localeCompare(contractClientLabel(b), "pt-BR") ||
+      b.contract_date.localeCompare(a.contract_date)), [data.contracts, lawyerId]);
   const selectedClosing = periodClosings.find((item) => item.lawyer_id === lawyerId);
   const previewRows = rows.filter((row) => row.lawyerId === lawyerId &&
     row.paymentDate.slice(0, 7) === `${year}-${month}`);
@@ -261,10 +266,20 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
     </section>}
 
     {lawyerId && <section className="workspace-panel"><h2>Correções cadastrais · {selectedLawyer?.full_name}</h2>
-      <div className="correction-grid">{data.contracts.filter((item) => item.lawyer_id === lawyerId).map((contract) => {
+      <p className="field-hint">Clique no nome para abrir os dados e as opções de correção do contrato.</p>
+      {!correctionContracts.length && <p>Nenhum contrato cadastrado para esta advogada.</p>}
+      <ul className={correctionStyles.list}>{correctionContracts.map((contract) => {
         const term = data.terms.find((item) => item.contract_id === contract.id);
-        return <article className="correction-card" key={contract.id}><h3>{contract.client_name}</h3>
-          <p>{contract.origin} · {formatDateBR(contract.contract_date)}</p>
+        return <li key={contract.id}><details className={correctionStyles.item} name={`manager-corrections-${lawyerId}`}>
+          <summary className={correctionStyles.summary}>
+            <span className={correctionStyles.identity}><strong>{contractClientLabel(contract)}</strong>
+              {contract.service_name && <small>{contract.service_name}</small>}</span>
+            <span className={correctionStyles.context}><span>{contract.origin}</span>
+              <time dateTime={contract.contract_date}>{formatDateBR(contract.contract_date)}</time></span>
+            <svg className={correctionStyles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" /></svg>
+          </summary><div className={correctionStyles.body}>
           <FieldCorrection table="clients" recordId={contract.client_id} field="full_name"
             current={contract.client_name} label="Nome do cliente" />
           <FieldCorrection table="clients" recordId={contract.client_id} field="cpf"
@@ -282,7 +297,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
             field="commission_percentage" current={String(term.commission_percentage)} label="Percentual"
             options={[5,10,15,20,25,30,35,40,45,50,55,60].map((item) =>
               ({ value: String(item), label: `${item}%` }))} />}
-          {contract.installments.map((item) => <div key={item.id}>
+          {contract.installments.map((item) => <div className={correctionStyles.installment} key={item.id}>
             <p>Parcela {item.installment_number} · {formatDateBR(item.due_date)}</p>
             <LatePaymentForm installmentId={item.id} />
             <FieldCorrection table="installments" recordId={item.id} field="due_date"
@@ -293,8 +308,8 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
           <AuditDetails entries={data.audit.filter((entry) =>
             entry.record_id === contract.id || entry.record_id === contract.client_id ||
             contract.installments.some((item) => item.id === entry.record_id))} users={data.users} />
-        </article>;
-      })}</div>
+        </div></details></li>;
+      })}</ul>
     </section>}
 
     <section className="workspace-panel"><h2>Fechamentos</h2>
