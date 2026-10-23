@@ -108,9 +108,12 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
     byOrigin.set(contract.origin, (byOrigin.get(contract.origin) ?? 0) + participation);
   }
   const previousMonth = shiftMonth(referenceMonth, -1);
-  const previousContracts = contracts.filter((contract) => contract.contract_date.startsWith(previousMonth));
+  const currentContractCount = contracts.filter((contract) =>
+    contract.contract_date.startsWith(referenceMonth) && contract.contract_date <= today).length;
+  const previousContracts = contracts.filter((contract) =>
+    contract.contract_date.startsWith(previousMonth) && contract.contract_date <= today);
   return {
-    rows, totalContractedCents, contractedParticipationCents, missingCommissionCount,
+    rows, totalContractedCents, contractedParticipationCents, missingCommissionCount, currentContractCount,
     previousMonth, previousContractCount: previousContracts.length,
     previousContractedCents: previousContracts.reduce((sum, contract) => sum +
       (contract.total_contract_value === null ? 0 : numericToCents(contract.total_contract_value)), 0),

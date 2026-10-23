@@ -91,8 +91,8 @@ export function LawyerWallet({ contracts, transfers, today, children }: {
         <div className={styles.period}><h2>Seu panorama · {monthLabel(referenceMonth)}</h2>
           <span>Posição dos saldos em {formatDateBR(today)}</span></div>
         <section className={styles.cards} aria-label="Indicadores financeiros do período">
-          <Metric title="Contratos fechados no mês anterior" value={String(wallet.previousContractCount)}
-            hint={`${monthLabel(wallet.previousMonth)} · ${money(wallet.previousContractedCents)} em valores conhecidos${wallet.previousUnknownCount ? `; ${wallet.previousUnknownCount} a apurar` : ""}.`} />
+          <Metric title="Contratos fechados no mês" value={String(wallet.currentContractCount)}
+            hint={`Até ${formatDateBR(today)}. ${monthLabel(wallet.previousMonth)}: ${wallet.previousContractCount} ${wallet.previousContractCount === 1 ? "contrato" : "contratos"}.`} />
           <Metric title="Recebido dos meus clientes no mês" value={money(wallet.current.receivedCents)}
             hint="Valor efetivamente recebido pelo escritório, pela data de cada pagamento." />
           <Metric title="Minha comissão gerada no mês" value={money(wallet.current.generatedCents)} positive
