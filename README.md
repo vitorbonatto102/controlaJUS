@@ -14,6 +14,7 @@ src/app/
   auth/confirm/              aceitação de convite
   definir-senha/             senha criada pela pessoa convidada
   advogada/                 contratos, indicadores, fechamentos e inadimplência
+    fechamentos/            apuração atual, fechamentos confirmados e repasses da própria advogada
     notificacoes/            central de avisos e leitura
     novo-contrato/           importação de PDF e cadastro manual
     contratos/[id]/          detalhe e PDF temporário
@@ -107,6 +108,7 @@ Antes de aplicar a nova migration, a plataforma continua exibindo o nome e as in
 - Honorários adicionais eventuais ficam em `contracts.has_additional_fee`, `additional_fee_percentage`, `additional_fee_basis` e `additional_fee_amount`. Eles não entram no principal, nas parcelas nem na comissão da advogada.
 - O gatilho de pagamento cria `commissions` com percentual do contrato e valor recebido. O percentual não vem do perfil atual da advogada.
 - O fechamento usa `payments.payment_date` no mês-calendário. Só pode ser confirmado no último dia desse mês ou depois. A prévia mostra todos os pagamentos válidos antes da confirmação.
+  Antes dessa data, o painel do gestor destaca o motivo do bloqueio e mostra a data de liberação no botão. Depois de confirmar, **Registrar repasse** fica disponível no fechamento. A advogada consulta a apuração e seu histórico pelo menu **Fechamentos**, além da Carteira.
 - `monthly_closing_items` conserva cliente, origem, data, pagamento, percentual e comissão originais. Uma correção posterior mantém esses itens e cria `closing_adjustments`. O saldo atual do fechamento considera os ajustes.
 - Um fechamento aceita vários `commission_transfers`. A soma ativa é o valor repassado; repasse maior que o saldo é rejeitado. Uma reversão exige motivo e preserva o registro original.
 - A secretaria não consegue inserir um pagamento com data de mês já fechado. O gestor usa **Lançamento complementar**, que insere o pagamento e o ajuste na mesma transação, com auditoria e notificação.

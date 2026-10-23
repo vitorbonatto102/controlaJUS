@@ -14,6 +14,8 @@ import type { AuditEntry, Closing } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
 import { contractClientLabel } from "@/lib/contracts/parties";
 import correctionStyles from "./manager-corrections.module.css";
+import { ClosingStatusNotice } from "@/components/closing-status-notice";
+import { closingAvailability } from "@/lib/finance/closing-period";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
   "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -125,9 +127,10 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
   const [state, action, pending] = useActionState(confirmClosing, emptyActionState);
   const received = rows.reduce((sum, row) => sum + row.paidCents, 0);
   const commission = rows.reduce((sum, row) => sum + row.commissionCents, 0);
-  const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-  const eligible = today >= lastDay;
+  const { lastDay, canConfirm: eligible } = closingAvailability(year, month, today);
+  const noticeId = `closing-availability-${lawyerId}-${year}-${month}`;
   return <section className="workspace-panel"><h2>Em apuração · {months[month - 1]}/{year}</h2>
+    <ClosingStatusNotice id={noticeId} lastDay={lastDay} canConfirm={eligible} today={today} audience="manager" />
     <p>{rows.length} recebimento(s) · Escritório: {money(received)} · Comissão: {money(commission)}</p>
     {rows.length ? <div className="table-scroll"><table className="data-table"><thead><tr>
       <th>Cliente</th><th>Pagamento</th><th>Data</th><th>%</th><th>Comissão</th>
@@ -135,12 +138,12 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
       <td>{money(row.paidCents)}</td><td>{formatDateBR(row.paymentDate)}</td>
       <td>{row.percentage}%</td><td>{money(row.commissionCents)}</td></tr>)}</tbody></table></div>
       : <p>Nenhum pagamento encontrado neste período.</p>}
-    {!eligible && <p>O fechamento poderá ser confirmado a partir de {formatDateBR(lastDay)}.</p>}
     <form action={action} className="operation-form inline-form">
       <input type="hidden" name="lawyer_id" value={lawyerId} />
       <input type="hidden" name="month" value={month} /><input type="hidden" name="year" value={year} />
-      <label><input type="checkbox" name="confirm" value="yes" required /> Conferi a composição do fechamento</label>
-      <button type="submit" className="primary-button" disabled={pending || !eligible}>Confirmar fechamento</button>
+      <label><input type="checkbox" name="confirm" value="yes" required disabled={pending || !eligible} /> Conferi a composição do fechamento</label>
+      <button type="submit" className="primary-button" disabled={pending || !eligible} aria-describedby={noticeId}>
+        {pending ? "Confirmando…" : eligible ? "Confirmar fechamento" : `Disponível em ${formatDateBR(lastDay)}`}</button>
       <Feedback state={state} />
     </form>
   </section>;
@@ -154,6 +157,7 @@ function TransferForm({ closing }: { closing: Closing }) {
   return <details className="operation-details"><summary>Registrar repasse</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="closing_id" value={closing.id} />
+      <p>Registre aqui o valor pago pelo escritório à advogada, com a data em que o repasse foi realizado.</p>
       <p>Comissão ajustada: {formatBRL(closing.commission_amount + closing.adjustment_amount)} ·
         Já repassado: {formatBRL(closing.amount_already_transferred)} · Saldo: {formatBRL(closing.amount_pending_transfer)}</p>
       <label>Novo repasse (R$)<input name="amount" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>

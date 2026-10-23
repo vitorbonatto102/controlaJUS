@@ -72,6 +72,7 @@
 .settlements { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; }
 .settlements details { font-size: .8rem; color: var(--teal); margin-top: 15px; }
 .settlements summary { cursor: pointer; }
+.transferNotes { display: block; max-width: 240px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .settlements .empty { min-height: 120px; }
 .wallet :global(.table-section) { margin-top: 0; }
 .wallet :global(.filters) { grid-template-columns: repeat(3, minmax(140px, 1fr)) auto; }

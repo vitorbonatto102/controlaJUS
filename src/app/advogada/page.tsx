@@ -45,6 +45,9 @@ export default async function LawyerPage() {
     <section className="new-contract-banner"><div><h2>Suas notificações</h2>
       <p>{unreadCount > 0 ? `${unreadCount} notificações ainda não lidas.` : "Você está em dia com as notificações."}</p></div>
       <Link href="/advogada/notificacoes" className="row-link">Ver notificações →</Link></section>
+    <section className="new-contract-banner"><div><h2>Fechamentos e repasses</h2>
+      <p>Consulte a apuração do mês, os fechamentos confirmados pelo gestor e os pagamentos feitos a você.</p></div>
+      <Link href="/advogada/fechamentos" className="row-link">Ver meus fechamentos →</Link></section>
     <section className="new-contract-banner"><div><h2>Acompanhamento de ações</h2>
       <p>Acompanhe {followUpCount} contratos com honorários futuros ou condicionados, para não perder nenhum valor de vista.</p></div>
       <Link className="secondary-button" href="/acompanhamento">Ver acompanhamento →</Link></section>

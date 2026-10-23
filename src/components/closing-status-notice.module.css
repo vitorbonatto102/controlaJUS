@@ -1,0 +1,4 @@
+.notice { padding: 18px 20px; margin: 18px 0; border: 1px solid #eadcc9; border-radius: 10px; background: #fffaf2; color: #765a30; }
+.notice strong { display: block; font-size: .9rem; line-height: 1.5; }
+.notice p { color: inherit !important; font-size: .8rem; line-height: 1.6; margin: 8px 0 0 !important; }
+.available { border-color: #bce4d3; background: #edf7f1; color: #226a50; }

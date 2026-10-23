@@ -23,11 +23,17 @@ export function WalletSettlements({ closings, transfers }: { closings: Closing[]
     <section className={styles.panel} aria-labelledby="transfers-title"><h2 id="transfers-title">Repasses para mim</h2>
       <p className={styles.subheading}>Valores transferidos à advogada. Estornos permanecem no histórico e não compõem o saldo.</p>
       {transfers.length ? <div className="table-scroll"><table className={styles.table}><thead><tr>
-        <th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Situação</th>
-      </tr></thead><tbody>{transfers.map((transfer) => <tr key={transfer.id}>
-        <td>{formatDateBR(transfer.payment_date)}</td><td>{formatBRL(transfer.amount)}</td>
-        <td>{transfer.reversed_at ? "Estornado" : "Repassado"}</td>
-      </tr>)}</tbody></table></div> : <div className={styles.empty}>Nenhum repasse registrado.</div>}
+        <th scope="col">Competência</th><th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Situação</th><th scope="col">Observação</th>
+      </tr></thead><tbody>{transfers.map((transfer) => {
+        const closing = closings.find((item) => item.id === transfer.closing_id);
+        return <tr key={transfer.id}>
+          <td>{closing ? `${String(closing.reference_month).padStart(2, "0")}/${closing.reference_year}` : "—"}</td>
+          <td>{formatDateBR(transfer.payment_date)}</td><td>{formatBRL(transfer.amount)}</td>
+          <td>{transfer.reversed_at ? "Estornado" : "Repassado"}{transfer.reversed_at && transfer.reversal_reason &&
+            <small>{transfer.reversal_reason}</small>}</td>
+          <td><span className={styles.transferNotes}>{transfer.notes || "—"}</span></td>
+        </tr>;
+      })}</tbody></table></div> : <div className={styles.empty}>Nenhum repasse registrado.</div>}
     </section>
   </div>;
 }

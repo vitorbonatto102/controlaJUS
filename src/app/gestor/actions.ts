@@ -14,6 +14,8 @@ const validDate = (date: string) => { try { formatDateBR(date); return true; } c
 function refresh() {
   revalidatePath("/gestor");
   revalidatePath("/advogada");
+  revalidatePath("/advogada/carteira");
+  revalidatePath("/advogada/fechamentos");
   revalidatePath("/advogada/notificacoes");
   revalidatePath("/advogada/contratos", "layout");
 }
