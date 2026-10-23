@@ -21,20 +21,39 @@ export function followUpReasons(contract: FollowUpTerms): FollowUpReason[] {
 // Somente dados operacionais: não inclui participação ou comissões da advogada.
 export type FollowUpContract = FollowUpTerms & {
   id: string; clientId: string; clientName: string; lawyerId: string; lawyerName: string;
+  clientCpf: string | null; origin: string;
   contractDate: string; totalValue: number | null; successFeePercentage: number | null;
   additionalFeePercentage: number | null; additionalFeeBasis: string | null;
   additionalFeeAmount: number | null; paymentCondition: string | null;
 };
 
-export function filterFollowUpContracts(contracts: FollowUpContract[], filters: {
-  reason: string; lawyerId: string; client: string;
-}): FollowUpContract[] {
+export type FollowUpFilters = {
+  reason: string; lawyerId: string; client: string; cpf: string; origin: string;
+  dateFrom: string; dateTo: string; paymentMethod: string; valueStatus: string; terms: string;
+};
+
+export const emptyFollowUpFilters: FollowUpFilters = {
+  reason: "", lawyerId: "", client: "", cpf: "", origin: "", dateFrom: "", dateTo: "",
+  paymentMethod: "", valueStatus: "", terms: "",
+};
+
+export function filterFollowUpContracts(contracts: FollowUpContract[], filters: Partial<FollowUpFilters>): FollowUpContract[] {
   const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
-  const client = normalize(filters.client.trim());
+  const client = normalize(filters.client?.trim() ?? "");
+  const cpf = filters.cpf?.replace(/\D/g, "") ?? "";
+  const terms = normalize(filters.terms?.trim() ?? "");
+  if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) return [];
   return contracts.filter((contract) => {
     const reasons = followUpReasons(contract);
     return reasons.length > 0 && (!filters.reason || reasons.some((reason) => reason === filters.reason)) &&
       (!filters.lawyerId || contract.lawyerId === filters.lawyerId) &&
-      (!client || normalize(contract.clientName).includes(client));
+      (!client || normalize(contract.clientName).includes(client)) &&
+      (!cpf || (contract.clientCpf?.replace(/\D/g, "") ?? "").includes(cpf)) &&
+      (!filters.origin || contract.origin === filters.origin) &&
+      (!filters.dateFrom || contract.contractDate >= filters.dateFrom) &&
+      (!filters.dateTo || contract.contractDate <= filters.dateTo) &&
+      (!filters.paymentMethod || contract.payment_method === filters.paymentMethod) &&
+      (!filters.valueStatus || (filters.valueStatus === "known" ? contract.totalValue !== null : contract.totalValue === null)) &&
+      (!terms || normalize(`${contract.paymentCondition ?? ""} ${contract.additionalFeeBasis ?? ""}`).includes(terms));
   });
 }

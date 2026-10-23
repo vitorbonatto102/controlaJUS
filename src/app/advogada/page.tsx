@@ -46,7 +46,7 @@ export default async function LawyerPage() {
       <p>{unreadCount > 0 ? `${unreadCount} notificações ainda não lidas.` : "Você está em dia com as notificações."}</p></div>
       <Link href="/advogada/notificacoes" className="row-link">Ver notificações →</Link></section>
     <section className="new-contract-banner"><div><h2>Acompanhamento de ações</h2>
-      <p>{followUpCount} contratos com êxito, honorários adicionais ou início condicionado.</p></div>
+      <p>Acompanhe {followUpCount} contratos com honorários futuros ou condicionados, para não perder nenhum valor de vista.</p></div>
       <Link className="secondary-button" href="/acompanhamento">Ver acompanhamento →</Link></section>
   </DashboardShell>;
 }

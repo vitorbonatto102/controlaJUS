@@ -34,7 +34,7 @@ test("percentual de êxito é validado sem assumir 30% quando não informado", (
 
 test("acompanhamento inclui êxito, adicionais e condicionados sem duplicar contratos", () => {
   const base: FollowUpContract = { id: "normal", clientId: "client", clientName: "José Teste", lawyerId: "a",
-    lawyerName: "Advogada A", contractDate: "2026-10-07", totalValue: 1000, payment_method: "cash",
+    lawyerName: "Advogada A", clientCpf: "52998224725", origin: "Cliente próprio", contractDate: "2026-10-07", totalValue: 1000, payment_method: "cash",
     successFeePercentage: null, additionalFeePercentage: null, additionalFeeAmount: null,
     additionalFeeBasis: null, paymentCondition: null };
   const contracts = [base, { ...base, id: "success", totalValue: null, payment_method: "success_only", successFeePercentage: 30 },
@@ -44,4 +44,15 @@ test("acompanhamento inclui êxito, adicionais e condicionados sem duplicar cont
   assert.equal(filterFollowUpContracts(contracts, { reason: "", lawyerId: "", client: "" }).length, 3);
   assert.deepEqual(filterFollowUpContracts(contracts, { reason: "condition", lawyerId: "a", client: "jose" }).map((c) => c.id), ["condition"]);
   assert.equal(filterFollowUpContracts(contracts, { reason: "success_only", lawyerId: "b", client: "" }).length, 0);
+  assert.equal(filterFollowUpContracts(contracts, { cpf: "529.982.247-25", origin: "Cliente próprio", dateFrom: "2026-10-07", dateTo: "2026-10-07" }).length, 3);
+  assert.equal(filterFollowUpContracts(contracts, { cpf: "982247" }).length, 3);
+  assert.equal(filterFollowUpContracts(contracts, { cpf: "111444" }).length, 0);
+  assert.equal(filterFollowUpContracts(contracts, { dateFrom: "2026-10-08" }).length, 0);
+  assert.equal(filterFollowUpContracts(contracts, { dateTo: "2026-10-06" }).length, 0);
+  assert.equal(filterFollowUpContracts(contracts, { dateFrom: "2026-11-01", dateTo: "2026-10-01" }).length, 0);
+  assert.equal(filterFollowUpContracts(contracts, { origin: "Tráfego HP" }).length, 0);
+  assert.deepEqual(filterFollowUpContracts(contracts, { valueStatus: "unknown", paymentMethod: "success_only" }).map((c) => c.id), ["success"]);
+  assert.equal(filterFollowUpContracts(contracts, { valueStatus: "known" }).length, 2);
+  assert.equal(filterFollowUpContracts([{ ...contracts[2], paymentCondition: "Após liberação do alvará" }], { terms: "ALVARA" }).length, 1);
+  assert.equal(filterFollowUpContracts([{ ...contracts[2], additionalFeeBasis: "Proveito econômico" }], { terms: "economico" }).length, 1);
 });

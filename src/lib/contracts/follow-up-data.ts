@@ -4,13 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { FollowUpContract } from "./follow-up";
 
 type RawContract = {
-  id: string; client_id: string; lawyer_id: string; contract_date: string;
+  id: string; client_id: string; lawyer_id: string; contract_date: string; origin: string;
   total_contract_value: number | null; payment_method: string | null;
   success_fee_percentage: number | null; has_additional_fee: boolean;
   additional_fee_percentage: number | null; additional_fee_basis: string | null;
   additional_fee_amount: number | null; payment_start_type: string | null;
   payment_start_condition: string | null;
-  clients: { full_name: string } | { full_name: string }[] | null;
+  clients: { full_name: string; cpf: string | null } | { full_name: string; cpf: string | null }[] | null;
   lawyer: { full_name: string } | { full_name: string }[] | null;
 };
 const one = <T,>(value: T | T[] | null) => Array.isArray(value) ? value[0] : value;
@@ -23,10 +23,10 @@ export async function loadFollowUpContracts(profile: CurrentProfile): Promise<Fo
   let includeSuccessFee = true;
   for (let offset = 0; ; offset += 100) {
     const fetchPage = () => {
-      let query = supabase.from("contracts").select(`id, client_id, lawyer_id, contract_date,
+      let query = supabase.from("contracts").select(`id, client_id, lawyer_id, contract_date, origin,
         total_contract_value, payment_method, ${includeSuccessFee ? "success_fee_percentage," : ""} has_additional_fee,
         additional_fee_percentage, additional_fee_basis, additional_fee_amount,
-        payment_start_type, payment_start_condition, clients(full_name),
+        payment_start_type, payment_start_condition, clients(full_name,cpf),
         lawyer:profiles!contracts_lawyer_id_fkey(full_name)`)
         .eq("office_id", profile.office_id)
         .or("payment_method.eq.success_only,has_additional_fee.eq.true,payment_start_type.eq.condition")
@@ -45,6 +45,7 @@ export async function loadFollowUpContracts(profile: CurrentProfile): Promise<Fo
     const rows = (data ?? []) as unknown as RawContract[];
     contracts.push(...rows.map((row) => ({
       id: row.id, clientId: row.client_id, clientName: one(row.clients)?.full_name ?? "Cliente indisponível",
+      clientCpf: one(row.clients)?.cpf ?? null, origin: row.origin,
       lawyerId: row.lawyer_id, lawyerName: one(row.lawyer)?.full_name ?? "Advogada responsável",
       contractDate: row.contract_date, totalValue: nullableNumber(row.total_contract_value),
       payment_method: row.payment_method, has_additional_fee: row.has_additional_fee,

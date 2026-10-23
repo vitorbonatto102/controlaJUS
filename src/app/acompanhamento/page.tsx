@@ -7,10 +7,11 @@ export default async function FollowUpPage() {
   const profile = await requireActiveProfile();
   const contracts = await loadFollowUpContracts(profile);
   return <DashboardShell profile={profile}>
-    <p className="eyebrow">ACOMPANHAMENTO DE AÇÕES</p>
-    <h1>Êxito e condições contratuais</h1>
-    <p className="page-description">Acompanhe contratos apenas no êxito, honorários adicionais sobre proveito econômico e pagamentos com início condicionado.
-      Valores ainda desconhecidos não compõem parcelas ou saldos a receber.</p>
+    <p className="eyebrow">HONORÁRIOS FUTUROS</p>
+    <h1>Acompanhamento de ações</h1>
+    <p className="page-description">Aqui você acompanha seus contratos com honorários futuros ou condicionados, para não perder nenhum valor de vista.
+      Esta área reúne contratos apenas no êxito, honorários adicionais sobre proveito econômico e pagamentos que dependem de uma condição para começar.
+      Acompanhe o andamento de cada caso para identificar quando haverá valores a cobrar do cliente. Valores a apurar ainda não são recebimentos confirmados.</p>
     <FollowUpList contracts={contracts} role={profile.role} />
   </DashboardShell>;
 }
