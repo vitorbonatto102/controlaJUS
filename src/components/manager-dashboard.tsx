@@ -16,6 +16,7 @@ import { contractClientLabel } from "@/lib/contracts/parties";
 import correctionStyles from "./manager-corrections.module.css";
 import { ClosingStatusNotice } from "@/components/closing-status-notice";
 import { closingAvailability } from "@/lib/finance/closing-period";
+import { ManagerContractInstallments } from "@/components/manager-contract-installments";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
   "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -301,14 +302,13 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
             field="commission_percentage" current={String(term.commission_percentage)} label="Percentual"
             options={[5,10,15,20,25,30,35,40,45,50,55,60].map((item) =>
               ({ value: String(item), label: `${item}%` }))} />}
-          {contract.installments.map((item) => <div className={correctionStyles.installment} key={item.id}>
-            <p>Parcela {item.installment_number} · {formatDateBR(item.due_date)}</p>
-            <LatePaymentForm installmentId={item.id} />
-            <FieldCorrection table="installments" recordId={item.id} field="due_date"
-              current={item.due_date} label="Vencimento" />
-            <FieldCorrection table="installments" recordId={item.id} field="contractual_amount"
-              current={String(item.contractual_amount)} label="Valor contratual da parcela" />
-          </div>)}
+          <ManagerContractInstallments contract={contract} today={today} renderCorrection={(row) => <>
+            <LatePaymentForm installmentId={row.installmentId} />
+            <FieldCorrection table="installments" recordId={row.installmentId} field="due_date"
+              current={row.dueDate} label="Vencimento" />
+            <FieldCorrection table="installments" recordId={row.installmentId} field="contractual_amount"
+              current={String(row.contractualCents / 100)} label="Valor contratual da parcela" />
+          </>} />
           <AuditDetails entries={data.audit.filter((entry) =>
             entry.record_id === contract.id || entry.record_id === contract.client_id ||
             contract.installments.some((item) => item.id === entry.record_id))} users={data.users} />
