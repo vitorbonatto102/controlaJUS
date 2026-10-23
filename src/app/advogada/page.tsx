@@ -7,6 +7,7 @@ import { summarizeContracts, todayInSaoPaulo } from "@/lib/contracts/view";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { loadNotifications } from "@/lib/finance/data";
 import { followUpReasons } from "@/lib/contracts/follow-up";
+import styles from "@/components/contracts/contract-management.module.css";
 
 export default async function LawyerPage() {
   const profile = await requireRole("lawyer");
@@ -33,8 +34,9 @@ export default async function LawyerPage() {
       <h2>Uma visão completa da sua carteira</h2><p>Confira previsões mensais, recebimentos, comissões, inadimplência e repasses.</p></div>
       <Link className="primary-button" href="/advogada/carteira">Abrir minha carteira →</Link></section>
     <section className="new-contract-banner"><div><p className="eyebrow">CADASTRO</p>
-      <h2>Um novo contrato começa aqui</h2><p>Registre o cliente, confira o cronograma e anexe o PDF.</p></div>
-      <Link className="primary-button" href="/advogada/novo-contrato">+ Novo cliente / contrato</Link></section>
+      <h2>Meus contratos</h2><p>Visualize documentos, edite informações ou exclua contratos sem pagamentos.</p></div>
+      <div className={styles.bannerButtons}><Link className="secondary-button" href="/advogada/contratos">Gerenciar contratos →</Link>
+        <Link className="primary-button" href="/advogada/novo-contrato">+ Novo contrato</Link></div></section>
     {upcoming.length > 0 && <section className="upcoming-panel"><h2>Próximos vencimentos</h2>
       <div className="upcoming-list">{upcoming.map((row) => <Link key={row.installmentId}
         href={`/advogada/contratos/${row.contractId}`}><span>{row.clientName} · {row.installmentLabel}</span>

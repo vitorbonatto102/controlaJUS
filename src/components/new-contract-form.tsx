@@ -65,17 +65,18 @@ function ImportPanel({ mode, file, reading, stage, error, onFile, onManual }: {
   </section>;
 }
 
-function ContractDataFields({ values, set, note, cpfNotice, checkCpf }: {
+export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, readOnlyClient = false }: {
   values: ContractFormValues; set: SetField; note: (field: EditKey) => string | null;
   cpfNotice: string; checkCpf: () => void;
+  readOnlyClient?: boolean;
 }) {
   return <>
     <section className="form-panel"><Heading number="02" title="Contratante"
       description="Confirme a identificação da pessoa contratante." />
       <div className="form-grid"><label className="span-2">Nome completo
-        <input maxLength={160} value={values.clientName} onChange={(event) => set("clientName", event.target.value)}
+        <input maxLength={160} readOnly={readOnlyClient} value={values.clientName} onChange={(event) => set("clientName", event.target.value)}
           placeholder="Nome completo" /><FieldNote note={note("clientName")} /></label>
-        <label>CPF<input inputMode="numeric" maxLength={14} value={values.cpf}
+        <label>CPF<input inputMode="numeric" maxLength={14} readOnly={readOnlyClient} value={values.cpf}
           onChange={(event) => set("cpf", formatCpf(event.target.value))} onBlur={checkCpf}
           placeholder="000.000.000-00" /><FieldNote note={note("cpf")} /></label></div>
       {cpfNotice && <p className="field-hint" role="status">{cpfNotice}</p>}
@@ -155,7 +156,7 @@ function ContractDataFields({ values, set, note, cpfNotice, checkCpf }: {
   </>;
 }
 
-function InternalFields({ values, set, note }: {
+export function InternalFields({ values, set, note }: {
   values: ContractFormValues; set: SetField; note: (field: EditKey) => string | null;
 }) {
   return <>
@@ -189,9 +190,10 @@ function InternalFields({ values, set, note }: {
   </>;
 }
 
-function Review({ values, preview, file, saving, onBack, onConfirm }: {
+export function ContractReview({ values, preview, file, saving, onBack, onConfirm, confirmLabel = "Confirmar contrato", existingFileName }: {
   values: ContractFormValues; preview: ContractPreview; file: File | null; saving: boolean;
   onBack: () => void; onConfirm: () => void;
+  confirmLabel?: string; existingFileName?: string | null;
 }) {
   const successOnly = preview.method === "success_only";
   const pending = successOnly || values.paymentStartType === "condition";
@@ -210,7 +212,7 @@ function Review({ values, preview, file, saving, onBack, onConfirm }: {
         <div><dt>Início dos pagamentos</dt><dd>{successOnly ? "Depende do êxito da ação" : pending ? values.paymentStartCondition : values.firstDue}</dd></div>
         <div><dt>Origem</dt><dd>{values.origin}</dd></div>
         <div><dt>Minha participação</dt><dd>{preview.percentage}%</dd></div>
-        <div><dt>PDF</dt><dd>{file?.name ?? "Cadastro manual sem PDF"}</dd></div></dl>
+        <div><dt>PDF</dt><dd>{file?.name ?? existingFileName ?? "Cadastro manual sem PDF"}</dd></div></dl>
       {!successOnly && values.hasAdditionalFee && <p className="review-additional">
         Honorários adicionais previstos: {values.additionalFeePercentage ? `${values.additionalFeePercentage}%` : "percentual não informado"} sobre {
           values.additionalFeeBasis || "base não informada"} — {preview.additionalFeeAmountCents === null ?
@@ -240,7 +242,7 @@ function Review({ values, preview, file, saving, onBack, onConfirm }: {
     <div className="form-actions"><button className="secondary-button" type="button" disabled={saving}
       onClick={onBack}>← Corrigir dados</button>
       <button className="primary-button" type="button" disabled={saving || preview.differenceCents !== 0}
-        onClick={onConfirm}>{saving ? "Salvando contrato..." : "Confirmar contrato"}</button></div>
+        onClick={onConfirm}>{saving ? "Salvando contrato..." : confirmLabel}</button></div>
   </div>;
 }
 
@@ -442,7 +444,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
       <InternalFields values={values} set={set} note={note} />
       <div className="form-actions"><button className="primary-button" type="submit">Revisar informações →</button></div>
     </form>}
-    {phase === "review" && preview && <Review values={values} preview={preview} file={file} saving={saving}
+    {phase === "review" && preview && <ContractReview values={values} preview={preview} file={file} saving={saving}
       onBack={() => { setPhase("edit"); setError(""); }} onConfirm={() => void confirm()} />}
   </div>;
 }

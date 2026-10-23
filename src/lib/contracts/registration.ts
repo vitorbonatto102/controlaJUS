@@ -59,11 +59,11 @@ export function brazilianToIso(value: string): string {
   return iso;
 }
 
-export function prepareContract(values: ContractFormValues): ContractPreview {
-  if (values.clientName.trim().length < 2 || values.clientName.trim().length > 160) {
+export function prepareContract(values: ContractFormValues, { validateClient = true } = {}): ContractPreview {
+  if (validateClient && (values.clientName.trim().length < 2 || values.clientName.trim().length > 160)) {
     throw new Error("Informe o nome completo do contratante.");
   }
-  if (!isValidCpf(values.cpf)) throw new Error("Informe um CPF válido.");
+  if (validateClient && !isValidCpf(values.cpf)) throw new Error("Informe um CPF válido.");
   const contractDate = brazilianToIso(values.contractDate);
   if (!ORIGINS.some((origin) => origin === values.origin)) throw new Error("Selecione a origem da contratação.");
   const percentage = Number(values.percentage);

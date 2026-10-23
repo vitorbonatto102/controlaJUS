@@ -7,6 +7,7 @@ import { homeByRole, type Role } from "@/lib/auth/roles";
 export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }) {
   const pathname = usePathname();
   const links = [{ href: homeByRole[role], label: "Visão geral", icon: "overview" }];
+  if (role === "lawyer") links.push({ href: "/advogada/contratos", label: "Contratos", icon: "contracts" });
   if (role === "lawyer") links.push({ href: "/advogada/carteira", label: "Carteira", icon: "wallet" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
@@ -14,7 +15,8 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
   return <nav className="sidebar-nav" aria-label="Navegação principal">
     <p className="nav-section-label">PLATAFORMA</p>
     {links.map(({ href, label, icon }) => {
-      const active = pathname === href || (href === "/administracao" && pathname.startsWith("/admin/"));
+      const active = pathname === href || (href === "/administracao" && pathname.startsWith("/admin/")) ||
+        (href === "/advogada/contratos" && pathname.startsWith("/advogada/contratos/"));
       return <Link key={href} href={href} className={active ? "nav-active" : "sidebar-link"}
         aria-current={active ? "page" : undefined}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"

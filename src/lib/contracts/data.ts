@@ -3,9 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 
 const contractSelect = `
-  id, client_id, origin, contract_date, total_contract_value, payment_method, success_fee_percentage,
+  id, client_id, origin, contract_date, updated_at, total_contract_value, payment_method, success_fee_percentage,
   contract_file_path, contract_file_name,
-  payment_start_type, first_due_date, payment_start_condition, last_installment_amount,
+  payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
   clients (full_name, cpf),
   contract_financial_terms (commission_percentage),
@@ -35,11 +35,14 @@ function normalize(raw: RawContract): ContractRecord {
   return {
     id: raw.id, client_id: raw.client_id, client_name: client.full_name,
     client_cpf: client.cpf, origin: raw.origin, contract_date: raw.contract_date,
+    updated_at: raw.updated_at,
     total_contract_value: raw.total_contract_value, payment_method: raw.payment_method,
     success_fee_percentage: raw.success_fee_percentage == null ? null : Number(raw.success_fee_percentage),
     contract_file_path: raw.contract_file_path, contract_file_name: raw.contract_file_name,
     payment_start_type: raw.payment_start_type, first_due_date: raw.first_due_date,
     payment_start_condition: raw.payment_start_condition,
+    installment_count: raw.installment_count == null ? null : Number(raw.installment_count),
+    installment_amount: raw.installment_amount == null ? null : Number(raw.installment_amount),
     last_installment_amount: raw.last_installment_amount === null ? null : Number(raw.last_installment_amount),
     has_additional_fee: raw.has_additional_fee,
     additional_fee_percentage: raw.additional_fee_percentage === null ? null : Number(raw.additional_fee_percentage),

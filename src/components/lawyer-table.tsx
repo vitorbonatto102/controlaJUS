@@ -60,7 +60,8 @@ export function LawyerTable({ rows, referenceMonth, today }: {
         <td>{row.percentage}%</td><td className="money-cell">{formatBRL(row.estimatedCents / 100)}</td>
         <td className="money-cell">{row.commissionCents === null ? "—" : formatBRL(row.commissionCents / 100)}</td>
         <td><span className={`status status-${row.status}`}>{statusLabels[row.status]}</span></td>
-        <td><Link className="row-link" href={`/advogada/contratos/${row.contractId}`}>Ver contrato</Link></td>
+        <td><Link className="row-link" href={`/advogada/contratos/${row.contractId}`}>Ver contrato</Link>
+          <br /><Link className="row-link" href={`/advogada/contratos/${row.contractId}/editar`}>Editar contrato</Link></td>
       </tr>)}</tbody></table></div>
       {pageCount > 1 && <div className="pagination"><span>Página {page} de {pageCount}</span>
         <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</button>

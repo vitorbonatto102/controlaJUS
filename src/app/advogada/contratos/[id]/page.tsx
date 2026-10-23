@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { ContractActions } from "@/components/contracts/contract-actions";
+import { contractHasPayments } from "@/lib/contracts/editing";
+import styles from "@/components/contracts/contract-management.module.css";
 import { requireRole } from "@/lib/auth/profile";
 import { loadLawyerContract } from "@/lib/contracts/data";
 import { buildFinancialRows, statusLabels, todayInSaoPaulo } from "@/lib/contracts/view";
@@ -10,14 +13,14 @@ import { formatBRL, formatDateBR } from "@/lib/formatters";
 
 export default async function ContractDetailPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ criado?: string }>;
+  searchParams: Promise<{ criado?: string; editado?: string }>;
 }) {
   const profile = await requireRole("lawyer");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const contract = await loadLawyerContract(profile.id, id);
   if (!contract) notFound();
-  const { criado } = await searchParams;
+  const { criado, editado } = await searchParams;
   const rows = buildFinancialRows([contract], todayInSaoPaulo());
   const totalCents = contract.total_contract_value === null ? null : numericToCents(contract.total_contract_value);
   const paymentRows = contract.installments.flatMap((item) => item.payments.map((payment) => ({
@@ -25,10 +28,13 @@ export default async function ContractDetailPage({ params, searchParams }: {
   }))).sort((a, b) => b.payment_date.localeCompare(a.payment_date));
 
   return <DashboardShell profile={profile}>
-    <Link className="back-link" href="/advogada/carteira">← Voltar à carteira</Link>
+    <Link className="back-link" href="/advogada/contratos">← Voltar aos contratos</Link>
     {criado === "1" && <div className="success-box" role="status">Contrato cadastrado com sucesso.</div>}
+    {editado === "1" && <div className="success-box" role="status">Contrato atualizado com histórico de alterações.</div>}
     <p className="eyebrow">DETALHES DO CONTRATO</p><h1>{contract.client_name}</h1>
     <p className="page-description">Dados gerais, documento e cronograma financeiro.</p>
+    <section className={styles.toolbar} aria-label="Gerenciar este contrato"><ContractActions id={id}
+      version={contract.updated_at ?? ""} hasPayments={contractHasPayments(contract)} showView={false} /></section>
     <div className="detail-grid"><section className="form-panel"><h2>Dados gerais</h2>
       <dl className="review-grid"><div><dt>Cliente</dt><dd>{contract.client_name}</dd></div>
         <div><dt>CPF</dt><dd>{contract.client_cpf ? formatCpf(contract.client_cpf) : "—"}</dd></div>

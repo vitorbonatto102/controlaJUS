@@ -37,6 +37,9 @@ export type ContractRecord = {
   additional_fee_basis?: string | null;
   additional_fee_amount?: number | null;
   commission_percentage: number;
+  updated_at?: string;
+  installment_count?: number | null;
+  installment_amount?: number | null;
   installments: InstallmentRecord[];
 };
 export type InstallmentStatus = "upcoming" | "overdue" | "partial" | "paid";
