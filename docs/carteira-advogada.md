@@ -33,3 +33,11 @@ Saldo de repasses, histórico de repasses e fechamentos são sempre da carteira 
 Na lista, o período filtra **vencimentos**; valores pagos e comissões exibidos são os acumulados da parcela em todos os períodos. É possível selecionar todos os vencimentos, status, inadimplência e data exata. A data exata seleciona automaticamente todos os períodos para não conflitar com o mês do painel.
 
 Contratos apenas no êxito sem valor, adicionais ainda não definidos e início condicionado sem cronograma permanecem em Acompanhamento. Não são projetados como receita garantida.
+
+## Visão geral da advogada
+
+A página inicial `/advogada` apresenta um resumo de todos os períodos:
+
+- **Total contratado · todos os períodos:** soma dos valores contratuais conhecidos de todos os contratos cadastrados e não excluídos, inclusive quitados. Não é o dinheiro recebido nem a comissão da advogada. Valores ainda a apurar não entram na soma.
+- **Meus contratos ativos:** cada contrato conta uma vez quando há pelo menos uma parcela definida com saldo positivo, considerando os pagamentos válidos. Inclui parcelas futuras, parcialmente pagas e em atraso. Contratos quitados ou sem cronograma definido ficam fora dessa contagem.
+- **Acompanhamento de ações futuras:** mantém os critérios de apenas no êxito, honorários adicionais ou início condicionado. Um contrato com parcelas em aberto e honorários adicionais pode estar tanto entre os ativos quanto no acompanhamento. Isso permite acompanhar a renda contratual e monitorar os valores futuros do mesmo contrato.

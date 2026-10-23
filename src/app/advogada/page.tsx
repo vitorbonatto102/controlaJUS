@@ -24,11 +24,14 @@ export default async function LawyerPage() {
   return <DashboardShell profile={profile}>
     <div className="lawyer-welcome"><p className="eyebrow">PAINEL DA ADVOGADA</p>
       <h1>Olá, {firstName} 👋</h1>
-      <p className="page-description">Acompanhe seus contratos. Seu financeiro completo está na Carteira.</p></div>
+      <p className="page-description">Uma visão geral dos seus contratos e honorários. Previsões e recebimentos por mês estão na Carteira.</p></div>
     <section className="card-grid" aria-label="Resumo dos meus contratos">
-      <FinancialCard title="Total em contratos fechados" value={formatBRL(summary.totalContractedCents / 100)} hint="Principal conhecido; êxito a apurar fica em Acompanhamento" />
-      <FinancialCard title="Meus contratos" value={String(contracts.length)} hint="Contratos vinculados à sua conta" />
-      <FinancialCard title="Acompanhamento de ações" value={String(followUpCount)} hint="Êxito, honorários adicionais ou início condicionado" />
+      <FinancialCard title="Total contratado · todos os períodos" value={formatBRL(summary.totalContractedCents / 100)}
+        hint="Valores conhecidos de todos os seus contratos, inclusive quitados. Valores a apurar ficam em Acompanhamento." />
+      <FinancialCard title="Meus contratos ativos" value={String(summary.activeContractCount)}
+        hint="Contratos com parcelas definidas e saldo a receber, inclusive parciais e em atraso." />
+      <FinancialCard title="Acompanhamento de ações futuras" value={String(followUpCount)}
+        hint="Apenas no êxito, honorários adicionais ou início condicionado: valores que precisam ser monitorados." />
     </section>
     <section className="new-contract-banner"><div><p className="eyebrow">MEU FINANCEIRO</p>
       <h2>Uma visão completa da sua carteira</h2><p>Confira previsões mensais, recebimentos, comissões, inadimplência e repasses.</p></div>
@@ -48,8 +51,8 @@ export default async function LawyerPage() {
     <section className="new-contract-banner"><div><h2>Fechamentos e repasses</h2>
       <p>Consulte a apuração do mês, os fechamentos confirmados pelo gestor e os pagamentos feitos a você.</p></div>
       <Link href="/advogada/fechamentos" className="row-link">Ver meus fechamentos →</Link></section>
-    <section className="new-contract-banner"><div><h2>Acompanhamento de ações</h2>
-      <p>Acompanhe {followUpCount} contratos com honorários futuros ou condicionados, para não perder nenhum valor de vista.</p></div>
+    <section className="new-contract-banner"><div><h2>Acompanhamento de ações futuras</h2>
+      <p>Monitore {followUpCount} contratos com êxito, honorários adicionais ou início condicionado, para acompanhar os valores que poderão ser cobrados no futuro.</p></div>
       <Link className="secondary-button" href="/acompanhamento">Ver acompanhamento →</Link></section>
   </DashboardShell>;
 }

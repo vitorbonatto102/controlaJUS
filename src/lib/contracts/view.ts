@@ -118,7 +118,11 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
 export function summarizeContracts(contracts: ContractRecord[], today: string) {
   const month = today.slice(0, 7);
   const rows = buildFinancialRows(contracts, today);
+  const activeContractIds = new Set(rows
+    .filter((row) => row.contractualCents > (row.paidCents ?? 0))
+    .map((row) => row.contractId));
   return {
+    activeContractCount: activeContractIds.size,
     totalContractedCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + numericToCents(contract.total_contract_value), 0),
     contractedParticipationCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + participationCents(
       numericToCents(contract.total_contract_value), contract.commission_percentage), 0),
