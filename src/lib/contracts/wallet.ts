@@ -1,5 +1,6 @@
 import { numericToCents, participationCents } from "./finance";
 import { buildFinancialRows, type ContractRecord, type FinancialRow } from "./view";
+import { commissionTargetCents } from "./commission-retention";
 
 export type WalletTransfer = {
   id: string;
@@ -74,7 +75,7 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
   for (const row of rows) {
     const month = getMonth(row.dueDate.slice(0, 7));
     const remaining = Math.max(0, row.contractualCents - (row.paidCents ?? 0));
-    const participation = participationCents(remaining, row.percentage);
+    const participation = row.remainingEstimatedCents ?? participationCents(remaining, row.percentage);
     month.contractualCents += row.contractualCents;
     month.estimatedCents += row.estimatedCents;
     month.remainingCents += remaining;
@@ -100,9 +101,8 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
   let totalContractedCents = 0;
   let contractedParticipationCents = 0;
   for (const contract of contracts) {
-    if (contract.total_contract_value === null) continue;
-    const value = numericToCents(contract.total_contract_value);
-    const participation = participationCents(value, contract.commission_percentage);
+    const value = contract.total_contract_value === null ? 0 : numericToCents(contract.total_contract_value);
+    const participation = commissionTargetCents(contract) ?? 0;
     totalContractedCents += value;
     contractedParticipationCents += participation;
     byOrigin.set(contract.origin, (byOrigin.get(contract.origin) ?? 0) + participation);

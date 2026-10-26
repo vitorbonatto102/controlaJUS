@@ -17,6 +17,8 @@ import correctionStyles from "./manager-corrections.module.css";
 import { ClosingStatusNotice } from "@/components/closing-status-notice";
 import { closingAvailability } from "@/lib/finance/closing-period";
 import { ManagerContractInstallments } from "@/components/manager-contract-installments";
+import { commissionModeLabels } from "@/lib/contracts/commission-retention";
+import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
   "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -29,10 +31,14 @@ const fieldLabels: Record<string, string> = {
   contract_date: "Data do contrato", total_contract_value: "Valor do contrato",
   due_date: "Vencimento", contractual_amount: "Valor contratual da parcela",
   commission_percentage: "Percentual", content: "Anotação", note_type: "Tipo da anotação",
+  commission_mode: "Forma de comissão", commission_upfront_limit: "Limite da comissão",
+  commission_amount: "Valor da comissão",
 };
-const isMoneyField = (field: string) => field === "total_contract_value" || field === "contractual_amount";
+const isMoneyField = (field: string) => ["total_contract_value", "contractual_amount", "commission_upfront_limit", "commission_amount"].includes(field);
 function displayAuditValue(value: unknown, field: string): string {
   if (value === null || value === undefined) return "—";
+  if (field === "commission_mode" && typeof value === "string" && value in commissionModeLabels)
+    return commissionModeLabels[value as keyof typeof commissionModeLabels];
   if (isMoneyField(field) && (typeof value === "number" || typeof value === "string")) {
     return formatBRL(Number(value));
   }
@@ -302,6 +308,11 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
             field="commission_percentage" current={String(term.commission_percentage)} label="Percentual"
             options={[5,10,15,20,25,30,35,40,45,50,55,60].map((item) =>
               ({ value: String(item), label: `${item}%` }))} />}
+          {term && <p className="field-hint">Comissões: {commissionModeLabels[term.commission_mode ?? "proportional"]}
+            {term.commission_upfront_limit != null && ` · Limite definido: ${formatBRL(term.commission_upfront_limit)}`}</p>}
+          {term && <ManagerCommissionTermsForm key={`${term.commission_mode}:${term.commission_upfront_limit}`}
+            contractId={contract.id} mode={term.commission_mode ?? "proportional"} limit={term.commission_upfront_limit ?? null}
+            totalKnown={data.contractTotals.find((item) => item.id === contract.id)?.total_contract_value != null} />}
           <ManagerContractInstallments contract={contract} today={today} renderCorrection={(row) => <>
             <LatePaymentForm installmentId={row.installmentId} />
             <FieldCorrection table="installments" recordId={row.installmentId} field="due_date"

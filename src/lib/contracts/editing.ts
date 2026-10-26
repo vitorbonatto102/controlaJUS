@@ -33,6 +33,8 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
     additionalFeePercentage: contract.additional_fee_percentage?.toString() ?? "",
     additionalFeeBasis: contract.additional_fee_basis ?? "", additionalFeeAmount: amount(contract.additional_fee_amount),
     origin: contract.origin, percentage: String(contract.commission_percentage),
+    commissionMode: contract.commission_mode ?? "proportional",
+    commissionLimit: amount(contract.commission_upfront_limit),
   };
 }
 
@@ -66,6 +68,8 @@ export function prepareContractEdit(values: ContractFormValues, metadataOnly: bo
   if (preview.differenceCents !== 0) throw new Error("O total do cronograma deve ser igual ao valor do contrato.");
   const success = preview.method === "success_only";
   return { changes: { ...base, commission_percentage: preview.percentage,
+    commission_mode: preview.commissionMode,
+    commission_upfront_limit: success && preview.commissionLimitCents !== null ? preview.commissionLimitCents / 100 : null,
     total_contract_value: preview.totalCents === null ? null : preview.totalCents / 100,
     payment_method: preview.method, success_fee_percentage: preview.successFeePercentage,
     payment_start_type: success ? null : values.paymentStartType,

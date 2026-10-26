@@ -16,7 +16,7 @@ function refresh(contractId: string, clientId: string) {
     `/advogada/contratos/${contractId}/editar`, "/acompanhamento", "/secretaria", `/secretaria/clientes/${clientId}`, "/gestor"]) revalidatePath(path);
 }
 function message(error: { code?: string; message: string }) {
-  if (error.code === "PGRST202") return "Peça ao administrador para aplicar a atualização de gestão de contratos no Supabase.";
+  if (error.code === "PGRST202") return "Peça ao administrador para aplicar a atualização das formas de comissão no Supabase.";
   if (error.code === "P0001") return error.message;
   return "Não foi possível salvar. Confira os dados e tente novamente.";
 }
@@ -45,7 +45,7 @@ export async function saveLawyerContract(_state: ActionState, form: FormData): P
   if ((!!path !== !!name) || name.length > 255 || path.length > 500)
     return { error: "Confira o arquivo PDF.", success: null };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("edit_lawyer_contract", {
+  const { error } = await supabase.rpc("edit_lawyer_contract_v2", {
     p_contract_id: id, p_expected_updated_at: version, p_reason: reason,
     p_changes: { ...prepared.changes, ...(path ? { contract_file_path: path, contract_file_name: name } : {}) },
     p_schedule: prepared.schedule,

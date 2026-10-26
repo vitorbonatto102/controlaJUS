@@ -4,12 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { loadAuditEntries, loadClosingDetails, loadClosings } from "@/lib/finance/data";
 import type { OperationalContract, OperationalNote } from "@/lib/secretary/view";
 import type { Closing, ClosingAdjustment, ClosingItem, Transfer, AuditEntry } from "@/lib/finance/data";
+import { loadCommissionTerms, type ContractCommissionTerms } from "@/lib/contracts/commission-data";
 
 export type ManagerWorkspace = {
   contracts: OperationalContract[];
   notes: OperationalNote[];
   lawyers: { id: string; full_name: string; active: boolean }[];
-  terms: { contract_id: string; commission_percentage: number }[];
+  terms: ContractCommissionTerms[];
   contractTotals: { id: string; total_contract_value: number | null }[];
   commissions: { id: string; payment_id: string; lawyer_id: string;
     commission_percentage: number; commission_amount: number }[];
@@ -38,12 +39,7 @@ export async function loadManagerWorkspace(): Promise<ManagerWorkspace> {
   const supabase = await createClient();
   const [operational, terms, commissions, lawyers, closings, details, audit, contractTotals] = await Promise.all([
     loadSecretaryWorkspace(),
-    allPages<{ contract_id: string; commission_percentage: number }>((from, to) =>
-      supabase.from("contract_financial_terms").select("contract_id,commission_percentage")
-        .order("contract_id").range(from, to) as unknown as Promise<{
-          data: { contract_id: string; commission_percentage: number }[] | null;
-          error: { message: string } | null;
-        }>),
+    loadCommissionTerms(),
     allPages<ManagerWorkspace["commissions"][number]>((from, to) =>
       supabase.from("commissions").select("id,payment_id,lawyer_id,commission_percentage,commission_amount")
         .order("id").range(from, to) as unknown as Promise<{

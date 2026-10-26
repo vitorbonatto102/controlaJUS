@@ -57,7 +57,7 @@ export function LawyerTable({ rows, referenceMonth, today }: {
         <td className="money-cell">{row.paidCents === null ? "—" : formatBRL(row.paidCents / 100)}</td>
         <td className="money-cell">{row.differenceCents === null ? "—" : formatBRL(row.differenceCents / 100)}</td>
         <td>{row.latestPaymentDate ? formatDateBR(row.latestPaymentDate) : "—"}</td>
-        <td>{row.percentage}%</td><td className="money-cell">{formatBRL(row.estimatedCents / 100)}</td>
+        <td>{row.percentage}%{row.commissionMode === "upfront" && <small>Retenção nas primeiras parcelas</small>}</td><td className="money-cell">{formatBRL(row.estimatedCents / 100)}</td>
         <td className="money-cell">{row.commissionCents === null ? "—" : formatBRL(row.commissionCents / 100)}</td>
         <td><span className={`status status-${row.status}`}>{statusLabels[row.status]}</span></td>
         <td><Link className="row-link" href={`/advogada/contratos/${row.contractId}`}>Ver contrato</Link>

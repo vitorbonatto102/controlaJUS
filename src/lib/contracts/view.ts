@@ -1,5 +1,6 @@
-import { numericToCents, participationCents } from "./finance";
+import { numericToCents } from "./finance";
 import { contractClientLabel, type ContractParty } from "./parties";
+import { commissionTargetCents, projectContractCommissions, type CommissionMode } from "./commission-retention";
 
 export type PaymentRecord = {
   id: string;
@@ -40,6 +41,8 @@ export type ContractRecord = {
   additional_fee_basis?: string | null;
   additional_fee_amount?: number | null;
   commission_percentage: number;
+  commission_mode?: CommissionMode;
+  commission_upfront_limit?: number | null;
   updated_at?: string;
   installment_count?: number | null;
   installment_amount?: number | null;
@@ -60,6 +63,8 @@ export type FinancialRow = {
   latestPaymentDate: string | null;
   percentage: number;
   estimatedCents: number;
+  remainingEstimatedCents?: number;
+  commissionMode?: CommissionMode;
   commissionCents: number | null;
   status: InstallmentStatus;
 };
@@ -91,6 +96,15 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
   return contracts.flatMap((contract) => {
     if (contract.payment_method === "success_only") return [];
     const regularCount = contract.installments.filter((item) => item.kind === "regular").length;
+    const generatedCents = contract.installments.reduce((total, item) => total + item.payments
+      .filter((payment) => !payment.voided_at).reduce((sum, payment) =>
+        sum + numericToCents(payment.commissions?.commission_amount ?? 0), 0), 0);
+    const projection = projectContractCommissions(contract.installments.map((item) => ({
+      id: item.id, dueDate: item.due_date, order: item.installment_number,
+      contractualCents: numericToCents(item.contractual_amount),
+      paidCents: item.payments.filter((payment) => !payment.voided_at)
+        .reduce((sum, payment) => sum + numericToCents(payment.amount_paid), 0),
+    })), contract, generatedCents);
     return contract.installments.map((item) => {
       const contractualCents = numericToCents(item.contractual_amount);
       const activePayments = item.payments.filter((payment) => !payment.voided_at);
@@ -107,7 +121,7 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
         contractualCents, paidCents: activePayments.length ? paidCents : null,
         differenceCents: activePayments.length ? paidCents - contractualCents : null,
         latestPaymentDate, percentage: contract.commission_percentage,
-        estimatedCents: participationCents(contractualCents, contract.commission_percentage),
+        ...projection.get(item.id)!, commissionMode: contract.commission_mode ?? "proportional",
         commissionCents: hasCommission ? commissionCents : null,
         status: installmentStatus(contractualCents, paidCents, item.due_date, today),
       };
@@ -124,8 +138,7 @@ export function summarizeContracts(contracts: ContractRecord[], today: string) {
   return {
     activeContractCount: activeContractIds.size,
     totalContractedCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + numericToCents(contract.total_contract_value), 0),
-    contractedParticipationCents: contracts.reduce((sum, contract) => contract.total_contract_value === null ? sum : sum + participationCents(
-      numericToCents(contract.total_contract_value), contract.commission_percentage), 0),
+    contractedParticipationCents: contracts.reduce((sum, contract) => sum + (commissionTargetCents(contract) ?? 0), 0),
     monthlyEstimateCents: rows.filter((row) => row.dueDate.startsWith(month))
       .reduce((sum, row) => sum + row.estimatedCents, 0),
     monthlyGeneratedCents: contracts.reduce((sum, contract) => sum + contract.installments.reduce(

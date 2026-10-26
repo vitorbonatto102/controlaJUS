@@ -13,6 +13,7 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { MAX_CONTRACTORS } from "@/lib/contracts/parties";
 import { prepareContractEdit } from "@/lib/contracts/editing";
 import { MAX_SERVICE_NAME_LENGTH } from "@/lib/contracts/service";
+import { commissionModeLabels, type CommissionMode } from "@/lib/contracts/commission-retention";
 
 type Mode = "choose" | "import" | "manual";
 type EditKey = keyof ContractFormValues;
@@ -196,6 +197,20 @@ export function InternalFields({ values, set, note }: {
         <label>Minha participação<select value={values.percentage}
           onChange={(event) => set("percentage", event.target.value)}><option value="">Selecione</option>
           {PERCENTAGES.map((percentage) => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label></div>
+      <fieldset className="commission-choice"><legend>Como será feito o pagamento das comissões deste contrato?</legend>
+        <div className="payment-choice">{Object.entries(commissionModeLabels).map(([mode, label]) =>
+          <label key={mode}><input type="radio" name="commission-mode" checked={values.commissionMode === mode}
+            onChange={() => set("commissionMode", mode as CommissionMode)} />{label}</label>)}</div>
+        <p className="field-hint">{values.commissionMode === "upfront" ?
+          "Os primeiros valores recebidos serão destinados integralmente à sua comissão até quitar o limite. Se necessário, a retenção continua nas parcelas seguintes." :
+          "Em cada pagamento recebido, sua comissão é calculada pelo percentual selecionado, do início ao fim do contrato."}</p>
+        {values.commissionMode === "upfront" && (values.method === "success_only" ?
+          <label>Limite total da minha comissão (R$)<input inputMode="decimal" value={values.commissionLimit}
+            onChange={(event) => set("commissionLimit", event.target.value)}
+            onBlur={() => set("commissionLimit", moneyInput(values.commissionLimit))} placeholder="R$ 0,00" />
+            <small className="field-hint">Informe o valor máximo da comissão da advogada para este contrato sem valor definido.</small></label> :
+          <p className="field-hint">O limite é o valor total do contrato multiplicado pelo seu percentual de participação.</p>)}
+      </fieldset>
     </section>
     {values.method !== "success_only" && <section className="additional-fee-panel"><div><p className="eyebrow">HONORÁRIOS ADICIONAIS</p>
       <p>Obrigação eventual do cliente, separada da participação da advogada.</p></div>
@@ -243,6 +258,9 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
         <div><dt>Início dos pagamentos</dt><dd>{successOnly ? "Depende do êxito da ação" : pending ? values.paymentStartCondition : values.firstDue}</dd></div>
         <div><dt>Origem</dt><dd>{values.origin}</dd></div>
         <div><dt>Minha participação</dt><dd>{preview.percentage}%</dd></div>
+        <div><dt>Pagamento das comissões</dt><dd>{commissionModeLabels[preview.commissionMode]}</dd></div>
+        {preview.commissionMode === "upfront" && preview.commissionLimitCents !== null &&
+          <div><dt>Limite total da comissão</dt><dd>{formatBRL(preview.commissionLimitCents / 100)}</dd></div>}
         <div><dt>PDF</dt><dd>{file?.name ?? existingFileName ?? "Cadastro manual sem PDF"}</dd></div></dl>
       {!successOnly && values.hasAdditionalFee && <p className="review-additional">
         Honorários adicionais previstos: {values.additionalFeePercentage ? `${values.additionalFeePercentage}%` : "percentual não informado"} sobre {
@@ -426,14 +444,14 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v3", {
+      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v4", {
         p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
           ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
         p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
         p_file_path: filePath, p_file_name: file?.name ?? null,
       });
       if (saveError) throw new Error(saveError.code === "PGRST202" ?
-        "Peça ao administrador para aplicar a atualização do serviço contratado no Supabase." : saveError.message);
+        "Peça ao administrador para aplicar a atualização das formas de comissão no Supabase." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();

@@ -1,8 +1,9 @@
-import { parseMoneyBR } from "./finance";
+import { parseMoneyBR, participationCents } from "./finance";
 import { buildSchedule, parseIsoDate, type ScheduleRow } from "./schedule";
 import { isValidCpf, ORIGINS, PERCENTAGES } from "./validation";
 import { validateContractors, type ContractorInput } from "./parties";
 import { validateServiceName } from "./service";
+import type { CommissionMode } from "./commission-retention";
 
 export type ContractFormValues = {
   clientName: string;
@@ -28,6 +29,8 @@ export type ContractFormValues = {
   additionalFeeAmount: string;
   origin: string;
   percentage: string;
+  commissionMode: CommissionMode;
+  commissionLimit: string;
 };
 
 type PreviewBase = {
@@ -38,6 +41,8 @@ type PreviewBase = {
   percentage: number;
   contractDate: string;
   firstDueDate: string | null;
+  commissionMode: CommissionMode;
+  commissionLimitCents: number | null;
 };
 export type ContractPreview = PreviewBase & ({
   method: "success_only"; successFeePercentage: number;
@@ -52,7 +57,7 @@ export const blankContractForm: ContractFormValues = {
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
-  origin: "", percentage: "",
+  origin: "", percentage: "", commissionMode: "proportional", commissionLimit: "",
 };
 
 export function brazilianToIso(value: string): string {
@@ -74,6 +79,13 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   if (!ORIGINS.some((origin) => origin === values.origin)) throw new Error("Selecione a origem da contratação.");
   const percentage = Number(values.percentage);
   if (!PERCENTAGES.some((item) => item === percentage)) throw new Error("Selecione um percentual permitido.");
+  if (values.commissionMode !== "proportional" && values.commissionMode !== "upfront")
+    throw new Error("Selecione como será feito o pagamento das comissões.");
+  const commissionLimitCents = values.commissionMode === "upfront" && values.method === "success_only" ?
+    parseMoneyBR(values.commissionLimit) : null;
+  if (values.commissionMode === "upfront" && values.method === "success_only" &&
+      (commissionLimitCents === null || commissionLimitCents <= 0 || commissionLimitCents > 99999999999999))
+    throw new Error("Informe o limite total da comissão da advogada para este contrato apenas no êxito.");
   if (values.method === "success_only") {
     const rawPercentage = values.successFeePercentage.trim().replace(",", ".");
     const successFeePercentage = Number(rawPercentage);
@@ -83,7 +95,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     return { method: "success_only", successFeePercentage, rows: [], totalCents: null,
       installmentCents: null, installmentCount: 0, lastInstallmentCents: null,
       sumCents: null, differenceCents: 0, additionalFeeAmountCents: null,
-      percentage, contractDate, firstDueDate: null };
+      percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents };
   }
   const totalCents = parseMoneyBR(values.total);
   if (totalCents === null || totalCents <= 0) throw new Error("Informe o valor total contratado.");
@@ -148,5 +160,6 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   }
   return { method: values.method, successFeePercentage: null, rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
     differenceCents: totalCents - sumCents, additionalFeeAmountCents,
-    percentage, contractDate, firstDueDate };
+    percentage, contractDate, firstDueDate, commissionMode: values.commissionMode,
+    commissionLimitCents: values.commissionMode === "upfront" ? participationCents(totalCents, percentage) : null };
 }

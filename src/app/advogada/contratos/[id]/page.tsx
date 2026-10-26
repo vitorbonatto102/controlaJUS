@@ -13,6 +13,7 @@ import { numericToCents, participationCents } from "@/lib/contracts/finance";
 import { getContractParties, contractClientLabel } from "@/lib/contracts/parties";
 import { formatCpf } from "@/lib/contracts/validation";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
+import { commissionModeLabels, commissionTargetCents } from "@/lib/contracts/commission-retention";
 
 export default async function ContractDetailPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
@@ -47,6 +48,9 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <div><dt>Data do contrato</dt><dd>{formatDateBR(contract.contract_date)}</dd></div>
         <div><dt>Valor contratado</dt><dd>{totalCents === null ? "A apurar após o êxito" : formatBRL(totalCents / 100)}</dd></div>
         <div><dt>Minha participação</dt><dd>{contract.commission_percentage}%</dd></div>
+        <div><dt>Pagamento das comissões</dt><dd>{commissionModeLabels[contract.commission_mode ?? "proportional"]}</dd></div>
+        {contract.commission_mode === "upfront" && <div><dt>Limite total da comissão</dt>
+          <dd>{formatBRL((commissionTargetCents(contract) ?? 0) / 100)}</dd></div>}
         <div><dt>Participação contratual estimada</dt><dd>{totalCents === null ? "Depende do valor recebido" : formatBRL(participationCents(totalCents, contract.commission_percentage) / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{contract.payment_method === "cash" ? "À vista" :
           contract.payment_method === "installments" ? "Parcelado" : contract.payment_method === "success_only" ? "Apenas no êxito" : "Não informada"}</dd></div>

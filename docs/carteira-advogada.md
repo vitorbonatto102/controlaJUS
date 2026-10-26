@@ -13,14 +13,14 @@ Os cálculos ficam em `src/lib/contracts/wallet.ts`, em centavos inteiros. A int
 A abertura da página destaca somente a previsão do mês selecionado:
 
 - **Total das parcelas do mês:** soma integral dos valores contratuais das parcelas com vencimento no mês, incluindo as já pagas ou parcialmente pagas.
-- **Minha comissão prevista no mês:** soma da participação em cada uma dessas parcelas, usando o percentual gravado no respectivo contrato. É a expectativa para o mês inteiro se todos pagarem conforme o contrato, sem descontar o que já foi pago. Não é o valor do repasse nem uma previsão da data em que a advogada receberá do escritório.
+- **Minha comissão prevista no mês:** soma da participação em cada uma dessas parcelas, usando a forma de retenção gravada no contrato. Na forma proporcional, aplica o percentual em cada parcela; na integral, distribui o limite pelas primeiras parcelas. É a expectativa para o mês inteiro se todos pagarem conforme o contrato, sem descontar o que já foi pago. Não é o valor do repasse nem uma previsão da data em que a advogada receberá do escritório.
 
 Recebimentos efetivos, saldo a receber do escritório, gráficos e fechamentos ficam na seção recolhida **Recebimentos, repasses e histórico**:
 
 - **Contratos fechados no mês:** contagem pela data do contrato dentro do mês selecionado, até a data atual em São Paulo. Inclui contratos sem valor definido e independe do recebimento ou do cronograma. O mês anterior aparece como comparação abaixo do número principal. Cliente e origem seguem os filtros selecionados; datas futuras não contam como contratos já fechados.
 - **Recebido dos clientes:** soma de cada pagamento válido pela sua própria data, mesmo quando a parcela venceu em outro mês. Inclui juros e multa efetivamente recebidos.
 - **Comissão gerada:** soma das comissões persistidas dos pagamentos válidos. Não é recalculada com percentuais atuais nem substituída por uma estimativa quando não há comissão registrada.
-- **Previsão para os próximos meses:** saldo positivo de cada parcela contratual, descontados pagamentos válidos, multiplicado pelo percentual histórico do contrato. Pagamentos antecipados saem dessa previsão de saldo restante. Não é uma promessa de data de repasse.
+- **Previsão para os próximos meses:** considera o saldo positivo das parcelas, a forma de retenção e as comissões já geradas. Na retenção integral, a previsão para de gerar participação quando o limite da comissão já foi quitado. Pagamentos antecipados saem dessa previsão de saldo restante. Não é uma promessa de data de repasse.
 - **Participação em atraso:** a mesma estimativa de saldo pendente para vencimentos anteriores à data atual em São Paulo, incluindo parcelas parcialmente pagas.
 - **Comissões a receber do escritório:** todas as comissões válidas da advogada menos todos os repasses não estornados. Excesso de repasse aparece separadamente. Inclui comissões ainda sem fechamento; não soma ajustes de fechamentos novamente, pois as correções já estão refletidas nos pagamentos/comissões atuais.
 

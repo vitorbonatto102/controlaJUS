@@ -66,7 +66,7 @@ test("gestão de contratos aplica isolamento, validação, auditoria e proteçã
       'fixed_date','2026-12-10'::date,null,1,100000::bigint,false,null,null,null,null)`, [id]);
     const prepared = prepareContractEdit(values, false);
     const edit = (id: string, stamp: string, changes: object = prepared.changes, schedule: unknown = prepared.schedule) => db.query(
-      "select public.edit_lawyer_contract($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Correção solicitada pela advogada')",
+      "select public.edit_lawyer_contract_v2($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Correção solicitada pela advogada')",
       [id, stamp, JSON.stringify(changes), schedule === null ? null : JSON.stringify(schedule)]);
     const remove = (id: string, stamp: string) => db.query("select public.delete_lawyer_contract($1::uuid,$2::timestamptz,'Cadastro duplicado identificado')", [id, stamp]);
 

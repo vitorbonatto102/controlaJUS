@@ -22,10 +22,17 @@ function field(form: FormData, name: string): string { return String(form.get(na
 function validDate(value: string): boolean {
   try { formatDateBR(value); return true; } catch { return false; }
 }
+function closedPeriodMessage(error: { code?: string; message: string }) {
+  return error.code === "P0001" && /período já fechado|período.*fechado|mês.*fechado/i.test(error.message) ?
+    "Este lançamento afeta um período já fechado. Solicite a correção ao gestor." : null;
+}
 function refresh(clientId: string) {
   revalidatePath("/secretaria");
   revalidatePath(`/secretaria/clientes/${clientId}`);
   revalidatePath("/advogada");
+  revalidatePath("/advogada/carteira");
+  revalidatePath("/advogada/fechamentos");
+  revalidatePath("/gestor");
   revalidatePath("/advogada/notificacoes");
   revalidatePath("/advogada/contratos", "layout");
 }
@@ -52,7 +59,7 @@ export async function registerPayment(_state: SecretaryActionState, form: FormDa
     installment_id: installmentId, payment_date: date, amount_paid: amountCents / 100,
     observation: observation || null,
   });
-  if (error) return { error: "Não foi possível registrar o pagamento. Confira os dados e tente novamente.", success: null };
+  if (error) return { error: closedPeriodMessage(error) ?? "Não foi possível registrar o pagamento. Confira os dados e tente novamente.", success: null };
   refresh(clientId);
   return { error: null, success: "Pagamento registrado. Os valores foram atualizados." };
 }
@@ -106,7 +113,7 @@ export async function revisePayment(_state: SecretaryActionState, form: FormData
     p_new_amount_cents: mode === "replace" ? cents : null,
     p_new_date: mode === "replace" ? date : null,
   });
-  if (error) return { error: "Correção recusada. Verifique se o lançamento é seu, está ativo e não pertence a um mês fechado.", success: null };
+  if (error) return { error: closedPeriodMessage(error) ?? "Correção recusada. Verifique se o lançamento é seu, está ativo e não pertence a um mês fechado.", success: null };
   refresh(clientId);
   return { error: null, success: mode === "replace" ? "Registro atualizado. Os valores foram recalculados." : "Registro excluído do recebimento. Histórico preservado." };
 }

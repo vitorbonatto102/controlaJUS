@@ -73,7 +73,7 @@ export function EditContractForm({ contract, lawyerId, financialLocked }: {
     <input type="hidden" name="metadata_only" value={financialLocked ? "yes" : "no"} />
     <input type="hidden" name="values" value={JSON.stringify(values)} />
     {financialLocked && <div className="success-box">Este contrato já possui histórico de pagamentos ou cobranças por parcela.
-      Você pode alterar o serviço contratado, a origem, a data do contrato e o PDF. Para corrigir valores, percentuais ou parcelas, solicite a correção ao gestor.</div>}
+      Você pode alterar o serviço contratado, a origem, a data do contrato e o PDF. Para corrigir valores, percentuais, a forma de comissão ou parcelas, solicite a correção ao gestor.</div>}
     {(error || state.error) && <div className="form-error-box" role="alert">{error || state.error}</div>}
     {!reviewing && <fieldset disabled={pending}>{financialLocked ? <section className="form-panel"><h2>Dados do contrato</h2>
       <p className="field-hint">Contratante: {contract.client_name}. O cadastro do cliente permanece vinculado.</p>

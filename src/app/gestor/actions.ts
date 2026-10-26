@@ -142,3 +142,20 @@ export async function correctField(_state: ManagerActionState, form: FormData): 
   refresh();
   return { error: null, success: "Informação corrigida com auditoria e notificação." };
 }
+
+export async function correctCommissionRetention(_state: ManagerActionState, form: FormData): Promise<ManagerActionState> {
+  await requireRole("manager");
+  const contract = value(form, "contract_id"), mode = value(form, "commission_mode"), reason = value(form, "reason");
+  const rawLimit = value(form, "commission_limit");
+  const limit = rawLimit ? parseMoneyBR(rawLimit) : null;
+  if (!uuid.test(contract) || !["proportional", "upfront"].includes(mode) || reason.length < 5 || reason.length > 1000 ||
+    (rawLimit && (limit === null || limit <= 0 || limit > 99999999999999)))
+    return { error: "Confira a forma, o limite e o motivo da correção.", success: null };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("correct_commission_retention", {
+    p_contract: contract, p_mode: mode, p_limit: limit === null ? null : limit / 100, p_reason: reason,
+  });
+  if (error) return { error: error.code === "P0001" ? error.message : "Não foi possível corrigir a forma de comissão.", success: null };
+  refresh();
+  return { error: null, success: "Forma de comissão corrigida com auditoria, notificação e ajustes nos fechamentos afetados." };
+}

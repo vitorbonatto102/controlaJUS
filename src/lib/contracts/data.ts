@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { loadContractParties } from "./parties-data";
 import { loadContractServices } from "./service-data";
 import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
+import type { CommissionMode } from "./commission-retention";
+
+type RawTerms = { commission_percentage: number; commission_mode?: CommissionMode; commission_upfront_limit?: number | null };
 
 const contractSelect = `
   id, client_id, origin, contract_date, updated_at, total_contract_value, payment_method, success_fee_percentage,
@@ -10,7 +13,7 @@ const contractSelect = `
   payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
   clients!contracts_client_id_fkey (full_name, cpf),
-  contract_financial_terms (commission_percentage),
+  contract_financial_terms (commission_percentage,commission_mode,commission_upfront_limit),
   installments (
     id, installment_number, kind, regular_number, due_date, contractual_amount,
     payments (id, payment_date, amount_paid, voided_at, commissions (commission_amount))
@@ -22,7 +25,7 @@ type RawPayment = { id: string; payment_date: string; amount_paid: number; voide
 type RawInstallment = Omit<InstallmentRecord, "payments"> & { payments: RawPayment[] };
 type RawContract = Omit<ContractRecord, "client_name" | "client_cpf" | "commission_percentage" | "installments"> & {
   clients: { full_name: string; cpf: string | null } | { full_name: string; cpf: string | null }[] | null;
-  contract_financial_terms: { commission_percentage: number } | { commission_percentage: number }[] | null;
+  contract_financial_terms: RawTerms | RawTerms[] | null;
   installments: RawInstallment[];
 };
 
@@ -51,6 +54,8 @@ function normalize(raw: RawContract): ContractRecord {
     additional_fee_basis: raw.additional_fee_basis,
     additional_fee_amount: raw.additional_fee_amount === null ? null : Number(raw.additional_fee_amount),
     commission_percentage: Number(terms.commission_percentage),
+    commission_mode: terms.commission_mode ?? "proportional",
+    commission_upfront_limit: terms.commission_upfront_limit == null ? null : Number(terms.commission_upfront_limit),
     installments: raw.installments.map((item) => ({
       id: item.id, installment_number: item.installment_number, kind: item.kind,
       regular_number: item.regular_number, due_date: item.due_date,
@@ -81,6 +86,10 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
       fields = fields.replace(", success_fee_percentage", "");
       ({ data, error } = await fetchPage());
     }
+    if (error?.code === "42703" && /commission_mode|commission_upfront_limit/.test(error.message)) {
+      fields = fields.replace(",commission_mode,commission_upfront_limit", "");
+      ({ data, error } = await fetchPage());
+    }
     if (error) throw new Error("Não foi possível carregar os contratos.");
     const page = (data ?? []) as unknown as RawContract[];
     all.push(...page.map(normalize));
@@ -102,6 +111,10 @@ export async function loadLawyerContract(lawyerId: string, contractId: string): 
   let { data, error } = await fetchContract();
   if (error?.code === "42703" && error.message.includes("success_fee_percentage")) {
     fields = fields.replace(", success_fee_percentage", "");
+    ({ data, error } = await fetchContract());
+  }
+  if (error?.code === "42703" && /commission_mode|commission_upfront_limit/.test(error.message)) {
+    fields = fields.replace(",commission_mode,commission_upfront_limit", "");
     ({ data, error } = await fetchContract());
   }
   if (error) throw new Error("Não foi possível carregar o contrato.");

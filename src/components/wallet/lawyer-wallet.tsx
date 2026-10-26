@@ -62,7 +62,7 @@ export function LawyerWallet({ contracts, transfers, today, children }: {
         <article><h3>Total das parcelas do mês</h3><strong>{money(wallet.current.contractualCents)}</strong>
           <p>Valores dos seus contratos com vencimento neste mês.</p></article>
         <article className={styles.forecastCommission}><h3>Minha comissão prevista no mês</h3><strong>{money(wallet.current.estimatedCents)}</strong>
-          <p>Sua parte nessas parcelas, pelo percentual de cada contrato.</p></article>
+          <p>Sua parte nessas parcelas, conforme a forma de retenção de cada contrato.</p></article>
       </div>
       <p className={styles.forecastNote}>Previsão do mês inteiro, incluindo parcelas já pagas. O valor real depende dos pagamentos; a data do repasse depende do fechamento.</p>
     </section>

@@ -67,7 +67,7 @@ export function MonthlyOutlook({ months }: { months: WalletMonth[] }) {
   const total = months.reduce((sum, month) => sum + month.remainingParticipationCents, 0);
   return <section className={styles.panel} aria-labelledby="outlook-title"><div className={styles.outlookHeader}><div>
     <h2 id="outlook-title">Quanto está previsto para os próximos meses?</h2>
-    <p className={styles.subheading}>Somente o saldo ainda não pago das parcelas, com o percentual gravado em cada contrato.</p>
+    <p className={styles.subheading}>Saldo ainda não pago das parcelas, conforme o percentual, a forma de retenção e o limite da comissão de cada contrato.</p>
   </div><span className={styles.badge}>Previsão · 6 meses</span></div>
     <div className="table-scroll"><table className={styles.table}><thead><tr><th scope="col">Mês de vencimento</th>
       <th scope="col">Previsto dos clientes</th><th scope="col">Ainda não recebido</th><th scope="col">Minha participação a gerar</th>
