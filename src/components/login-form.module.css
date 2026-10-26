@@ -1,0 +1,33 @@
+.passwordField {
+  position: relative;
+}
+
+.passwordField input.passwordInput {
+  padding-right: 54px;
+}
+
+.passwordField button.passwordToggle {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--teal);
+  cursor: pointer;
+}
+
+.passwordField button.passwordToggle:hover {
+  background: var(--rp-menta);
+}
+
+.passwordField button.passwordToggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
