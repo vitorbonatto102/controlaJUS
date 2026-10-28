@@ -1,6 +1,7 @@
 import { numericToCents } from "./finance";
 import { contractClientLabel, type ContractParty } from "./parties";
 import { commissionTargetCents, projectContractCommissions, type CommissionMode } from "./commission-retention";
+import type { EngagementFields } from "./engagement";
 
 export type PaymentRecord = {
   id: string;
@@ -18,7 +19,7 @@ export type InstallmentRecord = {
   contractual_amount: number;
   payments: PaymentRecord[];
 };
-export type ContractRecord = {
+export type ContractRecord = EngagementFields & {
   id: string;
   client_id: string;
   client_name: string;

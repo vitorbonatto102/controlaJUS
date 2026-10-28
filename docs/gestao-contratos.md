@@ -22,3 +22,9 @@ Com pagamentos (inclusive estornados) ou cobranças vinculadas às parcelas, a e
 A exclusão é lógica e aplicada via política RLS restritiva. Parcelas e consultas operacionais herdam a indisponibilidade do contrato. Triggers impedem novos pagamentos/parcelas no contrato excluído. Locks no contrato serializam a edição com os lançamentos financeiros. A versão enviada pelo formulário impede sobrescrever alterações concorrentes, inclusive correções nas parcelas ou no percentual.
 
 PDFs são enviados diretamente ao Storage privado com o cliente autenticado e limite de 10 MB, sem chave administrativa e sem transitar pelo corpo da Server Action. O banco verifica caminho, escritório e proprietário do upload. Falhas de gravação limpam o novo upload; o documento anterior é preservado.
+
+## Confirmação comercial e metas
+
+Após aplicar `20261028000200_confirmed_contract_goals.sql`, a lista permite filtrar a situação da contratação. No detalhe, **Confirmação da contratação → Atualizar situação da contratação** permite confirmar/assinar com a data efetiva, cancelar ou voltar a aguardar confirmação. A advogada atua somente nos próprios contratos; o gestor atua nos contratos do mesmo escritório, pela seção de correções cadastrais.
+
+A confirmação exige declaração explícita, data real sem futuro, anotação e versão atual do contrato. Nenhuma data é inferida do PDF, do cadastro ou do documento. O histórico é auditado e correções do gestor notificam a advogada. Cancelar a contratação retira sua contagem das metas, preservando os lançamentos financeiros existentes; correções financeiras continuam nos respectivos fluxos. Veja [Metas](metas.md).

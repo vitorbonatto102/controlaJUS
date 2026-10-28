@@ -18,6 +18,7 @@ src/app/
     notificacoes/            central de avisos e leitura
     novo-contrato/           importação de PDF e cadastro manual
     contratos/[id]/          detalhe e PDF temporário
+  metas/                     metas de contratos, individuais e do escritório
   secretaria/                operação, clientes, pagamentos e cobranças
   gestor/                    painel, fechamento, repasses e correções
   administracao/             convites e gestão de usuários
@@ -29,6 +30,7 @@ src/lib/
   contracts/                 CPF, parser de PDF, cronograma, centavos e indicadores
   secretary/                 consultas e status operacionais
   manager/                   consolidação e filtros do gestor
+  goals/                     histórico, ritmo e consultas de metas comerciais
   finance/                   fechamentos, itens, repasses, ajustes e auditoria
   supabase/                  clientes SSR e renovação de sessão
 supabase/migrations/          migrations SQL em ordem cronológica
@@ -149,6 +151,7 @@ Migrations novas desta etapa:
 | `20261022000500_contract_service.sql` | Serviço contratado / nome da ação no cadastro, edição com histórico e consulta futura. Ver [orientações](docs/servico-contratado.md). |
 | `20261022000600_secretary_notifications.sql` | Notificações de recebimentos, edições, exclusões e cobranças da secretaria, sem duplicar avisos durante uma correção. Ver [orientações](docs/notificacoes-operacionais.md). |
 | `20261028000100_lawyer_contract_goals.sql` | Meta individual mensal de contratos, escrita por RPC e isolamento por usuária/escritório. Ver [painel da advogada](docs/painel-da-advogada.md). |
+| `20261028000200_confirmed_contract_goals.sql` | Confirmação auditada e data efetiva de fechamento; metas coletivas e agregados comerciais isolados por escritório. Ver [Metas](docs/metas.md). |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 

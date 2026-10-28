@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/action-state";
-import { requireRole } from "@/lib/auth/profile";
+import { requireRole, requireActiveProfile } from "@/lib/auth/profile";
+import { brazilianToIso } from "@/lib/contracts/registration";
 import { loadLawyerContract } from "@/lib/contracts/data";
 import { contractHasPayments, parseEditValues, prepareContractEdit } from "@/lib/contracts/editing";
 import { hasInstallmentNotes } from "@/lib/contracts/management-data";
@@ -12,8 +13,30 @@ import { createClient } from "@/lib/supabase/server";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const field = (form: FormData, name: string) => String(form.get(name) ?? "").trim();
 function refresh(contractId: string, clientId: string) {
+  revalidatePath("/metas");
   for (const path of ["/advogada", "/advogada/carteira", "/advogada/contratos", `/advogada/contratos/${contractId}`,
     `/advogada/contratos/${contractId}/editar`, "/acompanhamento", "/secretaria", `/secretaria/clientes/${clientId}`, "/gestor"]) revalidatePath(path);
+}
+
+export async function updateEngagement(_state: ActionState, form: FormData): Promise<ActionState> {
+  const profile = await requireActiveProfile();
+  if (profile.role !== "lawyer" && profile.role !== "manager") return { error: "Acesso não autorizado.", success: null };
+  const id = field(form, "contract_id"), version = field(form, "version"), status = field(form, "status"), reason = field(form, "reason");
+  if (!uuid.test(id) || !Number.isFinite(Date.parse(version)) || !["unconfirmed", "confirmed", "cancelled"].includes(status) || reason.length < 5 || reason.length > 1000)
+    return { error: "Confira a situação da contratação e informe uma anotação com pelo menos 5 caracteres.", success: null };
+  let date: string | null = null;
+  if (status === "confirmed") {
+    if (form.get("confirmed") !== "yes") return { error: "Confirme que a contratação foi efetivamente confirmada ou assinada.", success: null };
+    try { date = brazilianToIso(field(form, "closed_on")); } catch { return { error: "Informe a data efetiva em DD/MM/AAAA.", success: null }; }
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_contract_engagement", {
+    p_contract: id, p_expected_version: version, p_status: status, p_closed_on: date, p_reason: reason,
+  });
+  if (error) return { error: error.code === "P0001" ? error.message : "Não foi possível atualizar a contratação. Recarregue a página ou procure o administrador.", success: null };
+  for (const path of ["/metas", "/advogada", "/advogada/carteira", "/advogada/contratos", `/advogada/contratos/${id}`, "/gestor"])
+    revalidatePath(path);
+  return { error: null, success: "Contratação atualizada. As metas já refletem esta alteração." };
 }
 function message(error: { code?: string; message: string }) {
   if (error.code === "PGRST202") return "Peça ao administrador para aplicar a atualização das formas de comissão no Supabase.";

@@ -19,6 +19,8 @@ import { closingAvailability } from "@/lib/finance/closing-period";
 import { ManagerContractInstallments } from "@/components/manager-contract-installments";
 import { commissionModeLabels } from "@/lib/contracts/commission-retention";
 import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
+import { EngagementForm } from "@/components/contracts/engagement-form";
+import { engagementLabels, type EngagementStatus } from "@/lib/contracts/engagement";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
   "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -33,10 +35,16 @@ const fieldLabels: Record<string, string> = {
   commission_percentage: "Percentual", content: "Anotação", note_type: "Tipo da anotação",
   commission_mode: "Forma de comissão", commission_upfront_limit: "Limite da comissão",
   commission_amount: "Valor da comissão",
+  engagement_confirmation: "Confirmação da contratação",
+  target_contract_count: "Meta de contratos",
 };
 const isMoneyField = (field: string) => ["total_contract_value", "contractual_amount", "commission_upfront_limit", "commission_amount"].includes(field);
 function displayAuditValue(value: unknown, field: string): string {
   if (value === null || value === undefined) return "—";
+  if (field === "engagement_confirmation" && typeof value === "object" && "status" in value) {
+    const item = value as { status: EngagementStatus; closed_on?: string };
+    return `${engagementLabels[item.status] ?? item.status}${item.closed_on ? ` · ${formatDateBR(item.closed_on)}` : ""}`;
+  }
   if (field === "commission_mode" && typeof value === "string" && value in commissionModeLabels)
     return commissionModeLabels[value as keyof typeof commissionModeLabels];
   if (isMoneyField(field) && (typeof value === "number" || typeof value === "string")) {
@@ -281,6 +289,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
       {!correctionContracts.length && <p>Nenhum contrato cadastrado para esta advogada.</p>}
       <ul className={correctionStyles.list}>{correctionContracts.map((contract) => {
         const term = data.terms.find((item) => item.contract_id === contract.id);
+        const engagement = data.engagements?.find((item) => item.id === contract.id);
         return <li key={contract.id}><details className={correctionStyles.item} name={`manager-corrections-${lawyerId}`}>
           <summary className={correctionStyles.summary}>
             <span className={correctionStyles.identity}><strong>{contractClientLabel(contract)}</strong>
@@ -291,6 +300,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m6 9 6 6 6-6" /></svg>
           </summary><div className={correctionStyles.body}>
+          {engagement && <EngagementForm key={engagement.updated_at} contract={engagement} />}
           <FieldCorrection table="clients" recordId={contract.client_id} field="full_name"
             current={contract.client_name} label="Nome do cliente" />
           <FieldCorrection table="clients" recordId={contract.client_id} field="cpf"

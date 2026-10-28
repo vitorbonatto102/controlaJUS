@@ -10,6 +10,7 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
   if (role === "lawyer") links.push({ href: "/advogada/contratos", label: "Contratos", icon: "contracts" });
   if (role === "lawyer") links.push({ href: "/advogada/carteira", label: "Carteira", icon: "wallet" });
   if (role === "lawyer") links.push({ href: "/advogada/fechamentos", label: "Fechamentos", icon: "closings" });
+  if (role === "lawyer" || role === "manager" || isAdmin) links.push({ href: "/metas", label: "Metas", icon: "target" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
   if (isAdmin) links.push({ href: "/administracao", label: "Administração", icon: "settings" });
@@ -22,7 +23,8 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
         aria-current={active ? "page" : undefined}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          {icon === "overview" ? <><rect x="3" y="3" width="7" height="7" rx="1.5" />
+          {icon === "target" ? <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" />
+            <path d="m12 12 8-8m-4 0h4v4" /></> : icon === "overview" ? <><rect x="3" y="3" width="7" height="7" rx="1.5" />
             <rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" />
             <rect x="14" y="14" width="7" height="7" rx="1.5" /></> : icon === "notifications" ? <>
               <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" />
@@ -31,6 +33,6 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
               <path d="M20 12h-5v5h5M17 14.5h.01" /></> : <><rect x="4" y="3" width="16" height="18" rx="2" />
               <path d="M8 8h8M8 12h4M8 16h8" /></>}
         </svg>{label}</Link>;
-    })}
+            })}
   </nav>;
 }

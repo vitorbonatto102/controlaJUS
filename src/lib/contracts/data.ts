@@ -4,6 +4,7 @@ import { loadContractParties } from "./parties-data";
 import { loadContractServices } from "./service-data";
 import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 import type { CommissionMode } from "./commission-retention";
+import { loadContractEngagements } from "./engagement-data";
 
 type RawTerms = { commission_percentage: number; commission_mode?: CommissionMode; commission_upfront_limit?: number | null };
 
@@ -96,8 +97,8 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
     if (page.length < pageSize) break;
   }
   const ids = all.map((contract) => contract.id);
-  const [parties, services] = await Promise.all([loadContractParties(ids), loadContractServices(ids)]);
-  return all.map((contract) => ({ ...contract, contractors: parties.get(contract.id), service_name: services.get(contract.id) ?? null }));
+  const [parties, services, engagements] = await Promise.all([loadContractParties(ids), loadContractServices(ids), loadContractEngagements(ids)]);
+  return all.map((contract) => ({ ...contract, ...engagements.get(contract.id), contractors: parties.get(contract.id), service_name: services.get(contract.id) ?? null }));
 }
 
 export async function loadLawyerContract(lawyerId: string, contractId: string): Promise<ContractRecord | null> {
@@ -120,6 +121,6 @@ export async function loadLawyerContract(lawyerId: string, contractId: string): 
   if (error) throw new Error("Não foi possível carregar o contrato.");
   if (!data) return null;
   const contract = normalize(data as unknown as RawContract);
-  const [parties, services] = await Promise.all([loadContractParties([contract.id]), loadContractServices([contract.id])]);
-  return { ...contract, contractors: parties.get(contract.id), service_name: services.get(contract.id) ?? null };
+  const [parties, services, engagements] = await Promise.all([loadContractParties([contract.id]), loadContractServices([contract.id]), loadContractEngagements([contract.id])]);
+  return { ...contract, ...engagements.get(contract.id), contractors: parties.get(contract.id), service_name: services.get(contract.id) ?? null };
 }

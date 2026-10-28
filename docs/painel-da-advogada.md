@@ -18,10 +18,10 @@ As prioridades são derivadas dos registros: vencimentos de hoje, atrasos, repas
 
 ## Meta de contratos
 
-Aplicar `supabase/migrations/20261028000100_lawyer_contract_goals.sql` no Supabase após as migrations anteriores. A tabela `lawyer_monthly_goals` guarda uma meta inteira positiva por advogada/mês. O progresso é calculado a partir da data dos contratos cadastrados naquele mês até hoje, inclusive contratos de êxito e início condicionado. O indicador não atesta produção ou assinatura fora do sistema: depende do cadastro correto.
+O cartão compacto mostra a quantidade de contratações efetivamente confirmadas/assinadas neste mês, o objetivo, o progresso e o link **Ver minhas metas** para `/metas`. O financeiro e os vencimentos permanecem no painel.
 
-A própria advogada define e edita a quantidade. A RPC `save_my_contract_goal` obtém usuário e escritório da sessão; não aceita identidades vindas do formulário. Não há escrita direta pela API. RLS permite consultar a própria meta e dá à gestão leitura das metas do mesmo escritório. A secretaria, contas inativas e usuários de outro escritório não as consultam. Metas de outros meses são preservadas; não existe meta automática, ranking ou pontuação.
+Aplicar, em ordem, `20261028000100_lawyer_contract_goals.sql` e `20261028000200_confirmed_contract_goals.sql`, após as migrations anteriores. O progresso usa `engagement_status='confirmed'` e a data efetiva `closed_on`, nunca `created_at` ou a data do documento. Contratos antigos/importados aguardam confirmação explícita. Cancelamentos, confirmações desfeitas e exclusões atualizam a contagem.
 
-Sem a migration, os indicadores continuam funcionando e o editor de metas aguarda a configuração do banco. Falhas de autorização ou outras falhas de consulta não são tratadas como valores financeiros zerados.
+A meta individual pertence à advogada responsável principal (`contracts.lawyer_id`). A própria advogada define e edita a quantidade. As RPCs obtêm usuário e escritório da sessão; não aceitam identidades vindas do formulário. Não há escrita direta pela API. Veja os escopos, permissões, histórico e ativação em [Metas](metas.md).
 
-Verificações específicas: `node --import tsx --test tests/lawyer-overview.test.ts tests/contract-goals-db.test.ts`.
+Sem a atualização do banco, a página de Metas informa que aguarda configuração. Falhas de autorização ou de consulta não são convertidas em métricas zeradas.

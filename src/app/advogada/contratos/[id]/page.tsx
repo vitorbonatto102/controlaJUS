@@ -14,6 +14,7 @@ import { getContractParties, contractClientLabel } from "@/lib/contracts/parties
 import { formatCpf } from "@/lib/contracts/validation";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { commissionModeLabels, commissionTargetCents } from "@/lib/contracts/commission-retention";
+import { EngagementForm } from "@/components/contracts/engagement-form";
 
 export default async function ContractDetailPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
@@ -40,6 +41,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
     <p className="page-description">Dados gerais, documento e cronograma financeiro.</p>
     <section className={styles.toolbar} aria-label="Gerenciar este contrato"><ContractActions id={id}
       version={contract.updated_at ?? ""} hasPayments={contractHasPayments(contract)} showView={false} /></section>
+    <EngagementForm key={contract.updated_at} contract={{ id, updated_at: contract.updated_at ?? "",
+      engagement_status: contract.engagement_status, closed_on: contract.closed_on }} />
     <div className="detail-grid"><section className="form-panel"><h2>Dados gerais</h2>
       <dl className="review-grid">{getContractParties(contract).map((party, index) => <div key={party.clientId}>
         <dt>Contratante {index + 1}</dt><dd>{party.fullName}<br />CPF: {party.cpf ? formatCpf(party.cpf) : "—"}</dd></div>)}

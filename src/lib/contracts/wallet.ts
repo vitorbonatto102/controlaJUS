@@ -1,6 +1,7 @@
 import { numericToCents, participationCents } from "./finance";
 import { buildFinancialRows, type ContractRecord, type FinancialRow } from "./view";
 import { commissionTargetCents } from "./commission-retention";
+import { closedContractsInMonth } from "./engagement";
 
 export type WalletTransfer = {
   id: string;
@@ -108,10 +109,8 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
     byOrigin.set(contract.origin, (byOrigin.get(contract.origin) ?? 0) + participation);
   }
   const previousMonth = shiftMonth(referenceMonth, -1);
-  const currentContractCount = contracts.filter((contract) =>
-    contract.contract_date.startsWith(referenceMonth) && contract.contract_date <= today).length;
-  const previousContracts = contracts.filter((contract) =>
-    contract.contract_date.startsWith(previousMonth) && contract.contract_date <= today);
+  const currentContractCount = closedContractsInMonth(contracts, referenceMonth, today).length;
+  const previousContracts = closedContractsInMonth(contracts, previousMonth, today);
   return {
     rows, totalContractedCents, contractedParticipationCents, missingCommissionCount, currentContractCount,
     previousMonth, previousContractCount: previousContracts.length,

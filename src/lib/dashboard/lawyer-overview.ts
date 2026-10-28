@@ -1,6 +1,7 @@
 import { numericToCents } from "@/lib/contracts/finance";
 import { followUpReasons } from "@/lib/contracts/follow-up";
 import { contractClientLabel } from "@/lib/contracts/parties";
+import { closedContractsInMonth } from "@/lib/contracts/engagement";
 import { buildWallet, shiftMonth } from "@/lib/contracts/wallet";
 import type { ContractRecord } from "@/lib/contracts/view";
 import type { Closing, Notification, Transfer } from "@/lib/finance/data";
@@ -55,8 +56,8 @@ export function buildLawyerOverview(contracts: ContractRecord[], closings: Closi
     if (payment.payment_date.startsWith(previousDate.slice(0, 7)) && payment.payment_date <= previousDate)
       previousGeneratedCents += amount;
   }
-  const previousContractCount = contracts.filter((contract) => contract.contract_date.startsWith(previousDate.slice(0, 7)) &&
-    contract.contract_date <= previousDate).length;
+  const previousContractCount = closedContractsInMonth(contracts, previousDate.slice(0, 7), today)
+    .filter((contract) => contract.closed_on! <= previousDate).length;
   const confirmedPendingCents = closings.filter((closing) => closing.status !== "draft")
     .reduce((sum, closing) => sum + numericToCents(closing.amount_pending_transfer), 0);
   const transferredThisMonthCents = transfers.filter((transfer) => !transfer.reversed_at &&

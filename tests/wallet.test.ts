@@ -11,7 +11,8 @@ function contract(overrides: Partial<ContractRecord> = {}): ContractRecord {
   return { id: "contract-1", client_id: "client-1", client_name: "Cliente teste", client_cpf: null,
     origin: "Cliente próprio", contract_date: "2026-09-01", total_contract_value: 1000,
     payment_method: "installments", commission_percentage: 40,
-    contract_file_path: null, contract_file_name: null, installments: [installment()], ...overrides };
+    contract_file_path: null, contract_file_name: null, installments: [installment()],
+    engagement_status: "confirmed", closed_on: overrides.contract_date ?? "2026-09-01", ...overrides };
 }
 
 test("carteira distribui pagamentos por sua data, ignora estornos e preserva comissão sobre juros", () => {

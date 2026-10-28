@@ -5,8 +5,11 @@ import { loadAuditEntries, loadClosingDetails, loadClosings } from "@/lib/financ
 import type { OperationalContract, OperationalNote } from "@/lib/secretary/view";
 import type { Closing, ClosingAdjustment, ClosingItem, Transfer, AuditEntry } from "@/lib/finance/data";
 import { loadCommissionTerms, type ContractCommissionTerms } from "@/lib/contracts/commission-data";
+import { loadContractEngagements } from "@/lib/contracts/engagement-data";
+import type { ContractEngagement } from "@/lib/contracts/engagement";
 
 export type ManagerWorkspace = {
+  engagements?: ContractEngagement[];
   contracts: OperationalContract[];
   notes: OperationalNote[];
   lawyers: { id: string; full_name: string; active: boolean }[];
@@ -61,6 +64,7 @@ export async function loadManagerWorkspace(): Promise<ManagerWorkspace> {
   ]);
   return {
     ...operational, lawyers,
+    engagements: [...(await loadContractEngagements(operational.contracts.map((contract) => contract.id))).values()],
     terms: terms.map((item) => ({ ...item, commission_percentage: Number(item.commission_percentage) })),
     contractTotals: contractTotals.map((item) => ({ ...item,
       total_contract_value: item.total_contract_value === null ? null : Number(item.total_contract_value) })),

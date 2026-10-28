@@ -99,7 +99,7 @@ export function LawyerOverview({ data, fullName, goal, goalsAvailable }: {
           {progress.reached ? " Meta alcançada." : ` ${progress.percentage}% da sua meta.`}</> :
           "Defina quantos contratos deseja fechar e acompanhe seu progresso ao longo do mês."}</p>
         <small>{contractCount(data.previousContractCount)} no mês anterior, até {formatDateBR(data.previousDate)}.</small>
-        <Link href="#meta-mensal">{goal ? "Acompanhar minha meta" : "Definir minha meta"}<OverviewIcon name="arrow" size={16} /></Link>
+        <Link href="/metas">{goal ? "Acompanhar minha meta" : "Definir minha meta"}<OverviewIcon name="arrow" size={16} /></Link>
       </aside>
     </div>
 

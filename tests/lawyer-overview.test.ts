@@ -7,7 +7,7 @@ import type { Closing, Transfer } from "../src/lib/finance/data";
 
 test("painel distingue previsão, comissão efetiva e repasse; exclui estornos e registros futuros", () => {
   const contract: ContractRecord = { id: "contract", client_id: "client", client_name: "Cliente Teste", client_cpf: null,
-    service_name: "Revisional", origin: "Cliente próprio", contract_date: "2026-10-03", total_contract_value: 3000,
+    engagement_status: "confirmed", closed_on: "2026-10-03", service_name: "Revisional", origin: "Cliente próprio", contract_date: "2026-10-03", total_contract_value: 3000,
     payment_method: "installments", contract_file_path: null, contract_file_name: null, commission_percentage: 40,
     installments: [
       { id: "old", installment_number: 1, kind: "regular", regular_number: 1, due_date: "2026-09-10", contractual_amount: 1000,
