@@ -56,14 +56,14 @@ export async function updateUser(userId: string, _state: AdminActionState, form:
     return { error: "O nome precisa ter entre 2 e 160 caracteres.", success: null };
   if (!isRole(role))
     return { error: "Selecione um cargo válido: Advogada, Secretaria ou Gestor.", success: null };
-  if (reason.length < 5 || reason.length > 1000)
-    return { error: "Informe um motivo com pelo menos 5 caracteres.", success: null };
+  if (reason.length > 1000)
+    return { error: "A observação deve ter no máximo 1.000 caracteres.", success: null };
   if (field(form, "confirm") !== "yes")
     return { error: "Marque a confirmação da alteração antes de salvar.", success: null };
   const supabase = await createClient();
   const { error } = await supabase.rpc("manage_office_profile", {
     p_user: id, p_name: name, p_role: role, p_active: active,
-    p_is_office_admin: isOfficeAdmin, p_reason: reason,
+    p_is_office_admin: isOfficeAdmin, p_reason: reason || "Motivo não informado pelo administrador",
   });
   if (error) return { error: "Alteração recusada. Preserve pelo menos um admin do escritório e o perfil de advogadas com histórico financeiro.", success: null };
   revalidatePath("/administracao");

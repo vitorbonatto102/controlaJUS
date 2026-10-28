@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Fragment, useActionState, useState } from "react";
 import { inviteUser } from "@/app/administracao/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { roleLabel, roles, type Role } from "@/lib/auth/roles";
 import { UserAvatar } from "./user-avatar";
 import { UserPhotoForm } from "./user-photo-form";
 import photoStyles from "./user-avatar.module.css";
+import styles from "./admin-users.module.css";
 
 export type AdminUser = { id: string; full_name: string; email: string; role: Role;
   active: boolean; is_office_admin: boolean; created_at: string;
@@ -21,24 +22,32 @@ function Feedback({ state }: { state: { error: string | null; success: string | 
 
 function UserEditor({ user, photosReady }: { user: AdminUser; photosReady: boolean }) {
   const [state, action, pending] = useActionState(user.updateAction, emptyActionState);
-  return <details className="operation-details"><summary>Gerenciar</summary>
+  return <section id={`manage-${user.id}`} className={styles.editor} aria-label={`Gerenciar ${user.full_name}`}>
+    <header className={styles.editorHeader}><strong>{user.full_name}</strong><span>{user.email}</span></header>
+    <div className={`${styles.editorGrid} ${!photosReady ? styles.withoutPhoto : ""}`}>
     {photosReady && <UserPhotoForm key={user.avatarPath ?? "no-photo"} userId={user.id} name={user.full_name}
-      avatarPath={user.avatarPath} avatarUrl={user.avatarUrl} action={user.avatarAction} />}
-    <form action={action} className="operation-form">
+      avatarPath={user.avatarPath} avatarUrl={user.avatarUrl} action={user.avatarAction} className={styles.photoPanel} />}
+    <form action={action} className={styles.profileForm}>
+      <fieldset><legend>Dados do usuário</legend>
       <label>Nome<input name="full_name" defaultValue={user.full_name} minLength={2} maxLength={160} required /></label>
       <label>Cargo<select name="role" defaultValue={user.role}>{roles.map((role) =>
         <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
-      <label className="check-line"><input type="checkbox" name="is_office_admin" defaultChecked={user.is_office_admin} />
-        Admin do escritório: pode convidar e gerenciar usuários deste escritório</label>
+      </fieldset>
+      <fieldset><legend>Acesso ao sistema</legend>
       <label>Status<select name="active" defaultValue={String(user.active)}>
         <option value="true">Ativo</option><option value="false">Inativo</option></select></label>
-      <label>Motivo da alteração<textarea name="reason" minLength={5} maxLength={1000} required /></label>
-      <label className="check-line"><input type="checkbox" name="confirm" value="yes" required />
+      <label className={styles.checkLine}><input type="checkbox" name="is_office_admin" defaultChecked={user.is_office_admin} />
+        <span>Admin do escritório<small>Pode convidar e gerenciar usuários deste escritório.</small></span></label>
+      </fieldset>
+      <label className={styles.note}>Motivo da alteração (opcional)<textarea name="reason" maxLength={1000} rows={2}
+        placeholder="Se quiser, acrescente uma observação." /></label>
+      <div className={styles.saveRow}><label className={styles.checkLine}><input type="checkbox" name="confirm" value="yes" required />
         Confirmo esta alteração</label>
-      <button className="secondary-button" disabled={pending}>Salvar alteração</button>
+      <button className="primary-button" disabled={pending}>{pending ? "Salvando…" : "Salvar alteração"}</button></div>
       <Feedback state={state} />
     </form>
-  </details>;
+    </div>
+  </section>;
 }
 
 export function AdminUsers({ users, photosReady, photosError }: { users: AdminUser[]; photosReady: boolean; photosError: boolean }) {
@@ -46,6 +55,7 @@ export function AdminUsers({ users, photosReady, photosError }: { users: AdminUs
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [active, setActive] = useState("");
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const filtered = users.filter((user) =>
     (!search || `${user.full_name} ${user.email}`.toLocaleLowerCase("pt-BR")
       .includes(search.toLocaleLowerCase("pt-BR"))) &&
@@ -76,14 +86,22 @@ export function AdminUsers({ users, photosReady, photosError }: { users: AdminUs
           <option value="">Todos</option><option value="true">Ativos</option><option value="false">Inativos</option>
         </select></label>
       </div>
-      {filtered.length ? <div className="table-scroll"><table className="data-table"><thead><tr>
+      {filtered.length ? <div className="table-scroll"><table className={`data-table ${styles.usersTable}`}><thead><tr>
         <th>Nome</th><th>E-mail</th><th>Cargo</th><th>Acesso administrativo</th><th>Status</th><th>Criado em</th><th>Ações</th>
-      </tr></thead><tbody>{filtered.map((user) => <tr key={user.id}>
-        <td><div className={photoStyles.userCell}><UserAvatar name={user.full_name} src={user.avatarUrl} /><span>{user.full_name}</span></div></td><td>{user.email}</td><td>{roleLabel[user.role]}</td>
-        <td>{user.is_office_admin ? "Admin do escritório" : "—"}</td>
-        <td>{user.active ? "Ativo" : "Inativo"}</td>
-        <td>{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td><UserEditor user={user} photosReady={photosReady} /></td>
-      </tr>)}</tbody></table></div> : <p>Nenhum usuário encontrado.</p>}
+      </tr></thead><tbody>{filtered.map((user) => <Fragment key={user.id}><tr className={expandedUser === user.id ? styles.selectedRow : undefined}>
+        <td data-label="Nome"><div className={photoStyles.userCell}><UserAvatar name={user.full_name} src={user.avatarUrl} /><span>{user.full_name}</span></div></td>
+        <td data-label="E-mail">{user.email}</td><td data-label="Cargo">{roleLabel[user.role]}</td>
+        <td data-label="Acesso administrativo">{user.is_office_admin ? "Admin do escritório" : "—"}</td>
+        <td data-label="Status">{user.active ? "Ativo" : "Inativo"}</td>
+        <td data-label="Criado em">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td data-label="Ações">
+          <button type="button" className={styles.toggle} aria-expanded={expandedUser === user.id}
+            aria-controls={`manage-${user.id}`} aria-label={`Gerenciar ${user.full_name}`}
+            onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}>
+            Gerenciar<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </button></td>
+      </tr>{expandedUser === user.id && <tr className={styles.expandedRow}><td colSpan={7}>
+        <UserEditor user={user} photosReady={photosReady} />
+      </td></tr>}</Fragment>)}</tbody></table></div> : <p>Nenhum usuário encontrado.</p>}
     </section>
   </>;
 }

@@ -6,8 +6,9 @@ import { USER_AVATAR_ACCEPT, USER_AVATAR_MAX_BYTES } from "@/lib/users/avatar";
 import { UserAvatar } from "./user-avatar";
 import styles from "./user-avatar.module.css";
 
-export function UserPhotoForm({ userId, name, avatarPath, avatarUrl, action }: {
+export function UserPhotoForm({ userId, name, avatarPath, avatarUrl, action, className }: {
   userId: string; name: string; avatarPath: string | null; avatarUrl: string | null;
+  className?: string;
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
 }) {
   const [state, save, pending] = useActionState(action, emptyActionState);
@@ -25,7 +26,7 @@ export function UserPhotoForm({ userId, name, avatarPath, avatarUrl, action }: {
     }
     objectUrl.current = URL.createObjectURL(file); setPreview(objectUrl.current);
   }
-  return <form action={save} className={styles.photoForm}>
+  return <form action={save} className={`${styles.photoForm} ${className ?? ""}`}>
     <h3>Foto do usuário</h3>
     <input type="hidden" name="expected_path" value={avatarPath ?? ""} />
     <div className={styles.preview}><UserAvatar name={name} src={preview ?? avatarUrl} size={64} />

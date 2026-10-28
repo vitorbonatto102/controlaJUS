@@ -1,0 +1,40 @@
+.usersTable .selectedRow td { background: #f1f7f3; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; padding: 7px 0; border: 0; color: var(--teal); background: transparent; font-size: .77rem; font-weight: 600; white-space: nowrap; }
+.toggle[aria-expanded=true] svg { transform: rotate(180deg); }
+.toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; border-radius: 3px; }
+.usersTable .expandedRow > td { padding: 0; background: #f7faf7; }
+.editor { padding: 25px; }
+.editorHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 20px; }
+.editorHeader strong { font-size: .92rem; font-weight: 600; }
+.editorHeader span { font-size: .75rem; color: var(--muted); overflow-wrap: anywhere; }
+.editorGrid { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.8fr); align-items: start; gap: 22px; }
+.editorGrid.withoutPhoto { grid-template-columns: 1fr; }
+.editorGrid .photoPanel { min-width: 0; max-width: none; padding: 20px; margin: 0; background: #fff; border: 1px solid var(--line); border-radius: 11px; }
+.profileForm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; min-width: 0; }
+.profileForm fieldset { display: grid; align-content: start; gap: 17px; min-width: 0; margin: 0; padding: 17px 19px 21px; background: #fff; border: 1px solid var(--line); border-radius: 11px; }
+.profileForm legend { padding: 0 6px; font-size: .82rem; font-weight: 600; color: var(--ink); }
+.profileForm label { display: grid; gap: 8px; font-size: .76rem; font-weight: 500; color: #425c53; }
+.profileForm input:not([type=checkbox]), .profileForm select, .profileForm textarea { min-width: 0; width: 100%; border: 1px solid #ccd8d2; padding: 10px 11px; border-radius: 7px; font: inherit; color: var(--ink); background: #fff; }
+.profileForm textarea { resize: vertical; min-height: 65px; }
+.profileForm .checkLine { display: flex; align-items: flex-start; gap: 9px; line-height: 1.6; }
+.checkLine input { flex: none; margin-top: 4px; accent-color: var(--teal); }
+.checkLine small { display: block; margin-top: 4px; font-size: .69rem; color: var(--muted); font-weight: 400; }
+.note, .saveRow, .profileForm > p { grid-column: 1 / -1; }
+.saveRow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; padding-top: 3px; }
+.saveRow button { font-size: .77rem; padding: 11px 16px; }
+.profileForm > p { margin: 0; }
+@media (max-width: 1100px) { .editorGrid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .usersTable { display: block; min-width: 0; }
+  .usersTable thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .usersTable tbody { display: block; }
+  .usersTable tr:not(.expandedRow) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; padding: 19px 0; border-bottom: 1px solid var(--line); }
+  .usersTable tr:not(.expandedRow) > td { padding: 0; border: 0; min-width: 0; overflow-wrap: anywhere; }
+  .usersTable td[data-label]::before { content: attr(data-label); display: block; color: var(--muted); font-size: .65rem; margin-bottom: 7px; }
+  .usersTable tr:not(.expandedRow) > td:first-child, .usersTable tr:not(.expandedRow) > td:nth-child(2) { grid-column: 1 / -1; }
+  .usersTable .expandedRow, .usersTable .expandedRow > td { display: block; width: 100%; }
+  .editor { padding: 21px 15px; }
+  .editorHeader { flex-direction: column; align-items: flex-start; }
+  .profileForm { grid-template-columns: 1fr; }
+  .editorGrid .photoPanel, .profileForm fieldset { padding: 18px 15px; }
+}

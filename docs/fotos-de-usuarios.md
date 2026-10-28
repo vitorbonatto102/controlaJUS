@@ -7,7 +7,7 @@ No Supabase → SQL Editor, executar somente `supabase/migrations/20261028000300
 ## Como usar
 
 1. Acesse **Administração → Usuários** com uma conta que tenha a permissão de admin do escritório.
-2. Abra **Gerenciar** na linha da pessoa.
+2. Abra **Gerenciar** na linha da pessoa. A edição aparece abaixo, ocupando a largura disponível, com blocos lado a lado para foto, dados e acesso. Em telas pequenas os blocos ficam empilhados.
 3. Em **Foto do usuário**, escolha uma imagem PNG, JPG ou WebP de até 2 MB. A seleção apresenta uma prévia local; use **Salvar foto** para efetivar.
 4. Para trocar, selecione outra imagem e salve. **Remover foto** volta às iniciais.
 
@@ -27,3 +27,9 @@ A foto aparece junto ao nome na lista de usuários e no cabeçalho da conta corr
 ## Verificação
 
 Testes focados em `tests/user-avatars.test.ts`, `tests/office-branding.test.ts` e `tests/server-actions.test.ts`, além de lint, tipagem e build de produção. A integração SQL usa PGlite e não escreve no Supabase de produção.
+
+## Edição cadastral
+
+O motivo da alteração é opcional somente na gestão de usuários. Se preenchido, aceita até 1.000 caracteres; se vazio, a auditoria registra **Motivo não informado pelo administrador**. Nome/cargo, ativação e acesso administrativo continuam auditados e a confirmação da alteração continua necessária.
+
+A migration `20261028000400_optional_profile_reason.sql` atualiza a validação da RPC para aceitar motivo vazio, nulo ou curto. É reaplicável, preserva o isolamento por escritório, o acesso do próprio admin e o cargo das advogadas com histórico financeiro. Não altera a exigência de motivo nos fluxos de correção financeira. A interface envia a anotação padrão quando o campo está vazio, mantendo compatibilidade com o banco anterior enquanto a migration é aplicada.
