@@ -152,6 +152,7 @@ Migrations novas desta etapa:
 | `20261022000600_secretary_notifications.sql` | Notificações de recebimentos, edições, exclusões e cobranças da secretaria, sem duplicar avisos durante uma correção. Ver [orientações](docs/notificacoes-operacionais.md). |
 | `20261028000100_lawyer_contract_goals.sql` | Meta individual mensal de contratos, escrita por RPC e isolamento por usuária/escritório. Ver [painel da advogada](docs/painel-da-advogada.md). |
 | `20261028000200_confirmed_contract_goals.sql` | Confirmação auditada e data efetiva de fechamento; metas coletivas e agregados comerciais isolados por escritório. Ver [Metas](docs/metas.md). |
+| `20261028000300_user_avatars.sql` | Fotos privadas dos usuários, envio e remoção por admin do escritório, com auditoria e Storage protegido. Ver [fotos de usuários](docs/fotos-de-usuarios.md). |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 

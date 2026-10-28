@@ -4,9 +4,14 @@ import { useActionState, useState } from "react";
 import { inviteUser } from "@/app/administracao/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { roleLabel, roles, type Role } from "@/lib/auth/roles";
+import { UserAvatar } from "./user-avatar";
+import { UserPhotoForm } from "./user-photo-form";
+import photoStyles from "./user-avatar.module.css";
 
 export type AdminUser = { id: string; full_name: string; email: string; role: Role;
   active: boolean; is_office_admin: boolean; created_at: string;
+  avatarPath: string | null; avatarUrl: string | null;
+  avatarAction: (state: typeof emptyActionState, form: FormData) => Promise<typeof emptyActionState>;
   updateAction: (state: typeof emptyActionState, form: FormData) => Promise<typeof emptyActionState> };
 
 function Feedback({ state }: { state: { error: string | null; success: string | null } }) {
@@ -14,9 +19,11 @@ function Feedback({ state }: { state: { error: string | null; success: string | 
     {state.success && <p className="success-box" role="status">{state.success}</p>}</>;
 }
 
-function UserEditor({ user }: { user: AdminUser }) {
+function UserEditor({ user, photosReady }: { user: AdminUser; photosReady: boolean }) {
   const [state, action, pending] = useActionState(user.updateAction, emptyActionState);
   return <details className="operation-details"><summary>Gerenciar</summary>
+    {photosReady && <UserPhotoForm key={user.avatarPath ?? "no-photo"} userId={user.id} name={user.full_name}
+      avatarPath={user.avatarPath} avatarUrl={user.avatarUrl} action={user.avatarAction} />}
     <form action={action} className="operation-form">
       <label>Nome<input name="full_name" defaultValue={user.full_name} minLength={2} maxLength={160} required /></label>
       <label>Cargo<select name="role" defaultValue={user.role}>{roles.map((role) =>
@@ -34,7 +41,7 @@ function UserEditor({ user }: { user: AdminUser }) {
   </details>;
 }
 
-export function AdminUsers({ users }: { users: AdminUser[] }) {
+export function AdminUsers({ users, photosReady, photosError }: { users: AdminUser[]; photosReady: boolean; photosError: boolean }) {
   const [state, action, pending] = useActionState(inviteUser, emptyActionState);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
@@ -58,6 +65,9 @@ export function AdminUsers({ users }: { users: AdminUser[] }) {
       </form>
     </section>
     <section className="workspace-panel"><h2>Usuários</h2>
+      {!photosReady ? <p className={photoStyles.notice}>As fotos de usuários aguardam a atualização do módulo no Supabase. Os demais controles continuam disponíveis.</p> :
+        photosError ? <p className={photoStyles.notice} role="status">Algumas fotos não puderam ser carregadas. As iniciais identificam os usuários enquanto isso.</p> :
+        <p>Para adicionar, trocar ou remover uma foto, abra <strong>Gerenciar</strong> na linha da pessoa.</p>}
       <div className="manager-filters">
         <label>Nome ou e-mail<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar usuário" /></label>
         <label>Cargo<select value={role} onChange={(e) => setRole(e.target.value)}><option value="">Todos</option>
@@ -69,10 +79,10 @@ export function AdminUsers({ users }: { users: AdminUser[] }) {
       {filtered.length ? <div className="table-scroll"><table className="data-table"><thead><tr>
         <th>Nome</th><th>E-mail</th><th>Cargo</th><th>Acesso administrativo</th><th>Status</th><th>Criado em</th><th>Ações</th>
       </tr></thead><tbody>{filtered.map((user) => <tr key={user.id}>
-        <td>{user.full_name}</td><td>{user.email}</td><td>{roleLabel[user.role]}</td>
+        <td><div className={photoStyles.userCell}><UserAvatar name={user.full_name} src={user.avatarUrl} /><span>{user.full_name}</span></div></td><td>{user.email}</td><td>{roleLabel[user.role]}</td>
         <td>{user.is_office_admin ? "Admin do escritório" : "—"}</td>
         <td>{user.active ? "Ativo" : "Inativo"}</td>
-        <td>{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td><UserEditor user={user} /></td>
+        <td>{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td><UserEditor user={user} photosReady={photosReady} /></td>
       </tr>)}</tbody></table></div> : <p>Nenhum usuário encontrado.</p>}
     </section>
   </>;

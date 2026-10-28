@@ -1,0 +1,16 @@
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; overflow: hidden; border-radius: 50%; background: #e5eee6; color: #3b6654; border: 1px solid #d3e0d8; font-weight: 600; line-height: 1; vertical-align: middle; }
+.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.userCell { display: flex; align-items: center; gap: 11px; }
+.account { display: flex; align-items: center; gap: 15px; }
+.accountName { font-size: .78rem; color: var(--muted); }
+.photoForm { display: grid; gap: 13px; padding: 18px 0; margin: 0 0 18px; border-bottom: 1px solid var(--line); min-width: 240px; max-width: 340px; }
+.photoForm h3 { font-size: .88rem; margin: 0; }
+.preview { display: flex; align-items: center; gap: 12px; }
+.preview p { color: var(--muted); font-size: .74rem; line-height: 1.6; margin: 0; }
+.photoForm label { display: grid; gap: 8px; font-size: .77rem; font-weight: 600; color: var(--ink); }
+.photoForm input[type=file] { max-width: 100%; min-width: 0; width: 100%; font-size: .73rem; border: 1px solid var(--line); padding: 10px; border-radius: 7px; background: white; color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions button { padding: 10px 12px; font-size: .74rem; }
+.photoForm > p { margin: 0; font-size: .75rem; line-height: 1.6; }
+.notice { padding: 13px 16px; border: 1px solid var(--line); background: #f4f8f3; border-radius: 9px; font-size: .8rem; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+@media (max-width: 760px) { .account { gap: 10px; } .accountName { display: none; } }
