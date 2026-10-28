@@ -25,7 +25,7 @@ export async function DashboardShell({ profile, children, commandCenter }: {
   const avatarUrl = photos?.byUser.get(profile.id)?.url ?? null;
   return <div className={`app-shell${commandCenter ? ` ${commandStyles.shell}` : ""}`}>
     <aside className="sidebar">
-      <div className="sidebar-brand"><RepassumLogo light={!!commandCenter} /><span>GESTÃO FINANCEIRA JURÍDICA</span></div>
+      <div className="sidebar-brand"><RepassumLogo light /><span>GESTÃO FINANCEIRA JURÍDICA</span></div>
       {office && <OfficeIdentity office={office} />}
       <DashboardNav role={profile.role} isAdmin={profile.is_office_admin} />
       <div className="sidebar-footer"><span>{roleLabel[profile.role]}{profile.is_office_admin ? " · Admin" : ""}</span><strong>{profile.full_name}</strong></div>

@@ -1,12 +1,3 @@
-.shell :global(.sidebar) { background: linear-gradient(160deg, #0e302d, #0b2524); border-color: #153e35; }
-.shell :global(.sidebar-brand > span), .shell :global(.office-caption > span), .shell :global(.nav-section-label), .shell :global(.sidebar-footer span) { color: #a5c2b1; }
-.shell :global(.office-caption strong), .shell :global(.sidebar-footer strong) { color: #e2eddf; }
-.shell :global(.sidebar > .office-identity), .shell :global(.sidebar-footer) { border-color: #c6dfc51c; }
-.shell :global(.office-mark) { background: #061d19; border-color: #c9dec022; color: #c9d9c1; }
-.shell :global(.sidebar-nav a) { color: #c2d5c4; }
-.shell :global(.sidebar-nav a:hover) { background: #b8ddbb16; color: white; }
-.shell :global(.sidebar-nav .nav-active) { background: #b4dec525; color: #eff7e9; }
-.shell :global(.sidebar-nav .nav-active svg) { color: #b6dfbf; }
 .shell :global(.topbar) { background: #f9faf6c9; padding-inline: 30px; gap: 25px; }
 .shell :global(.dashboard-main) { padding: 24px 30px 30px; background: radial-gradient(ellipse at 35% 0%, #f9faf5 0%, #f3f5ed 90%); }
 .headerActions { display: flex; align-items: center; gap: 20px; margin-left: auto; }
