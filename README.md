@@ -148,8 +148,9 @@ Migrations novas desta etapa:
 | `20261022000400_multiple_contractors.sql` | Vários contratantes vinculados ao mesmo contrato e cronograma, com isolamento por escritório e advogada. |
 | `20261022000500_contract_service.sql` | Serviço contratado / nome da ação no cadastro, edição com histórico e consulta futura. Ver [orientações](docs/servico-contratado.md). |
 | `20261022000600_secretary_notifications.sql` | Notificações de recebimentos, edições, exclusões e cobranças da secretaria, sem duplicar avisos durante uma correção. Ver [orientações](docs/notificacoes-operacionais.md). |
+| `20261028000100_lawyer_contract_goals.sql` | Meta individual mensal de contratos, escrita por RPC e isolamento por usuária/escritório. Ver [painel da advogada](docs/painel-da-advogada.md). |
 
-Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
+Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
 ## Rodar e verificar
 

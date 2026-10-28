@@ -1,0 +1,36 @@
+.shell :global(.sidebar) { background: linear-gradient(160deg, #0e302d, #0b2524); border-color: #153e35; }
+.shell :global(.sidebar-brand > span), .shell :global(.office-caption > span), .shell :global(.nav-section-label), .shell :global(.sidebar-footer span) { color: #a5c2b1; }
+.shell :global(.office-caption strong), .shell :global(.sidebar-footer strong) { color: #e2eddf; }
+.shell :global(.sidebar > .office-identity), .shell :global(.sidebar-footer) { border-color: #c6dfc51c; }
+.shell :global(.office-mark) { background: #061d19; border-color: #c9dec022; color: #c9d9c1; }
+.shell :global(.sidebar-nav a) { color: #c2d5c4; }
+.shell :global(.sidebar-nav a:hover) { background: #b8ddbb16; color: white; }
+.shell :global(.sidebar-nav .nav-active) { background: #b4dec525; color: #eff7e9; }
+.shell :global(.sidebar-nav .nav-active svg) { color: #b6dfbf; }
+.shell :global(.topbar) { background: #f9faf6c9; padding-inline: 30px; gap: 25px; }
+.shell :global(.dashboard-main) { padding: 24px 30px 30px; background: radial-gradient(ellipse at 35% 0%, #f9faf5 0%, #f3f5ed 90%); }
+.headerActions { display: flex; align-items: center; gap: 20px; margin-left: auto; }
+.notification { position: relative; display: grid; place-items: center; color: #355548; text-decoration: none; padding: 7px; }
+.notification i { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #d87b60; outline: 2px solid #fafbf7; }
+.user { display: flex; align-items: center; gap: 10px; }
+.user > span { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: #dde8d8; font-size: .69rem; color: #496640; }
+.user strong, .user small { display: block; font-weight: 500; font-size: .7rem; }
+.user small { margin-top: 4px; color: #85917c; font-size: .63rem; }
+.shell :global(.topbar .text-button) { font-size: .63rem; }
+.search { display: flex; align-items: center; gap: 11px; position: relative; flex: 1; max-width: 590px; min-width: 0; padding: 9px 12px; border: 1px solid #dce5d9; border-radius: 9px; background: #eef2e9; color: #668260; }
+.search > svg { flex: none; }
+.search input { border: 0; outline: 0; background: transparent; width: 100%; min-width: 0; color: #3c5736; font-size: .72rem; padding: 3px 0; }
+.search input::placeholder { color: #85947a; }
+.search:focus-within { outline: 2px solid #79aa81; outline-offset: 2px; }
+.search kbd { flex: none; border-radius: 4px; background: #e3eadd; padding: 4px 6px; font: inherit; font-size: .57rem; color: #849478; }
+.searchResults { position: absolute; left: 0; right: 0; top: calc(100% + 7px); background: #fff; border: 1px solid #dce5d9; border-radius: 10px; box-shadow: 0 14px 35px #1e3f2520; z-index: 15; overflow: hidden; }
+.searchResults ul { list-style: none; padding: 5px; margin: 0; }
+.searchResults a { display: block; padding: 11px 12px; text-decoration: none; color: #31552e; border-radius: 6px; }
+.searchResults a:hover, .searchResults a:focus-visible { background: #eef4e9; }
+.searchResults strong { display: block; font-size: .76rem; font-weight: 600; }
+.searchResults span, .searchResults p { display: block; font-size: .68rem; color: #7d9272; margin: 6px 0 0; line-height: 1.5; }
+.searchResults p { padding: 15px 17px; margin: 0; }
+@media (min-width: 1450px) { .shell { grid-template-columns: 240px minmax(0, 1fr); } }
+@media (max-width: 1000px) { .shell :global(.topbar) { gap: 14px; padding-inline: 23px; } .shell :global(.dashboard-main) { padding: 24px 23px; } .user { display: none; } .headerActions { gap: 13px; } .search kbd { display: none; } }
+@media (max-width: 760px) { .shell :global(.topbar) { padding: 13px 20px; } .shell :global(.dashboard-main) { padding: 24px 20px; } .search { padding: 7px 10px; } .search input { font-size: .68rem; } .headerActions { gap: 9px; } .shell :global(.topbar .text-button) { font-size: .6rem; } }
+@media (max-width: 420px) { .shell :global(.topbar .text-button span) { display: none; } .shell :global(.topbar) { gap: 9px; padding-inline: 16px; } .shell :global(.dashboard-main) { padding-inline: 16px; } }
