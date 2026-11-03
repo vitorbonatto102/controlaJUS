@@ -105,6 +105,17 @@
 .confirmationForm > p { margin: 0; font-size: .77rem; }
 .error { color: #a84738 !important; }
 .setup { padding: 32px; max-width: 700px; margin: 30px auto; }
+.teamFilters { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(200px, 1.5fr) auto; gap: 18px; align-items: end; margin-bottom: 24px; }
+.teamFilters label { display: grid; gap: 8px; font-size: .79rem; color: var(--muted); }
+.teamFilters input, .teamFilters select { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; font: inherit; color: var(--ink); background: #fff; }
+.teamDescription { color: var(--muted); font-size: .82rem; line-height: 1.7; margin-bottom: 25px; }
+.teamTable { width: 100%; min-width: 680px; border-collapse: collapse; font-size: .81rem; text-align: left; }
+.teamTable th, .teamTable td { padding: 18px 14px; border-bottom: 1px solid var(--line); }
+.teamTable thead th { background: #f1f6ef; font-size: .75rem; color: #56705c; font-weight: 500; }
+.teamTable tbody th { font-weight: 500; min-width: 170px; }
+.teamTable small { display: block; font-size: .68rem; color: var(--muted); margin-top: 7px; }
+.teamTable progress { display: block; width: 120px; height: 7px; margin-top: 9px; accent-color: #327e61; }
+@media (max-width: 700px) { .teamFilters { grid-template-columns: 1fr; gap: 15px; } }
 .setup p { color: var(--muted); line-height: 1.7; }
 .loadingBlock { background: #e6eee4; height: 260px; border-radius: 14px; }
 .goals :is(a, button, input, summary):focus-visible, .chartScroll:focus-visible, .chart g:focus-visible, .confirmation :is(input, select, button, summary):focus-visible { outline: 2px solid #4d926c; outline-offset: 4px; border-radius: 4px; }

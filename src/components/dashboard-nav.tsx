@@ -10,7 +10,8 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
   if (role === "lawyer") links.push({ href: "/advogada/contratos", label: "Contratos", icon: "contracts" });
   if (role === "lawyer") links.push({ href: "/advogada/carteira", label: "Carteira", icon: "wallet" });
   if (role === "lawyer") links.push({ href: "/advogada/fechamentos", label: "Fechamentos", icon: "closings" });
-  if (role === "lawyer" || role === "manager" || isAdmin) links.push({ href: "/metas", label: "Metas", icon: "target" });
+  if (role === "lawyer") links.push({ href: "/metas", label: "Metas", icon: "target" });
+  if (role === "manager") links.push({ href: "/gestor/metas", label: "Metas da equipe", icon: "target" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   links.push({ href: "/relatorios", label: "Relatórios", icon: "reports" });
   if (role === "lawyer" || role === "manager") links.push({ href: role === "manager" ? "/notificacoes" : "/advogada/notificacoes", label: "Notificações", icon: "notifications" });

@@ -12,6 +12,8 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const validDate = (date: string) => { try { formatDateBR(date); return true; } catch { return false; } };
 function refresh() {
+  revalidatePath("/metas");
+  revalidatePath("/gestor/metas");
   revalidatePath("/gestor");
   revalidatePath("/advogada");
   revalidatePath("/advogada/carteira");

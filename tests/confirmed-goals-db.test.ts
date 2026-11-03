@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import type { GoalSummary } from "../src/lib/goals/model";
 
-test("confirmações reais, metas coletivas, auditoria e isolamento entre escritórios", async () => {
+test("metas por data de contratação, acompanhamento da equipe e isolamento entre escritórios", async () => {
   const db = new PGlite();
   const lawyer = randomUUID(), colleague = randomUUID(), outsider = randomUUID(), secretary = randomUUID(), manager = randomUUID();
   const otherOffice = randomUUID();
@@ -30,87 +30,88 @@ test("confirmações reais, metas coletivas, auditoria e isolamento entre escrit
       await db.query("insert into auth.users(id,email) values($1,$2)", [id, `${id}@example.com`]);
       await db.query("update public.profiles set office_id=$2,role=$3,active=true where id=$1", [id, officeId, role]);
     }
-    // Secretary + admin has collective goal powers, never a lawyer's personal attribution.
     await db.query("update profiles set is_office_admin=true where id=$1", [secretary]);
     const asUser = async (id: string) => {
       await db.exec("set role authenticated");
       await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id]);
     };
     const operator = () => db.exec("reset role; reset request.jwt.claim.sub");
-    const today = (await db.query<{day:string}>("select to_char(current_timestamp at time zone 'America/Sao_Paulo','YYYY-MM-DD') as day")).rows[0].day;
-    const month = today.slice(0,7);
-    const previous = (await db.query<{month:string}>("select to_char($1::date-interval '1 month','YYYY-MM') as month", [month+'-01'])).rows[0].month;
-    const client = randomUUID(), extraClient = randomUUID();
-    await db.query("insert into clients(id,office_id,full_name) values($1,$2,'Cliente teste'),($3,$2,'Segundo contratante')", [client,office,extraClient]);
-    const ids = [randomUUID(),randomUUID(),randomUUID(),randomUUID()];
-    for (const [i,id] of ids.entries()) await db.query(`insert into contracts(id,office_id,client_id,lawyer_id,origin,total_contract_value,contract_date)
-      values($1,$2,$3,$4,'Cliente próprio',1000,$5)`, [id,office,client,i===2?colleague:lawyer,today]);
+    const client = randomUUID(), extraClient = randomUUID(), externalClient = randomUUID();
+    await db.query("insert into clients(id,office_id,full_name) values($1,$2,'Cliente teste'),($3,$2,'Segundo contratante'),($4,$5,'Cliente externo')", [client,office,extraClient,externalClient,otherOffice]);
+    const ids = Array.from({length:8},()=>randomUUID());
+    // Três contratos de outubro, mesmo cadastrados em novembro e sem confirmação separada.
+    for (const [i,id] of ids.entries()) await db.query(`insert into contracts(id,office_id,client_id,lawyer_id,origin,total_contract_value,contract_date,created_at)
+      values($1,$2,$3,$4,'Cliente próprio',1000,$5,'2026-11-02T12:00:00Z')`,
+      [id,i===7?otherOffice:office,i===7?externalClient:client,i===7?outsider:i===6?colleague:lawyer,
+        i<3?['2026-10-05','2026-10-12','2026-10-28'][i]:i===3?'2026-09-30':i===4?'2026-10-15':i===5?'2026-10-18':'2026-10-20']);
+    await db.query("update contracts set engagement_status='cancelled' where id=$1",[ids[4]]);
+    await db.query("update contracts set deleted_at=now() where id=$1",[ids[5]]);
     await db.query("insert into contract_parties(contract_id,client_id,office_id,position) values($1,$2,$3,2)", [ids[0],extraClient,office]);
-    const summary = async (scope="individual", period=month) => (await db.query<{value:GoalSummary}>(
+    const summary = async (scope="individual", period="2026-10") => (await db.query<{value:GoalSummary}>(
       "select contract_goal_summary($1,$2::date) as value", [scope,period+'-01'])).rows[0].value;
+    const team = async () => (await db.query<{value:{members:{lawyer_id:string;full_name:string;count:number;target:number|null;previous_count:number}[]}}>(
+      "select team_contract_goals('2026-10-01') as value")).rows[0].value;
     const version = async (id:string) => (await db.query<{value:string}>("select updated_at::text as value from contracts where id=$1", [id])).rows[0].value;
-    const change = (id:string,stamp:string,status:string,date:string|null) => db.query(
-      "select set_contract_engagement($1,$2::timestamptz,$3,$4::date,'Conferência documentada')", [id,stamp,status,date]);
+    const change = async (id:string,status:string,date:string|null) => db.query(
+      "select set_contract_engagement($1,$2::timestamptz,$3,$4::date,'Conferência documentada')", [id,await version(id),status,date]);
     await asUser(lawyer);
-    assert.equal((await summary()).count,0,"data do documento não confirma um contrato");
-    assert.equal((await summary()).pending_count,3);
-    assert.equal((await summary()).comparison_available,false);
-    await db.query("select save_my_contract_goal($1,4)", [month+'-01']);
-    const stamp=await version(ids[0]);
-    await change(ids[0],stamp,"confirmed",today);
-    assert.equal((await summary()).count,1,"dois contratantes contam uma única vez");
-    await assert.rejects(change(ids[0],stamp,"cancelled",null), /contrato mudou/);
-    await change(ids[1],await version(ids[1]),"confirmed",previous+'-01');
-    let value=await summary();
-    assert.equal(value.count,1); assert.equal(value.previous_count,1); assert.equal(value.comparison_available,true);
-    assert.equal(value.history.length,6); assert.equal(value.history.at(-1)?.target,4);
-    assert.equal((await summary("individual",previous)).count,1,"fechamento efetivo difere da criação e do documento");
-    await assert.rejects(change(ids[3],await version(ids[3]),"confirmed","2099-01-01"), /sem data futura/);
-    await assert.rejects(db.query("select set_contract_engagement($1,$2,'confirmed',$3,'x')", [ids[3],await version(ids[3]),today]), /motivo/);
-    await assert.rejects(db.query("update contracts set engagement_status='confirmed',closed_on=$2 where id=$1", [ids[3],today]), /permission denied|fluxo auditado/);
-    await assert.rejects(db.query("select save_my_contract_goal('2099-01-01',10)"), /quantidade/);
+    const value=await summary();
+    assert.equal(value.count,3,"documentos de outubro entram mesmo sem confirmação e com cadastro posterior");
+    assert.equal(value.pending_count,0);
+    assert.equal(value.previous_count,1);assert.equal(value.comparison_available,true);
+    assert.equal(value.history.length,6);
+    await db.query("select save_my_contract_goal('2026-10-01',5)");
+    assert.equal((await summary()).history.at(-1)?.target,5);
+    await change(ids[0],"confirmed","2026-11-01");
+    assert.equal((await summary()).count,3,"confirmar em novembro não muda o mês do documento");
+    await change(ids[0],"unconfirmed",null);
+    assert.equal((await summary()).count,3,"desfazer confirmação separada não remove cadastro das metas");
+    await change(ids[0],"cancelled",null);assert.equal((await summary()).count,2);
+    await change(ids[0],"unconfirmed",null);assert.equal((await summary()).count,3);
+    await assert.rejects(team(),/não autorizado/);
+    await assert.rejects(summary("office"),/não autorizado/);
+    const ownStamp=await version(ids[0]);
     await asUser(colleague);
-    await assert.rejects(change(ids[0],stamp,"cancelled",null), /indisponível/);
-    assert.equal((await summary()).count,0);
-    await change(ids[2],await version(ids[2]),"confirmed",today);
     assert.equal((await summary()).count,1);
-    await assert.rejects(summary("office"), /não autorizado/);
+    await assert.rejects(db.query("select set_contract_engagement($1,$2::timestamptz,'cancelled',null,'Tentativa indevida')",[ids[0],ownStamp]),/indisponível/);
+    await db.query("select save_my_contract_goal('2026-10-01',2)");
     await asUser(secretary);
-    await db.query("select save_office_contract_goal($1,10)", [month+'-01']);
-    await db.query("select save_office_contract_goal($1,12)", [month+'-01']);
-    value=await summary("office"); assert.equal(value.count,2); assert.equal(value.history.at(-1)?.target,12);
-    assert.equal((await db.query("select * from office_monthly_goals")).rows.length,1);
-    assert.equal(JSON.stringify(value).includes(client),false,"RPC coletiva só retorna agregados");
-    await assert.rejects(summary(), /não autorizado/);
-    await assert.rejects(change(ids[0],await version(ids[0]),"cancelled",null), /não autorizado/);
-    await assert.rejects(db.exec("update office_monthly_goals set target_contract_count=99"), /permission denied/);
+    await assert.rejects(team(),/não autorizado/);await assert.rejects(summary(),/não autorizado/);
+    await db.query("select save_office_contract_goal('2026-10-01',10)");
+    assert.equal((await summary("office")).count,4,"coletivo legado usa o mesmo critério sem duplicar contratantes");
     await asUser(manager);
-    assert.equal((await summary("office")).count,2);
-    await assert.rejects(db.query("select save_office_contract_goal($1,5)",[month+'-01']), /não autorizado/);
-    await change(ids[0],await version(ids[0]),"cancelled",null);
-    assert.equal((await summary("office")).count,1);
-    await asUser(lawyer);
-    assert.equal((await summary()).count,0);
-    assert.equal((await db.query("select * from notifications where related_record_id=$1 and type='manager_correction'",[ids[0]])).rows.length,1);
-    assert.equal((await db.query("select * from audit_logs where record_id=$1 and field_name='engagement_confirmation'",[ids[0]])).rows.length,2);
-    await change(ids[0],await version(ids[0]),"confirmed",today);
-    await change(ids[0],await version(ids[0]),"unconfirmed",null);
-    assert.equal((await summary()).count,0,"desfazer confirmação remove a contagem");
-    await asUser(outsider);
-    assert.equal((await summary()).count,0); assert.equal((await summary()).pending_count,0);
-    assert.equal((await db.query("select * from office_monthly_goals")).rows.length,0);
-    await assert.rejects(change(ids[0],stamp,"confirmed",today), /indisponível/);
+    let members=(await team()).members;
+    assert.equal(members.length,2);
+    assert.equal(members.find(m=>m.lawyer_id===lawyer)?.count,3);
+    assert.equal(members.find(m=>m.lawyer_id===lawyer)?.target,5);
+    assert.equal(members.find(m=>m.lawyer_id===colleague)?.count,1);
+    assert.equal(members.find(m=>m.lawyer_id===lawyer)?.previous_count,1);
+    assert.equal(JSON.stringify(members).includes(client),false,"gestor recebe metas e totais, sem dados de clientes");
+    await assert.rejects(db.query("select save_my_contract_goal('2026-10-01',10)"),/não autorizado/);
+    await db.query("select correct_manager_field('contracts',$1,'contract_date','2026-09-15','Correção da data do documento')",[ids[1]]);
+    assert.equal((await team()).members.find(m=>m.lawyer_id===lawyer)?.count,2,"corrigir data move o contrato para outro mês");
+    await asUser(lawyer);assert.equal((await summary()).count,2);assert.equal((await summary('individual','2026-09')).count,2);
+    await asUser(outsider);assert.equal((await summary()).count,1);await assert.rejects(team(),/não autorizado/);
     await operator();
-    await db.query("update profiles set is_office_admin=false where id=$1",[secretary]);
-    await asUser(secretary); await assert.rejects(summary("office"), /não autorizado/);
+    const externalManager=randomUUID();
+    await db.query("insert into auth.users(id,email) values($1,'manager-outside@example.com')",[externalManager]);
+    await db.query("update profiles set role='manager',office_id=$2,active=true where id=$1",[externalManager,otherOffice]);
+    await asUser(externalManager);
+    const externalTeam=(await team()).members;
+    assert.equal(externalTeam.length,1);assert.equal(externalTeam[0].lawyer_id,outsider);
+    assert.equal(externalTeam[0].count,1);
     await operator();
-    await db.query("update contracts set deleted_at=now() where id=$1",[ids[2]]);
-    await asUser(manager); assert.equal((await summary("office")).count,0,"exclusão retira contrato da meta");
+    // A capacidade extra de admin não dá acompanhamento da equipe a uma advogada.
+    await db.query("update profiles set is_office_admin=true where id=$1",[lawyer]);
+    await asUser(lawyer);await assert.rejects(team(),/não autorizado/);
     await operator();
-    await db.exec(await readFile(new URL("20261028000200_confirmed_contract_goals.sql",migrations),"utf8"));
-    assert.equal((await db.query("select * from office_monthly_goals")).rows.length,1,"migration reaplicável preserva metas");
-    await asUser(lawyer); assert.equal((await summary()).count,0,"reaplicar não confirma contratos legados");
-    await operator(); await db.query("update profiles set active=false where id=$1",[lawyer]);
-    await asUser(lawyer); await assert.rejects(summary(), /não autorizado/);
+    await db.exec(await readFile(new URL("20261103000300_document_date_goals.sql",migrations),"utf8"));
+    assert.equal((await db.query("select * from lawyer_monthly_goals")).rows.length,2,"migration reaplicável preserva metas");
+    await db.query("update profiles set active=false where id=$1",[colleague]);
+    await asUser(manager);members=(await team()).members;assert.equal(members.length,2,"inativas com histórico continuam no período");
+    await operator();await db.query("update profiles set active=false where id=$1",[manager]);
+    await asUser(manager);await assert.rejects(team(),/não autorizado/);
+    await operator();await db.query("update profiles set active=false where id=$1",[lawyer]);
+    await asUser(lawyer);await assert.rejects(summary(),/não autorizado/);
   } finally { await db.close(); }
 });

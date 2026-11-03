@@ -7,12 +7,11 @@ export type EngagementStatus = keyof typeof engagementLabels;
 export type EngagementFields = { engagement_status?: EngagementStatus; closed_on?: string | null };
 export type ContractEngagement = EngagementFields & { id: string; updated_at: string };
 
-export function isConfirmedContract(contract: EngagementFields, today: string): boolean {
-  return contract.engagement_status === "confirmed" && !!contract.closed_on && contract.closed_on <= today;
-}
-
-export function closedContractsInMonth<T extends EngagementFields & { id: string }>(contracts: T[], month: string, today: string): T[] {
-  const unique = new Map(contracts.filter((contract) => isConfirmedContract(contract, today) &&
-    contract.closed_on!.startsWith(month)).map((contract) => [contract.id, contract]));
+// Metas e indicadores comerciais usam a data da contratação no documento.
+// A confirmação separada permanece apenas como histórico da contratação.
+export function closedContractsInMonth<T extends EngagementFields & { id: string; contract_date?: string | null; deleted_at?: string | null }>(contracts: T[], month: string, today: string): T[] {
+  const unique = new Map(contracts.filter((contract) => contract.engagement_status !== "cancelled" && !contract.deleted_at &&
+    !!contract.contract_date && contract.contract_date <= today && contract.contract_date.startsWith(`${month}-`))
+    .map((contract) => [contract.id, contract]));
   return [...unique.values()];
 }

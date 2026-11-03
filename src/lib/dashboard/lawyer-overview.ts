@@ -57,7 +57,7 @@ export function buildLawyerOverview(contracts: ContractRecord[], closings: Closi
       previousGeneratedCents += amount;
   }
   const previousContractCount = closedContractsInMonth(contracts, previousDate.slice(0, 7), today)
-    .filter((contract) => contract.closed_on! <= previousDate).length;
+    .filter((contract) => contract.contract_date <= previousDate).length;
   const confirmedPendingCents = closings.filter((closing) => closing.status !== "draft")
     .reduce((sum, closing) => sum + numericToCents(closing.amount_pending_transfer), 0);
   const transferredThisMonthCents = transfers.filter((transfer) => !transfer.reversed_at &&

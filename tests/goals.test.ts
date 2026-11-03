@@ -4,14 +4,17 @@ import { closedContractsInMonth } from "../src/lib/contracts/engagement";
 import { contractGoalProgress } from "../src/lib/dashboard/goals";
 import { goalEvolution, validGoalMonth, type GoalSummary } from "../src/lib/goals/model";
 
-test("contagem comercial exclui cadastros, cancelamentos e datas futuras; deduplica por contrato", () => {
-  const signed = { id: "one", engagement_status: "confirmed" as const, closed_on: "2026-10-05" };
+test("contagem comercial usa a data do documento, inclui cadastros e exclui cancelados, apagados e datas futuras", () => {
+  const signed = { id: "one", engagement_status: "confirmed" as const, closed_on: "2026-11-01", contract_date: "2026-10-05" };
+  const legacy = { id: "legacy", contract_date: "2026-10-01" };
   assert.deepEqual(closedContractsInMonth([signed, signed,
-    { id: "legacy", contract_date: "2026-10-01" },
-    { ...signed, id: "future", closed_on: "2026-10-30" },
+    legacy,
+    { ...signed, id: "future", contract_date: "2026-10-30" },
     { ...signed, id: "cancelled", engagement_status: "cancelled" as const, closed_on: null },
-    { ...signed, id: "old", closed_on: "2026-09-30" },
-  ], "2026-10", "2026-10-28"), [signed]);
+    { ...signed, id: "deleted", deleted_at: "2026-10-10" },
+    { ...signed, id: "old", contract_date: "2026-09-30" },
+    { id: "undated", contract_date: null },
+  ], "2026-10", "2026-10-28"), [signed, legacy]);
   assert.equal(contractGoalProgress(199, 200).percentage, 99, "100% só após atingir o objetivo");
 });
 

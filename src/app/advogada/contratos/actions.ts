@@ -14,6 +14,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const field = (form: FormData, name: string) => String(form.get(name) ?? "").trim();
 function refresh(contractId: string, clientId: string) {
   revalidatePath("/metas");
+  revalidatePath("/gestor/metas");
   for (const path of ["/advogada", "/advogada/carteira", "/advogada/contratos", `/advogada/contratos/${contractId}`,
     `/advogada/contratos/${contractId}/editar`, "/acompanhamento", "/secretaria", `/secretaria/clientes/${clientId}`, "/gestor"]) revalidatePath(path);
 }
@@ -34,7 +35,7 @@ export async function updateEngagement(_state: ActionState, form: FormData): Pro
     p_contract: id, p_expected_version: version, p_status: status, p_closed_on: date, p_reason: reason,
   });
   if (error) return { error: error.code === "P0001" ? error.message : "Não foi possível atualizar a contratação. Recarregue a página ou procure o administrador.", success: null };
-  for (const path of ["/metas", "/advogada", "/advogada/carteira", "/advogada/contratos", `/advogada/contratos/${id}`, "/gestor"])
+  for (const path of ["/metas", "/gestor/metas", "/advogada", "/advogada/carteira", "/advogada/contratos", `/advogada/contratos/${id}`, "/gestor"])
     revalidatePath(path);
   return { error: null, success: "Contratação atualizada. As metas já refletem esta alteração." };
 }

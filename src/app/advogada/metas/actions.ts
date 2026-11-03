@@ -22,5 +22,6 @@ export async function saveContractGoal(_state: ActionState, form: FormData): Pro
   if (error) return { error: "Não foi possível salvar a meta. Tente novamente ou procure o administrador.", success: null };
   revalidatePath("/advogada");
   revalidatePath("/metas");
+  revalidatePath("/gestor/metas");
   return { error: null, success: "Meta mensal atualizada." };
 }

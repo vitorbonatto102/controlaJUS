@@ -1,55 +1,45 @@
-# Metas de contratos
+# Metas de contratos e acompanhamento da equipe
 
-## Ativação no projeto existente
+## Ativação desta alteração
 
-1. No Supabase → SQL Editor, execute `supabase/migrations/20261028000200_confirmed_contract_goals.sql` inteiro. Ele depende de `20261028000100_lawyer_contract_goals.sql` e das migrations anteriores já aplicadas. Não execute novamente o schema inicial.
-2. A migration é transacional e reaplicável: preserva metas e confirmações, sem confirmar registros por inferência. Não requer variáveis de ambiente novas.
-3. Após publicar o código, entre em **Metas** no menu. Escolha o mês atual ou um anterior e clique em **Criar uma meta**. Para editar, use **Editar meta**. O único campo é a quantidade inteira de contratos (1 a 10.000).
-4. Para contratos já cadastrados, abra **Contratos → Visualizar → Confirmação da contratação**. Confirme apenas contratações reais, informando a data verdadeira, inclusive quando antiga. O módulo mostra até seis cadastros pendentes com atalhos; a lista completa pode ser filtrada pela situação.
+Após as migrations anteriores, execute **somente** `supabase/migrations/20261103000300_document_date_goals.sql` inteiro no SQL Editor do Supabase. Não execute novamente o schema inicial. A migration é transacional e reaplicável; não muda contratos, confirmações, datas ou objetivos já salvos. Não há variáveis de ambiente novas. Ela não foi aplicada automaticamente em produção.
 
-O código foi verificado em PostgreSQL local via PGlite. A migration precisa ser aplicada no Supabase do ambiente; não foi executada automaticamente em produção.
+A atualização muda a consulta dos totais existentes: três contratos com contratação datada em outubro/2026 passam a contar em outubro, mesmo cadastrados em novembro e ainda com a situação “Aguardando confirmação”. Não é necessário confirmar um por um. Se a data do documento foi extraída incorretamente, corrija o campo **Data da contratação** no cadastro do contrato.
 
 ## Regra de contagem
 
-- `engagement_status`: `unconfirmed` (aguardando confirmação), `confirmed` (confirmada/assinada), `cancelled` (cancelada).
-- `closed_on`: data efetiva obrigatória apenas para confirmados; vazia nos demais estados. Não é `contract_date` (documento) nem `created_at` (cadastro). Datas futuras são rejeitadas no banco.
-- Cadastros antigos, importações e novos contratos começam aguardando confirmação. Não se presume que upload de PDF significa assinatura.
-- Um contrato não excluído conta uma única vez no mês de `closed_on`. Cancelar, desfazer a confirmação, corrigir sua data ou excluir logicamente recalcula as métricas na próxima consulta. O formulário atualiza as páginas relacionadas após salvar.
-- A atribuição individual usa a **advogada responsável principal**, `contracts.lawyer_id`. Contratantes adicionais são clientes do mesmo contrato, não responsáveis comerciais. Uma futura equipe com vários profissionais por contrato deverá manter essa atribuição explícita.
-- O coletivo soma os contratos do escritório sem junção com participantes, evitando multiplicação por contratante. Não existe soma dos totais individuais para calcular o coletivo.
-- A confirmação comercial não altera parcelas, pagamentos, comissões ou repasses existentes. Os fluxos financeiros continuam separados.
+- A competência vem de `contracts.contract_date`: a data de contratação informada no documento.
+- `created_at` (momento do cadastro) e `closed_on` (histórico da confirmação separada) não determinam o mês das metas.
+- Entram os contratos cadastrados da responsável principal, inclusive antigos/importados sem confirmação separada. Cancelados (`engagement_status=cancelled`), apagados (`deleted_at`) e datas de contratação futuras ficam fora. Uma data ausente nunca é substituída pela data de hoje.
+- Cada contrato conta uma vez por ID. Vários contratantes não multiplicam a contagem.
+- Cancelar remove o contrato da contagem. Voltar a “Aguardando confirmação” o reinclui pela data do documento. Confirmar separadamente não muda sua competência.
+- Corrigir a data de contratação move a contagem para o mês correto. Não há mudança em parcelas, comissões, pagamentos ou fechamentos financeiros.
+- A página de Metas, seu histórico, o cartão da Visão geral e os indicadores comerciais da Carteira usam a mesma regra.
 
-## Escopos e segurança
+O histórico mantém o calendário de Brasília, os seis meses do gráfico e as metas já salvas. O mês atual compara os mesmos dias decorridos do mês anterior, limitados ao último dia dele. Meses encerrados comparam períodos completos. Médias e recordes começam no primeiro mês com histórico disponível. Meses posteriores sem contratos podem contar zero; antes do início do histórico, a tela informa ausência de referência. Projeções permanecem identificadas como estimativas.
 
-| Perfil | Meta individual | Meta coletiva |
-| --- | --- | --- |
-| Advogada | Consulta e edita a própria | Sem acesso, salvo se admin |
-| Gestor | Leitura das metas individuais já permitida pelo sistema | Consulta o agregado do escritório |
-| Qualquer cargo com `is_office_admin` | Mantém as permissões do cargo | Consulta e configura a meta do próprio escritório |
-| Secretaria sem admin | Sem acesso | Sem acesso |
+## Advogada
 
-A tabela existente `lawyer_monthly_goals` mantém unicidade advogada/mês. A nova `office_monthly_goals` mantém unicidade escritório/mês. Ambas usam RLS e proíbem escrita direta por usuários da API. Metas são salvas por RPC, derivando as identidades da sessão, com validação, lock transacional, upsert e auditoria.
+**Metas** continua sendo sua página individual. Escolha o mês e defina/edite apenas a quantidade desejada de contratos. A tela mostra realizados, objetivo, percentual, faltantes, marcos, ritmo e evolução. A antiga lista de cadastros aguardando confirmação foi removida das metas, pois o cadastro já entra pela data do documento.
 
-`contract_goal_summary` retorna somente agregados no escopo permitido, sem IDs ou nomes de clientes de colegas. Usuários inativos e outros escritórios são bloqueados. A confirmação usa `set_contract_engagement`, autorizada apenas ao responsável principal ou ao gestor do escritório; requer motivo e versão para evitar sobrescrever alterações concorrentes. Um trigger impede alterações de situação fora desse fluxo pela aplicação. Auditoria imutável registra antes/depois; correções do gestor notificam a responsável.
+A confirmação separada continua disponível no contrato como histórico cadastral; a explicação no formulário deixa claro seu efeito sobre a contagem. A situação do processo judicial não determina o fechamento comercial.
 
-## Calendário, histórico e projeções
+## Gestor
 
-O mês atual e o limite de datas usam **America/Sao_Paulo**. Datas de fechamento são `DATE`, sem conversão que desloque o dia. A comparação do mês atual usa os mesmos dias decorridos do mês anterior, limitados ao último dia dele. Meses encerrados comparam períodos completos. Janeiro/dezembro e anos bissextos são contemplados.
+O menu passa a mostrar **Metas da equipe**, em `/gestor/metas`. A antiga URL `/metas` redireciona o gestor para essa página, preservando o mês.
 
-Antes do primeiro mês com fechamento confirmado, não se presume histórico zero: comparativos e médias ficam indisponíveis. A média usa os três meses completos anteriores somente quando os três já pertencem ao histórico iniciado pelas confirmações. Meses posteriores ao início do histórico sem confirmações contam zero. O histórico depende da conferência dos registros antigos: importações ainda pendentes não entram.
+O acompanhamento é somente leitura, com filtro de mês e advogada. Apresenta contratos fechados, quantidade de advogadas acompanhadas, metas definidas/alcançadas e uma lista em ordem alfabética com realizados, objetivo, percentual, faltantes e comparação com o mês anterior. Não há ranking nem formulário de meta pessoal/coletiva do gestor. A edição dos objetivos fica com cada advogada.
 
-O gráfico mostra os seis meses até o selecionado, com quantidade confirmada e meta quando definida. Ausência de meta não vira meta zero. A melhor marca anterior considera todos os meses anteriores com fechamentos confirmados.
+Contas inativas com contratos ou meta no período continuam disponíveis para consulta histórica. Um objetivo ausente aparece como **Não definida**, sem inventar percentual ou faltantes.
 
-O realizado fica separado das estimativas. O ritmo necessário divide o que falta pelos dias corridos restantes **após hoje**; no último dia, a interface informa que fechamentos de hoje ainda contam. A projeção utiliza o ritmo dos dias decorridos do mês atual e não representa garantia. Não há projeção para períodos encerrados.
+## Acesso e banco
 
-## Marcos e experiência
+`contract_goal_summary` continua autenticando o escopo individual e o escritório no banco. A advogada recebe somente seus próprios totais e objetivos. O payload declara `count_basis=contract_date`; enquanto a migration não for aplicada, a página avisa que a atualização está pendente.
 
-Marcos de 25%, 50%, 75% e 100%, sem pontos ou rankings. Percentuais são truncados para não anunciar um marco antes de atingi-lo. O destaque de melhor marca aparece apenas com uma referência anterior real.
+A nova RPC `team_contract_goals` é autorizada somente ao cargo ativo `manager`, derivando o escritório da sessão. Não aceita parâmetro de escritório nem retorna clientes ou dados financeiros. Advogadas, inclusive com admin extra, e secretarias não podem usá-la. A secretaria deixa de ter o módulo de Metas no menu mesmo quando admin.
 
-Uma microanimação sutil ocorre ao superar um marco já observado neste navegador. A primeira visita e a edição do objetivo estabelecem uma referência, evitando celebrar redução artificial de meta; marcos não se repetem após queda e recuperação da contagem. `prefers-reduced-motion` desativa movimento. Esse estado visual local não participa da persistência ou da contagem real.
-
-Há estados sem meta, sem histórico, de carregamento, falha com tentativa novamente e atualização do banco pendente. Não são usados dados fictícios em produção. A interface usa a identidade existente e inclui tabela acessível dos valores do gráfico.
+As tabelas existentes e suas RLS permanecem. As RPCs administrativas de meta coletiva continuam preservadas para compatibilidade e evolução futura, sem interface de configuração no painel do gestor. Metas individuais continuam salvas pela RPC autenticada `save_my_contract_goal`, com validação, unicidade e auditoria.
 
 ## Verificação
 
-`npm run lint`, `npm run typecheck`, `npm run build` e testes focados em `tests/goals.test.ts`, `tests/confirmed-goals-db.test.ts`, `tests/contract-goals-db.test.ts`, `tests/lawyer-overview.test.ts` e `tests/wallet.test.ts`.
+Testes focados cobrem três contratos de outubro cadastrados depois, confirmação em outro mês, cancelamento/restauração, correção da data, exclusão, múltiplos contratantes, objetivos existentes, histórico de inativas, reaplicação da migration e isolamento entre usuários/escritórios. Os testes puros conferem também a Visão geral, Carteira, datas futuras e marcos. As prévias visuais usam dados fictícios locais e não são publicadas.

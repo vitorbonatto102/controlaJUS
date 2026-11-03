@@ -9,6 +9,9 @@ export type GoalSummary = {
   best_previous_count: number | null; pending_count: number; history: GoalMonth[];
   goal_updated_at: string | null;
 };
+export type TeamGoalMember = { lawyer_id: string; full_name: string; active: boolean;
+  count: number; previous_count: number; target: number | null };
+export type TeamGoalSummary = { month: string; as_of: string; previous_until: string; members: TeamGoalMember[] };
 
 export function validGoalMonth(value: string, currentMonth: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value) && value >= "2000-01" && value <= currentMonth;

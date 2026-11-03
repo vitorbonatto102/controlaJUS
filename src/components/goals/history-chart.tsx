@@ -12,15 +12,15 @@ export function GoalsHistory({ months }: { months: GoalMonth[] }) {
     <div className={styles.sectionHeading}><div><h2 id="goals-history-title">Sua evolução, mês a mês</h2>
       <p>Últimos seis meses do período selecionado.</p></div><div className={styles.legend}>
       <span><i />Contratos fechados</span><span><i className={styles.targetSwatch} />Meta definida</span></div></div>
-    {!hasData ? <div className={styles.chartEmpty}><p>O seu histórico começa com uma contratação confirmada.</p>
+    {!hasData ? <div className={styles.chartEmpty}><p>O seu histórico começa com uma contratação cadastrada.</p>
       <small>As metas definidas também aparecerão aqui, no mês correspondente.</small></div> : <>
       <div className={styles.chartScroll} tabIndex={0} aria-label="Gráfico de contratos fechados e metas nos últimos seis meses">
         <svg viewBox="0 0 560 240" className={styles.chart} role="img" aria-label="Quantidades de contratos fechados e metas mensais">
           {[0, 1, 2, 3, 4].map((step) => <g key={step}><line x1="44" x2="545" y1={y(ceiling * step / 4)} y2={y(ceiling * step / 4)} stroke="#e5ece7" />
             <text x="35" y={y(ceiling * step / 4) + 4} textAnchor="end">{ceiling * step / 4}</text></g>)}
           {months.map((item, index) => <g key={item.month} tabIndex={0}
-            aria-label={`${monthLabel(item.month)}: ${item.has_history ? `${item.count} contratos confirmados` : "sem histórico de confirmações"}; ${item.target === null ? "sem meta" : `meta ${item.target}`}`}>
-            <title>{`${monthLabel(item.month)} · ${item.has_history ? `${item.count} confirmados` : "Sem histórico de confirmações"} · ${item.target === null ? "Sem meta definida" : `Meta: ${item.target}`}`}</title>
+            aria-label={`${monthLabel(item.month)}: ${item.has_history ? `${item.count} contratos fechados` : "sem histórico de contratações"}; ${item.target === null ? "sem meta" : `meta ${item.target}`}`}>
+            <title>{`${monthLabel(item.month)} · ${item.has_history ? `${item.count} fechados` : "Sem histórico de contratações"} · ${item.target === null ? "Sem meta definida" : `Meta: ${item.target}`}`}</title>
             <rect x={x(index) - 17} y={y(item.count)} width="34" height={item.count / ceiling * 152} rx="4" fill="#347f68" />
             {!item.has_history && <text x={x(index)} y="176" textAnchor="middle">—</text>}
             {item.target !== null && <>
@@ -34,10 +34,10 @@ export function GoalsHistory({ months }: { months: GoalMonth[] }) {
         </svg>
       </div>
       <details className={styles.chartValues}><summary>Consultar valores do gráfico</summary><div className={styles.chartScroll}>
-        <table><caption>Histórico de contratações confirmadas</caption><thead><tr><th>Mês</th><th>Fechados</th><th>Meta</th></tr></thead>
+        <table><caption>Histórico de contratações por data do documento</caption><thead><tr><th>Mês</th><th>Fechados</th><th>Meta</th></tr></thead>
           <tbody>{months.map((item) => <tr key={item.month}><td>{monthLabel(item.month)}</td><td>{item.has_history ? item.count : "Sem histórico"}</td><td>{item.target ?? "Não definida"}</td></tr>)}</tbody></table>
       </div></details>
     </>}
-    <p className={styles.footnote}>Somente confirmações explícitas, pela data efetiva. Traços indicam meses anteriores ao histórico confirmado. Uma meta ausente não é tratada como meta zero.</p>
+    <p className={styles.footnote}>A contagem usa a data de contratação do documento, excluindo cancelados e apagados. Traços indicam meses anteriores ao histórico disponível. Uma meta ausente não é tratada como meta zero.</p>
   </section>;
 }

@@ -9,7 +9,7 @@ export function ContractGoal({ goal, available, achieved }: {
   const progress = contractGoalProgress(achieved, goal?.target_contract_count ?? null);
   return <section className={styles.goal} id="meta-mensal" aria-labelledby="goal-title">
     <div className={styles.goalHeading}><span><OverviewIcon name="target" size={17} /><h2 id="goal-title">Meta de contratos</h2></span></div>
-    <div className={styles.goalNumbers}><strong>{achieved}<span>{goal ? ` / ${goal.target_contract_count}` : " confirmados"}</span></strong>
+    <div className={styles.goalNumbers}><strong>{achieved}<span>{goal ? ` / ${goal.target_contract_count}` : " fechados"}</span></strong>
       {goal && <span>{progress.percentage}% da meta</span>}</div>
     {goal && <div className={styles.progressTrack} role="progressbar" aria-label="Progresso da meta mensal"
       aria-valuemin={0} aria-valuemax={goal.target_contract_count} aria-valuenow={Math.min(achieved, goal.target_contract_count)}>
