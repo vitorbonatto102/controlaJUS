@@ -1,0 +1,45 @@
+.page { display: grid; gap: 24px; max-width: 1400px; margin-inline: auto; }
+.heading h1 { margin-bottom: 12px; }
+.heading p { color: var(--muted); font-size: .86rem; line-height: 1.7; margin: 0; max-width: 780px; }
+.filterPanel, .preview, .closingHelp { border: 1px solid var(--line); border-radius: 13px; background: #fff; padding: 25px; min-width: 0; }
+.filterPanel h2 { font-size: 1rem; margin: 0 0 22px; }
+.filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; align-items: end; }
+.filters label { display: grid; gap: 8px; font-size: .77rem; font-weight: 500; color: #486158; }
+.filters input, .filters select { width: 100%; min-width: 0; background: #fff; border: 1px solid #cddbd4; border-radius: 7px; padding: 11px; color: var(--ink); font-size: .79rem; }
+.filters select:disabled { opacity: .5; background: #f5f8f3; }
+.filterActions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; grid-column: 1 / -1; margin-top: 3px; }
+.filterActions a { color: var(--muted); font-size: .75rem; text-underline-offset: 3px; }
+.hint { color: var(--muted); font-size: .73rem; line-height: 1.7; margin: 17px 0 0; }
+.previewHeader { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.previewHeader :global(.repassum-logo) { width: 135px; }
+.previewHeader > span { color: var(--muted); font-size: .68rem; }
+.previewHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-top: 24px; }
+.previewHeading h2 { font-size: 1.3rem; margin: 0 0 10px; }
+.previewHeading p { color: var(--muted); font-size: .8rem; margin: 0; line-height: 1.6; }
+.scope { color: #75857b; font-size: .7rem; line-height: 1.7; margin: 15px 0 0; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 13px; margin: 23px 0; }
+.metrics article { border: 1px solid #dce7df; background: #f6faf5; border-radius: 9px; padding: 17px; }
+.metrics h3 { font-size: .73rem; font-weight: 500; color: #647c6b; margin: 0 0 15px; }
+.metrics strong { font-size: 1.5rem; letter-spacing: -.035em; font-weight: 550; }
+.metrics small { display: block; color: var(--muted); font-size: .65rem; line-height: 1.5; margin-top: 9px; }
+.reportTable { width: 100%; border-collapse: collapse; font-size: .74rem; text-align: left; min-width: 650px; }
+.reportTable th { padding: 13px 10px; font-weight: 500; color: #5c7566; background: #f3f7f1; border-bottom: 1px solid var(--line); }
+.reportTable td { padding: 15px 10px; border-bottom: 1px solid #e4ece1; vertical-align: top; white-space: pre-line; line-height: 1.7; overflow-wrap: anywhere; }
+.reportTable .money { text-align: right; white-space: nowrap; }
+.download button { font-size: .78rem; }
+.download > p { color: #a04435; font-size: .75rem; max-width: 360px; line-height: 1.6; margin: 10px 0 0; }
+.pagination { display: flex; justify-content: space-between; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: .7rem; }
+.pagination nav { display: flex; gap: 15px; align-items: center; }
+.pagination a, .closingHelp a { color: var(--teal); text-underline-offset: 3px; }
+.explanation { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 18px; font-size: .73rem; color: #72836e; line-height: 1.8; }
+.explanation summary { cursor: pointer; color: var(--teal); }
+.explanation ul { padding-left: 18px; margin-bottom: 0; }
+.empty { padding: 35px 15px; text-align: center; }
+.empty h3 { font-size: .95rem; }
+.empty p, .closingHelp p { font-size: .8rem; color: var(--muted); line-height: 1.7; margin-bottom: 0; }
+.closingHelp h2 { font-size: .95rem; margin-bottom: 10px; }
+.closingHelp a { display: inline-block; margin-top: 15px; font-size: .77rem; }
+.error { background: #fff7f2; border: 1px solid #e7cbbd; padding: 18px 22px; border-radius: 10px; color: #875341; font-size: .83rem; line-height: 1.7; }
+.loading { height: 250px; background: #e9f0e6; border-radius: 13px; }
+@media (max-width: 1050px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .filters { grid-template-columns: 1fr; } .filterPanel, .preview, .closingHelp { padding: 21px 16px; } .previewHeading, .previewHeader { align-items: flex-start; flex-direction: column; gap: 16px; } .metrics { grid-template-columns: 1fr; } }

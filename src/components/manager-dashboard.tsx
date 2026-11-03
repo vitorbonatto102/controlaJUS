@@ -20,6 +20,7 @@ import { ManagerContractInstallments } from "@/components/manager-contract-insta
 import { commissionModeLabels } from "@/lib/contracts/commission-retention";
 import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
 import { EngagementForm } from "@/components/contracts/engagement-form";
+import { DownloadReport } from "@/components/reports/download-report";
 import { engagementLabels, type EngagementStatus } from "@/lib/contracts/engagement";
 
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
@@ -337,7 +338,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
       })}</ul>
     </section>}
 
-    <section className="workspace-panel"><h2>Fechamentos</h2>
+    <section className="workspace-panel" id="fechamentos"><h2>Fechamentos</h2>
       {lawyerId && !selectedClosing && <ClosingPreview lawyerId={lawyerId} month={Number(month)}
         year={Number(year)} rows={previewRows} today={today} />}
       {!periodClosings.length && !lawyerId && <p>Nenhum fechamento realizado neste período.</p>}
@@ -351,6 +352,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
           <h3>{lawyer?.full_name ?? "Advogada"} · {months[closing.reference_month - 1]}/{closing.reference_year}</h3>
           <p>{closingStatus[closing.status]}{deadline && ` · ${deadline.label}`}
             {closing.closed_at && ` · Fechado em ${new Date(closing.closed_at).toLocaleDateString("pt-BR")}`}</p>
+          {closing.status !== "draft" && closing.closed_at && <DownloadReport href={`/relatorios/fechamentos/${closing.id}/pdf`} label="Emitir relatório do mês (PDF)" />}
           <div className="closing-totals"><span>Escritório: {formatBRL(closing.office_amount_received)}</span>
             <span>Comissão original: {formatBRL(closing.commission_amount)}</span>
             <span>Repassado: {formatBRL(closing.amount_already_transferred)}</span>

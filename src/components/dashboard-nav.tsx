@@ -12,6 +12,7 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
   if (role === "lawyer") links.push({ href: "/advogada/fechamentos", label: "Fechamentos", icon: "closings" });
   if (role === "lawyer" || role === "manager" || isAdmin) links.push({ href: "/metas", label: "Metas", icon: "target" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
+  links.push({ href: "/relatorios", label: "Relatórios", icon: "reports" });
   if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
   if (isAdmin) links.push({ href: "/administracao", label: "Administração", icon: "settings" });
   return <nav className="sidebar-nav" aria-label="Navegação principal">
@@ -23,7 +24,7 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
         aria-current={active ? "page" : undefined}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          {icon === "target" ? <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" />
+          {icon === "reports" ? <><path d="M14 3H5v18h14V8zM14 3v5h5M8 17v-3m4 3v-6m4 6v-4" /></> : icon === "target" ? <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" />
             <path d="m12 12 8-8m-4 0h4v4" /></> : icon === "overview" ? <><rect x="3" y="3" width="7" height="7" rx="1.5" />
             <rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" />
             <rect x="14" y="14" width="7" height="7" rx="1.5" /></> : icon === "notifications" ? <>

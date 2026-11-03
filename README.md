@@ -19,6 +19,7 @@ src/app/
     novo-contrato/           importação de PDF e cadastro manual
     contratos/[id]/          detalhe e PDF temporário
   metas/                     metas de contratos, individuais e do escritório
+  relatorios/                filtros, prévia e emissão autenticada de PDFs
   secretaria/                operação, clientes, pagamentos e cobranças
   gestor/                    painel, fechamento, repasses e correções
   administracao/             convites e gestão de usuários
@@ -31,6 +32,7 @@ src/lib/
   secretary/                 consultas e status operacionais
   manager/                   consolidação e filtros do gestor
   goals/                     histórico, ritmo e consultas de metas comerciais
+  reports/                   escopo, filtros, modelos e geração de PDF
   finance/                   fechamentos, itens, repasses, ajustes e auditoria
   supabase/                  clientes SSR e renovação de sessão
 supabase/migrations/          migrations SQL em ordem cronológica
@@ -154,6 +156,7 @@ Migrations novas desta etapa:
 | `20261028000200_confirmed_contract_goals.sql` | Confirmação auditada e data efetiva de fechamento; metas coletivas e agregados comerciais isolados por escritório. Ver [Metas](docs/metas.md). |
 | `20261028000300_user_avatars.sql` | Fotos privadas dos usuários, envio e remoção por admin do escritório, com auditoria e Storage protegido. Ver [fotos de usuários](docs/fotos-de-usuarios.md). |
 | `20261028000400_optional_profile_reason.sql` | Motivo opcional no gerenciamento de usuários; auditoria e proteções administrativas preservadas. |
+| `20261103000100_reports.sql` | Relatórios filtrados e de fechamentos, somente leitura, com RLS e isolamento por escritório/advogada. Ver [relatórios](docs/relatorios.md). |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
