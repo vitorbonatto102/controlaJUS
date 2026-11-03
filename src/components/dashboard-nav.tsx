@@ -13,7 +13,7 @@ export function DashboardNav({ role, isAdmin }: { role: Role; isAdmin: boolean }
   if (role === "lawyer" || role === "manager" || isAdmin) links.push({ href: "/metas", label: "Metas", icon: "target" });
   links.push({ href: "/acompanhamento", label: "Acompanhamento", icon: "follow-up" });
   links.push({ href: "/relatorios", label: "Relatórios", icon: "reports" });
-  if (role === "lawyer") links.push({ href: "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
+  if (role === "lawyer" || role === "manager") links.push({ href: role === "manager" ? "/notificacoes" : "/advogada/notificacoes", label: "Notificações", icon: "notifications" });
   if (isAdmin) links.push({ href: "/administracao", label: "Administração", icon: "settings" });
   return <nav className="sidebar-nav" aria-label="Navegação principal">
     <p className="nav-section-label">PLATAFORMA</p>

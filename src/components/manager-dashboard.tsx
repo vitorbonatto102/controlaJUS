@@ -8,7 +8,7 @@ import { emptyActionState } from "@/lib/action-state";
 import type { ManagerWorkspace } from "@/lib/manager/data";
 import { buildManagerPaymentRows, filterManagerRows, managerDelinquency,
   managerTotals, transferDeadline, type ManagerPaymentRow } from "@/lib/manager/view";
-import { confirmClosing, correctField, correctPayment, recordLatePayment,
+import { correctField, correctPayment, recordLatePayment,
   registerTransfer, reverseTransfer } from "@/app/gestor/actions";
 import type { AuditEntry, Closing } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
@@ -20,6 +20,7 @@ import { ManagerContractInstallments } from "@/components/manager-contract-insta
 import { commissionModeLabels } from "@/lib/contracts/commission-retention";
 import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
 import { EngagementForm } from "@/components/contracts/engagement-form";
+import Link from "next/link";
 import { DownloadReport } from "@/components/reports/download-report";
 import { engagementLabels, type EngagementStatus } from "@/lib/contracts/engagement";
 
@@ -70,7 +71,7 @@ function AuditDetails({ entries, users }: { entries: AuditEntry[]; users: { id: 
   if (!entries.length) return null;
   return <details className="operation-details"><summary>Corrigido · ver histórico ({entries.length})</summary>
     <ul className="audit-list">{entries.map((entry) => <li key={entry.id}>
-      <strong>{fieldLabels[entry.field_name] ?? entry.field_name}</strong> · {users.find((user) => user.id === entry.user_id)?.full_name ?? "Gestor"} · {new Date(entry.created_at).toLocaleString("pt-BR")}
+      <strong>{fieldLabels[entry.field_name] ?? entry.field_name}</strong> · {users.find((user) => user.id === entry.user_id)?.full_name ?? (entry.user_id ? "Usuário" : "Sistema")} · {new Date(entry.created_at).toLocaleString("pt-BR")}
       <span>Anterior: {displayAuditValue(entry.old_value, entry.field_name)} → Atual: {displayAuditValue(entry.new_value, entry.field_name)}</span>
       <span>Motivo: {entry.reason}</span>
     </li>)}</ul>
@@ -140,7 +141,6 @@ function LatePaymentForm({ installmentId }: { installmentId: string }) {
 function ClosingPreview({ lawyerId, month, year, rows, today }: {
   lawyerId: string; month: number; year: number; rows: ManagerPaymentRow[]; today: string;
 }) {
-  const [state, action, pending] = useActionState(confirmClosing, emptyActionState);
   const received = rows.reduce((sum, row) => sum + row.paidCents, 0);
   const commission = rows.reduce((sum, row) => sum + row.commissionCents, 0);
   const { lastDay, canConfirm: eligible } = closingAvailability(year, month, today);
@@ -154,14 +154,7 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
       <td>{money(row.paidCents)}</td><td>{formatDateBR(row.paymentDate)}</td>
       <td>{row.percentage}%</td><td>{money(row.commissionCents)}</td></tr>)}</tbody></table></div>
       : <p>Nenhum pagamento encontrado neste período.</p>}
-    <form action={action} className="operation-form inline-form">
-      <input type="hidden" name="lawyer_id" value={lawyerId} />
-      <input type="hidden" name="month" value={month} /><input type="hidden" name="year" value={year} />
-      <label><input type="checkbox" name="confirm" value="yes" required disabled={pending || !eligible} /> Conferi a composição do fechamento</label>
-      <button type="submit" className="primary-button" disabled={pending || !eligible} aria-describedby={noticeId}>
-        {pending ? "Confirmando…" : eligible ? "Confirmar fechamento" : `Disponível em ${formatDateBR(lastDay)}`}</button>
-      <Feedback state={state} />
-    </form>
+    <p>O fechamento é automático desde outubro/2026. Após a conclusão, abra o relatório para conferir e corrigir valores.</p>
   </section>;
 }
 
@@ -352,6 +345,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
           <h3>{lawyer?.full_name ?? "Advogada"} · {months[closing.reference_month - 1]}/{closing.reference_year}</h3>
           <p>{closingStatus[closing.status]}{deadline && ` · ${deadline.label}`}
             {closing.closed_at && ` · Fechado em ${new Date(closing.closed_at).toLocaleDateString("pt-BR")}`}</p>
+          {closing.status !== "draft" && closing.closed_at && <p><Link href={`/fechamentos/${closing.id}`}>Visualizar relatório / corrigir valores →</Link></p>}
           {closing.status !== "draft" && closing.closed_at && <DownloadReport href={`/relatorios/fechamentos/${closing.id}/pdf`} label="Emitir relatório do mês (PDF)" />}
           <div className="closing-totals"><span>Escritório: {formatBRL(closing.office_amount_received)}</span>
             <span>Comissão original: {formatBRL(closing.commission_amount)}</span>

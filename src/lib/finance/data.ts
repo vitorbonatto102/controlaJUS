@@ -30,7 +30,7 @@ export type Notification = {
   related_record_id: string | null; read_at: string | null; created_at: string;
 };
 export type AuditEntry = {
-  id: string; user_id: string; affected_lawyer_id: string | null; table_name: string;
+  id: string; user_id: string | null; affected_lawyer_id: string | null; table_name: string;
   record_id: string; field_name: string; old_value: unknown; new_value: unknown;
   reason: string; created_at: string;
 };

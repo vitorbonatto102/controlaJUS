@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Closing, Transfer } from "@/lib/finance/data";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import styles from "./wallet.module.css";
@@ -19,8 +20,8 @@ export function WalletSettlements({ closings, transfers }: { closings: Closing[]
           {closing.adjustment_amount !== 0 && <small>Corrigido após fechamento</small>}</td>
         <td>{formatBRL(closing.amount_already_transferred)}</td><td>{formatBRL(closing.amount_pending_transfer)}</td>
         <td>{closingLabels[closing.status]}{closing.amount_overpaid > 0 && <small>Excesso a regularizar: {formatBRL(closing.amount_overpaid)}</small>}</td>
-        <td>{closing.status !== "draft" && closing.closed_at ? <DownloadReport href={`/relatorios/fechamentos/${closing.id}/pdf`} label="Emitir PDF" /> : "Após confirmação"}</td>
-      </tr>)}</tbody></table></div> : <div className={styles.empty}>Nenhum fechamento realizado.<p>Os valores aparecerão quando o gestor fechar o período.</p></div>}
+        <td>{closing.status !== "draft" && closing.closed_at ? <><Link href={`/fechamentos/${closing.id}`}>Visualizar / corrigir valores</Link><DownloadReport href={`/relatorios/fechamentos/${closing.id}/pdf`} label="Baixar PDF" /></> : "Após fechamento automático"}</td>
+      </tr>)}</tbody></table></div> : <div className={styles.empty}>Nenhum fechamento realizado.<p>Os valores aparecerão após o fechamento automático do período.</p></div>}
     </section>
     <section className={styles.panel} aria-labelledby="transfers-title"><h2 id="transfers-title">Valores recebidos do escritório</h2>
       <p className={styles.subheading}>Valores transferidos à advogada. Estornos permanecem no histórico e não compõem o saldo.</p>

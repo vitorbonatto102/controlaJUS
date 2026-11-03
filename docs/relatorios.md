@@ -6,7 +6,7 @@
 2. Publique o código pelo fluxo existente da Vercel. Não há variáveis de ambiente novas.
 3. Em qualquer painel, abra **Relatórios** no menu lateral. Escolha tipo, datas, cliente/CPF, serviço e origem; a secretaria e a gestão também podem selecionar uma advogada, inclusive com histórico de conta inativa.
 4. Use **Visualizar relatório** para aplicar os filtros. A prévia mostra 40 registros por página; **Baixar PDF** inclui todos os registros do filtro, até o limite declarado de 5.000. Acima dele, a emissão solicita filtros mais específicos e não entrega um documento parcial.
-5. Depois de confirmar um fechamento, o gestor encontra **Emitir relatório do mês (PDF)** no cartão daquele fechamento. A advogada tem **Emitir PDF** na sua tabela de fechamentos. Meses em apuração não emitem o demonstrativo de fechamento.
+5. Após o fechamento automático (desde outubro/2026), ambos têm **Visualizar / corrigir valores** e a opção de baixar PDF. Meses em apuração não emitem o demonstrativo. Ative a rotina conforme [fechamento automático](fechamento-automatico.md).
 
 ## O que cada relatório mostra
 

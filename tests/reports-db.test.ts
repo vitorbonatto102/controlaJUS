@@ -87,6 +87,37 @@ test("relatórios aplicam RLS, filtros e snapshots sem expor comissões à secre
     await asUser(outsider);await assert.rejects(closed(),/indisponível/);
     await db.exec('reset role;reset request.jwt.claim.sub');
     await db.exec(await readFile(new URL('20261103000100_reports.sql',migrations),'utf8'));
+    // Automação começa em outubro; relógio controlado só no banco proprietário de teste.
+    await asUser(secretary);
+    const octoberPayment=(await db.query<{id:string}>("insert into payments(installment_id,payment_date,amount_paid) values($1,'2026-10-20',500) returning id",[ia2])).rows[0].id;
+    await db.exec('reset role;reset request.jwt.claim.sub');
+    const run=async(time:string)=>(await db.query<{count:number}>("select private.run_automatic_closings($1::timestamptz) as count",[time])).rows[0].count;
+    assert.equal(await run('2026-11-01T02:58:00Z'),0);
+    assert.ok(await run('2026-11-01T02:59:00Z')>0);
+    assert.equal(await run('2026-11-01T02:59:00Z'),0,'execução repetida não duplica');
+    const auto=(await db.query<{id:string;automatic:boolean}>("select id,automatic from monthly_closings where lawyer_id=$1 and reference_year=2026 and reference_month=10",[lawyer])).rows[0];
+    assert.equal(auto.automatic,true);
+    await db.exec(await readFile(new URL('20261103000200_automatic_closings.sql',migrations),'utf8'));
+    assert.equal(await run('2026-11-01T02:59:00Z'),0,'reaplicar migration também é seguro');
+    assert.equal((await db.query("select id from monthly_closings where reference_year=2026 and reference_month<10")).rows.length,0);
+    const correct=async(mode:string,payment:string|null,amount:number|null)=>(await db.query<{id:string}>("select correct_closed_values($1,$2,$3,$4,$5::bigint,$6::date,$7) as id",[auto.id,mode,payment,ia2,amount,mode==='void'?null:'2026-10-20','Conferência do valor efetivamente recebido'])).rows[0].id;
+    await asUser(colleague);await assert.rejects(correct('replace',octoberPayment,60000),/indisponível/);
+    await asUser(outsider);await assert.rejects(correct('add',null,10000),/não autorizado/);
+    await asUser(secretary);await assert.rejects(correct('add',null,10000),/não autorizado/);
+    await asUser(lawyer);
+    await assert.rejects(db.query("select private.run_automatic_closings()"),/permission denied/);
+    await assert.rejects(db.query("select private.revise_closed_payment($1,'Tentativa direta',60000::bigint,'2026-10-20'::date)",[octoberPayment]),/permission denied/);
+    const replacement=await correct('replace',octoberPayment,60000);
+    await asUser(manager);
+    assert.ok((await db.query("select id from notifications where user_id=$1 and type='closing_correction'",[manager])).rows.length>0);
+    await correct('add',null,10000);
+    await asUser(lawyer);
+    await correct('void',replacement,null);
+    const final=(await db.query<{report:{items:{amount_received:number}[];closing:{office_adjustment_amount:number}}}>("select closed_month_report($1) as report",[auto.id])).rows[0].report;
+    assert.equal(Number(final.items[0].amount_received),500,'snapshot original não muda');
+    assert.equal(Number(final.closing.office_adjustment_amount),-400,'saldo final 100 recebido após correções');
+    assert.ok((await db.query("select id from notifications where user_id=$1 and type='closing_correction'",[lawyer])).rows.length>0);
+    await db.exec('reset role;reset request.jwt.claim.sub');
     await db.query("update profiles set active=false where id=$1",[lawyer]);
     await asUser(lawyer);await assert.rejects(report(),/não autorizado/);
  }finally{await db.close();}

@@ -157,6 +157,7 @@ Migrations novas desta etapa:
 | `20261028000300_user_avatars.sql` | Fotos privadas dos usuários, envio e remoção por admin do escritório, com auditoria e Storage protegido. Ver [fotos de usuários](docs/fotos-de-usuarios.md). |
 | `20261028000400_optional_profile_reason.sql` | Motivo opcional no gerenciamento de usuários; auditoria e proteções administrativas preservadas. |
 | `20261103000100_reports.sql` | Relatórios filtrados e de fechamentos, somente leitura, com RLS e isolamento por escritório/advogada. Ver [relatórios](docs/relatorios.md). |
+| `20261103000200_automatic_closings.sql` | Fechamento automático desde outubro/2026 e correções bilaterais auditadas. Ver [ativação do agendamento](docs/fechamento-automatico.md). |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 

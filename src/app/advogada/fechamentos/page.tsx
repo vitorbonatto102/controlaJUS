@@ -39,7 +39,7 @@ export default async function ClosingsPage() {
         <FinancialCard title="Recebido dos meus clientes no mês" value={formatBRL(wallet.current.receivedCents / 100)}
           hint="Valores recebidos pelo escritório, pela data do pagamento registrado." />
         <FinancialCard title="Minha comissão em apuração" value={formatBRL(wallet.current.generatedCents / 100)}
-          hint="Participação já gerada nos recebimentos. Aguarda a confirmação do gestor." />
+          hint="Participação já gerada nos recebimentos. Aguarda o fechamento automático no fim do mês." />
       </div>
       <p className={styles.description} style={{ marginTop: 16 }}>Prévia do mês: os valores acompanham os recebimentos e as correções registrados até o fechamento.</p>
     </section>}
