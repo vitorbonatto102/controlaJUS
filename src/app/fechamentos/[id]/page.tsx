@@ -1,4 +1,6 @@
 import Link from "next/link";
+import {PayoutAgendaView} from "@/components/payout-agenda";
+import {todayInSaoPaulo} from "@/lib/contracts/view";
 import {notFound,redirect} from "next/navigation";
 import {DashboardShell} from "@/components/dashboard-shell";
 import {ClosingCorrectionForm} from "@/components/closing-correction-form";
@@ -18,6 +20,7 @@ export default async function ClosedMonthPage({params}:{params:Promise<{id:strin
   const closing=(await loadClosings(profile.role==="lawyer"?profile.id:undefined)).find(c=>c.id===id);
   if(!closing||closing.status==="draft"||!closing.closed_at) notFound();
   const [report,contracts]=await Promise.all([loadClosedReport(profile,id),loadLawyerContracts(closing.lawyer_id)]);
+  const agenda=report.payoutAgenda;
   const month=`${closing.reference_year}-${String(closing.reference_month).padStart(2,"0")}`;
   const installments=contracts.flatMap(c=>c.installments.map(i=>({id:i.id,label:`${c.client_name} · ${c.service_name||c.origin} · parcela ${i.installment_number} · ${formatBRL(i.contractual_amount)}`})));
   const payments=contracts.flatMap(c=>c.installments.flatMap(i=>i.payments.filter(p=>!p.voided_at&&p.payment_date.startsWith(month)).map(p=>({id:p.id,
@@ -32,6 +35,6 @@ export default async function ClosedMonthPage({params}:{params:Promise<{id:strin
         <thead><tr>{s.columns.map(c=><th key={c.label}>{c.label}</th>)}</tr></thead><tbody>{s.rows.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j} style={{whiteSpace:"pre-line"}}>{v}</td>)}</tr>)}</tbody>
       </table></div>:<p>{s.empty}</p>}</section>)}
       {report.notes.map(n=><p key={n}>{n}</p>)}
-    </section><ClosingCorrectionForm closing={id} payments={payments} installments={installments}/>
+    </section><div id="agenda-repasses">{agenda ? <PayoutAgendaView agenda={agenda} manager={profile.role === "manager"} today={todayInSaoPaulo()} /> : <p>A agenda aguarda a atualização de repasses no Supabase.</p>}</div><ClosingCorrectionForm closing={id} payments={payments} installments={installments}/>
   </DashboardShell>;
 }

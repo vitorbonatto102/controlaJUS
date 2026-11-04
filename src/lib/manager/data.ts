@@ -14,6 +14,7 @@ export type ManagerWorkspace = {
   notes: OperationalNote[];
   lawyers: { id: string; full_name: string; active: boolean }[];
   terms: ContractCommissionTerms[];
+  commercialCommissions?: { payment_id: string; amount: number }[];
   contractTotals: { id: string; total_contract_value: number | null }[];
   commissions: { id: string; payment_id: string; lawyer_id: string;
     commission_percentage: number; commission_amount: number }[];
@@ -62,8 +63,13 @@ export async function loadManagerWorkspace(): Promise<ManagerWorkspace> {
           error: { message: string } | null;
         }>),
   ]);
+  const commercial = await allPages<{ payment_id: string; amount: number }>(async (from, to) => {
+    const { data, error } = await supabase.from("commercial_commissions").select("payment_id,amount").order("payment_id").range(from,to);
+    if (error && ["42P01","PGRST205"].includes(error.code)) return {data:[],error:null};
+    return {data,error};
+  });
   return {
-    ...operational, lawyers,
+    ...operational, lawyers, commercialCommissions: commercial ?? [],
     engagements: [...(await loadContractEngagements(operational.contracts.map((contract) => contract.id))).values()],
     terms: terms.map((item) => ({ ...item, commission_percentage: Number(item.commission_percentage) })),
     contractTotals: contractTotals.map((item) => ({ ...item,

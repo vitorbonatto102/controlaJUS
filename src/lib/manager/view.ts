@@ -12,9 +12,11 @@ export type ManagerPaymentRow = {
   status: string; corrected: boolean; replacesPaymentId: string | null;
   clientIds?: string[];
   commissionMode?: CommissionMode;
+  commercialCents?: number;
 };
 
 export function buildManagerPaymentRows(data: ManagerWorkspace, today: string): ManagerPaymentRow[] {
+  const commercialByPayment = new Map((data.commercialCommissions ?? []).map(item => [item.payment_id,item.amount]));
   const commissionByPayment = new Map(data.commissions.map((item) => [item.payment_id, item]));
   const corrections = new Set(data.audit.filter((item) => item.table_name === "payments")
     .map((item) => item.record_id));
@@ -35,6 +37,7 @@ export function buildManagerPaymentRows(data: ManagerWorkspace, today: string): 
         paidCents: numericToCents(payment.amount_paid), paymentDate: payment.payment_date,
         percentage: commission.commission_percentage,
         commissionCents: numericToCents(commission.commission_amount),
+        commercialCents: numericToCents(commercialByPayment.get(payment.id) ?? 0),
         status: installmentRow.status,
         corrected: Boolean(payment.replaces_payment_id || corrections.has(payment.id)),
         replacesPaymentId: payment.replaces_payment_id,
@@ -63,7 +66,8 @@ export function managerTotals(rows: ManagerPaymentRow[], transferredCents: numbe
   const clients = new Set(rows.flatMap((row) => row.clientIds ?? [row.clientId]));
   const receivedCents = rows.reduce((sum, row) => sum + row.paidCents, 0);
   const commissionCents = rows.reduce((sum, row) => sum + row.commissionCents, 0);
-  return { receivedCents, commissionCents, transferredCents,
+  const commercialCents = rows.reduce((sum,row)=>sum+(row.commercialCents ?? 0),0);
+  return { receivedCents, commissionCents, transferredCents, commercialCents, officeParticipationCents: receivedCents-commissionCents-commercialCents,
     pendingCents: commissionCents - transferredCents, clientCount: clients.size };
 }
 

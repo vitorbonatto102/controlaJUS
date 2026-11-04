@@ -42,6 +42,9 @@ export type ContractRecord = EngagementFields & {
   additional_fee_basis?: string | null;
   additional_fee_amount?: number | null;
   commission_percentage: number;
+  commercial_percentage?: number;
+  payout_day?: number;
+  first_payout_date?: string | null;
   commission_mode?: CommissionMode;
   commission_upfront_limit?: number | null;
   updated_at?: string;

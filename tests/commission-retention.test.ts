@@ -17,6 +17,21 @@ test("retenção integral consome as primeiras parcelas e limita a última reten
   assert.throws(() => projectContractCommissions(items, { ...terms, total_contract_value: null }, 0), /sem limite/);
 });
 
+test("tráfego divide a retenção e a previsão com o comercial, preservando limites e centavos", () => {
+  const terms = { commission_mode: "upfront" as const, commission_percentage: 5, commercial_percentage: 5, total_contract_value: 10000 };
+  const items = [1,2,3].map(i=>({id:String(i),dueDate:`2026-0${i}-10`,order:i,contractualCents:50000,paidCents:i===1?50000:0}));
+  const results = [...projectContractCommissions(items,terms,25000).values()];
+  assert.deepEqual(results.map(r=>r.estimatedCents),[25000,25000,0]);
+  assert.deepEqual(results.map(r=>r.remainingEstimatedCents),[0,25000,0]);
+  const pennies = [1,2,3,4].map(i=>({...items[0],id:String(i),order:i,contractualCents:1,paidCents:0}));
+  assert.deepEqual([...projectContractCommissions(pennies,{...terms,total_contract_value:.4},0).values()].map(r=>r.estimatedCents),[1,0,1,0]);
+  const values = {...blankContractForm,clientName:"Cliente Teste",cpf:"52998224725",serviceName:"Revisional",contractDate:"01/10/2026",
+    origin:"Tráfego HP",percentage:"5",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
+  assert.equal(prepareContract(values).payoutDay,15);
+  assert.equal(prepareContract({...values,origin:"Cliente próprio"}).payoutDay,1);
+  assert.throws(()=>prepareContract({...values,percentage:"10"}),/5%/);
+});
+
 test("previsão mensal não cobra a comissão novamente quando os primeiros recebimentos já a quitaram", () => {
   const contract: ContractRecord = { id: "c", client_id: "client", client_name: "Cliente Teste", client_cpf: null,
     origin: "Cliente próprio", contract_date: "2026-09-01", total_contract_value: 10000,

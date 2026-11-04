@@ -69,7 +69,7 @@ export async function saveLawyerContract(_state: ActionState, form: FormData): P
   if ((!!path !== !!name) || name.length > 255 || path.length > 500)
     return { error: "Confira o arquivo PDF.", success: null };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("edit_lawyer_contract_v2", {
+  const { error } = await supabase.rpc("edit_lawyer_contract_v3", {
     p_contract_id: id, p_expected_updated_at: version, p_reason: reason,
     p_changes: { ...prepared.changes, ...(path ? { contract_file_path: path, contract_file_name: name } : {}) },
     p_schedule: prepared.schedule,

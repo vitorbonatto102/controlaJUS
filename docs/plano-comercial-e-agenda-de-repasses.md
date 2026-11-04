@@ -1,6 +1,6 @@
 # Proposta: participação comercial e agenda de repasses
 
-Status: planejamento, sem alteração dos cálculos ou dos dados de produção. As decisões em aberto ao final precisam ser respondidas antes da implementação financeira.
+Status: decisões confirmadas e implementação em `20261103000400_commercial_payouts.sql`. Consulte [o funcionamento e a ativação](comercial-e-repasses.md). O restante deste documento registra o desenho discutido; a implementação usa duas rodadas por origem, com uma data mensal por contrato e pagamentos parciais registrados no histórico.
 
 ## Regras informadas para o escritório HP
 
@@ -77,10 +77,10 @@ Correções após fechamento mantêm o snapshot original, atualizam ajustes/obri
 
 Não aplicar automaticamente as novas regras aos contratos de tráfego antigos. O responsável precisa revisar a condição e a data de vigência, com prévia do impacto em recebimentos/comissões já gerados. Fechamentos confirmados e repasses existentes permanecem conciliáveis. Mudanças que alterem valores já consolidados entram como correções auditadas.
 
-## Decisões pendentes
+## Decisões confirmadas
 
-1. Confirmar que, na retenção integral de tráfego, os primeiros recebimentos são divididos 50/50 entre advogada e comercial até quitar os dois limites de 5% do contrato.
-2. Informar a divisão e as duas datas padrão dos repasses. Definir o marco dos 15 dias adicionais: acrescentar a cada vencimento normal ou outro critério.
-3. Esclarecer se “repasse imediato” significa somente retenção integral nos primeiros recebimentos ou pagamento pelo escritório antes do fechamento mensal.
+1. Tráfego: 5% para a advogada e 5% para o comercial. Na retenção integral, os primeiros recebimentos são divididos igualmente até quitar os dois limites.
+2. Clientes próprios e outras origens no início do mês (dia 1 como padrão editável). Somente Tráfego HP no dia 15, como dia fixo do calendário. São duas rodadas entre os grupos; não se presume parcelamento automático 50/50 de cada repasse.
+3. Retenção integral não é pagamento antecipado pelo escritório. O repasse continua após o fechamento mensal.
 
-Até essas respostas, não implementar fórmulas, criar datas padrão ou modificar repasses reais.
+Os campos da seção 04 foram ajustados para dia mensal e primeira data a partir da qual os repasses podem ocorrer. O gestor registra pagamentos parciais quando o mesmo repasse for pago em mais de uma vez. Previsões e pagamentos efetivos continuam separados.

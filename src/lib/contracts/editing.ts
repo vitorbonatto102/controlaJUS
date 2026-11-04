@@ -35,6 +35,8 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
     origin: contract.origin, percentage: String(contract.commission_percentage),
     commissionMode: contract.commission_mode ?? "proportional",
     commissionLimit: amount(contract.commission_upfront_limit),
+    commercialPercentage: String(contract.commercial_percentage ?? 0), payoutDay: String(contract.payout_day ?? (contract.origin === "Tráfego HP" ? 15 : 1)),
+    firstPayoutDate: contract.first_payout_date ? formatDateBR(contract.first_payout_date) : "",
   };
 }
 
@@ -67,7 +69,7 @@ export function prepareContractEdit(values: ContractFormValues, metadataOnly: bo
   const preview = prepareContract(values, { validateClient: false });
   if (preview.differenceCents !== 0) throw new Error("O total do cronograma deve ser igual ao valor do contrato.");
   const success = preview.method === "success_only";
-  return { changes: { ...base, commission_percentage: preview.percentage,
+  return { changes: { ...base, commercial_percentage: preview.commercialPercentage, payout_day: preview.payoutDay, first_payout_date: preview.firstPayoutDate, commission_percentage: preview.percentage,
     commission_mode: preview.commissionMode,
     commission_upfront_limit: success && preview.commissionLimitCents !== null ? preview.commissionLimitCents / 100 : null,
     total_contract_value: preview.totalCents === null ? null : preview.totalCents / 100,

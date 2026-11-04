@@ -2,14 +2,13 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { FinancialCard } from "@/components/financial-card";
-import { parseMoneyBR } from "@/lib/contracts/finance";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { emptyActionState } from "@/lib/action-state";
 import type { ManagerWorkspace } from "@/lib/manager/data";
 import { buildManagerPaymentRows, filterManagerRows, managerDelinquency,
-  managerTotals, transferDeadline, type ManagerPaymentRow } from "@/lib/manager/view";
+  managerTotals, type ManagerPaymentRow } from "@/lib/manager/view";
 import { correctField, correctPayment, recordLatePayment,
-  registerTransfer, reverseTransfer } from "@/app/gestor/actions";
+  reverseTransfer } from "@/app/gestor/actions";
 import type { AuditEntry, Closing } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
 import { contractClientLabel } from "@/lib/contracts/parties";
@@ -18,6 +17,7 @@ import { ClosingStatusNotice } from "@/components/closing-status-notice";
 import { closingAvailability } from "@/lib/finance/closing-period";
 import { ManagerContractInstallments } from "@/components/manager-contract-installments";
 import { commissionModeLabels } from "@/lib/contracts/commission-retention";
+import { PayoutTermsForm } from "./payout-terms-form";
 import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
 import { EngagementForm } from "@/components/contracts/engagement-form";
 import Link from "next/link";
@@ -159,25 +159,7 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
 }
 
 function TransferForm({ closing }: { closing: Closing }) {
-  const [state, action, pending] = useActionState(registerTransfer, emptyActionState);
-  const [amount, setAmount] = useState("");
-  const cents = parseMoneyBR(amount) ?? 0;
-  const pendingCents = Math.round(closing.amount_pending_transfer * 100);
-  return <details className="operation-details"><summary>Registrar repasse</summary>
-    <form action={action} className="operation-form">
-      <input type="hidden" name="closing_id" value={closing.id} />
-      <p>Registre aqui o valor pago pelo escritório à advogada, com a data em que o repasse foi realizado.</p>
-      <p>Comissão ajustada: {formatBRL(closing.commission_amount + closing.adjustment_amount)} ·
-        Já repassado: {formatBRL(closing.amount_already_transferred)} · Saldo: {formatBRL(closing.amount_pending_transfer)}</p>
-      <label>Novo repasse (R$)<input name="amount" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
-      <label>Data do pagamento<input name="payment_date" type="date" required /></label>
-      <label>Observação<textarea name="notes" maxLength={1000} /></label>
-      {cents > 0 && <p>Saldo após repasse: <strong>{money(pendingCents - cents)}</strong></p>}
-      {cents > pendingCents && <p className="form-error-box">O valor supera o saldo. Corrija o fechamento antes de registrar.</p>}
-      <button type="submit" className="primary-button" disabled={pending || cents > pendingCents}>Confirmar repasse</button>
-      <Feedback state={state} />
-    </form>
-  </details>;
+  return <p><Link className="secondary-button" href={`/fechamentos/${closing.id}#agenda-repasses`}>Registrar repasse por contrato →</Link></p>;
 }
 
 function ReverseTransferForm({ id }: { id: string }) {
@@ -245,6 +227,8 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
 
     <section className="card-grid manager-cards" aria-label="Resumo do período">
       <FinancialCard title="Recebido pelo escritório" value={money(totals.receivedCents)} hint="Pagamentos válidos no período" />
+      <FinancialCard title="Reserva comercial gerada" value={money(totals.commercialCents)} hint="Separada da comissão da advogada" />
+      <FinancialCard title="Participação dos gestores" value={money(totals.officeParticipationCents)} hint="Recebido menos comissão e reserva comercial; antes de despesas e tributos" />
       <FinancialCard title="Comissão gerada" value={money(totals.commissionCents)} hint="Sobre recebimentos efetivos" />
       <FinancialCard title="Já repassado" value={money(totals.transferredCents)} hint="Repasses ativos dos fechamentos" />
       <FinancialCard title="Saldo a repassar" value={money(totals.pendingCents)} hint="Comissão do período menos repasses" />
@@ -314,6 +298,8 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
               ({ value: String(item), label: `${item}%` }))} />}
           {term && <p className="field-hint">Comissões: {commissionModeLabels[term.commission_mode ?? "proportional"]}
             {term.commission_upfront_limit != null && ` · Limite definido: ${formatBRL(term.commission_upfront_limit)}`}</p>}
+          {term && <PayoutTermsForm contractId={contract.id} origin={contract.origin} commercial={term.commercial_percentage ?? 0}
+            day={term.payout_day ?? (contract.origin === "Tráfego HP" ? 15 : 1)} start={term.first_payout_date ?? null} />}
           {term && <ManagerCommissionTermsForm key={`${term.commission_mode}:${term.commission_upfront_limit}`}
             contractId={contract.id} mode={term.commission_mode ?? "proportional"} limit={term.commission_upfront_limit ?? null}
             totalKnown={data.contractTotals.find((item) => item.id === contract.id)?.total_contract_value != null} />}
@@ -336,14 +322,14 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
         year={Number(year)} rows={previewRows} today={today} />}
       {!periodClosings.length && !lawyerId && <p>Nenhum fechamento realizado neste período.</p>}
       <div className="closing-list">{periodClosings.map((closing) => {
-        const deadline = transferDeadline(closing.closed_at, Math.round(closing.amount_pending_transfer * 100), today);
+
         const lawyer = data.lawyers.find((item) => item.id === closing.lawyer_id);
         const transfers = data.transfers.filter((item) => item.closing_id === closing.id);
         const adjustments = data.adjustments.filter((item) => item.closing_id === closing.id);
         const items = data.items.filter((item) => item.closing_id === closing.id);
         return <article className="closing-card" key={closing.id}>
           <h3>{lawyer?.full_name ?? "Advogada"} · {months[closing.reference_month - 1]}/{closing.reference_year}</h3>
-          <p>{closingStatus[closing.status]}{deadline && ` · ${deadline.label}`}
+          <p>{closingStatus[closing.status]}
             {closing.closed_at && ` · Fechado em ${new Date(closing.closed_at).toLocaleDateString("pt-BR")}`}</p>
           {closing.status !== "draft" && closing.closed_at && <p><Link href={`/fechamentos/${closing.id}`}>Visualizar relatório / corrigir valores →</Link></p>}
           {closing.status !== "draft" && closing.closed_at && <DownloadReport href={`/relatorios/fechamentos/${closing.id}/pdf`} label="Emitir relatório do mês (PDF)" />}

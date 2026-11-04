@@ -11,6 +11,7 @@ export type CommissionTerms = {
   commission_mode?: CommissionMode;
   commission_upfront_limit?: number | null;
   total_contract_value: number | null;
+  commercial_percentage?: number;
 };
 
 export function commissionTargetCents(terms: CommissionTerms): number | null {
@@ -31,16 +32,22 @@ export function projectContractCommissions(items: ProjectionItem[], terms: Commi
   if (upfront && target === null) throw new Error("Contrato com retenção total sem limite de comissão definido.");
   let forecastBudget = target ?? 0;
   let remainingBudget = Math.max(0, forecastBudget - generatedCents);
+  const shared = upfront && (terms.commercial_percentage ?? 0) > 0;
+  let forecastCash = 0;
+  let remainingCash = items.reduce((sum, item) => sum + item.paidCents, 0);
   const ordered = [...items].sort((a, b) => a.dueDate.localeCompare(b.dueDate) ||
     a.order - b.order || a.id.localeCompare(b.id));
   for (const item of ordered) {
     const balance = Math.max(0, item.contractualCents - item.paidCents);
-    const estimatedCents = upfront ? Math.min(item.contractualCents, forecastBudget) :
+    const share = (cash: number, amount: number) => Math.round(Math.min(cash + amount, (target ?? 0) * 2) / 2) - Math.round(Math.min(cash, (target ?? 0) * 2) / 2);
+    const estimatedCents = upfront ? Math.min(forecastBudget, shared ? share(forecastCash, item.contractualCents) : item.contractualCents) :
       participationCents(item.contractualCents, terms.commission_percentage);
-    const remainingEstimatedCents = upfront ? Math.min(balance, remainingBudget) :
+    const remainingEstimatedCents = upfront ? Math.min(remainingBudget, shared ? share(remainingCash, balance) : balance) :
       participationCents(balance, terms.commission_percentage);
     forecastBudget -= upfront ? estimatedCents : 0;
     remainingBudget -= upfront ? remainingEstimatedCents : 0;
+    forecastCash += item.contractualCents;
+    remainingCash += balance;
     result.set(item.id, { estimatedCents, remainingEstimatedCents });
   }
   return result;

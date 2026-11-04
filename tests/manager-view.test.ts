@@ -56,7 +56,7 @@ test("gestor soma recebimentos por data efetiva e filtra advogada, mês e client
     client: "Cliente A", origin: "Cliente próprio", status: "" });
   assert.equal(september.length, 2);
   assert.deepEqual(managerTotals(september, 20000), {
-    receivedCents: 108000, commissionCents: 43200, transferredCents: 20000,
+    receivedCents: 108000, commissionCents: 43200, transferredCents: 20000, commercialCents: 0, officeParticipationCents: 64800,
     pendingCents: 23200, clientCount: 1,
   });
   const october = filterManagerRows(rows, { lawyerId: "lawyer-a", month: "10", year: "2024",

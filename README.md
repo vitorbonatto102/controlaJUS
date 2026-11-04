@@ -159,6 +159,7 @@ Migrations novas desta etapa:
 | `20261103000100_reports.sql` | Relatórios filtrados e de fechamentos, somente leitura, com RLS e isolamento por escritório/advogada. Ver [relatórios](docs/relatorios.md). |
 | `20261103000200_automatic_closings.sql` | Fechamento automático desde outubro/2026 e correções bilaterais auditadas. Ver [ativação do agendamento](docs/fechamento-automatico.md). |
 | `20261103000300_document_date_goals.sql` | Metas pela data de contratação do documento e acompanhamento individual da equipe pelo gestor. Ver [metas](docs/metas.md). |
+| `20261103000400_commercial_payouts.sql` | Reserva comercial de tráfego e agenda de repasses por contrato, com alocações, pagamentos parciais, estornos e RLS. Ver [comercial e repasses](docs/comercial-e-repasses.md). |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 

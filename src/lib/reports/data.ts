@@ -60,5 +60,5 @@ export async function loadClosedReport(profile: CurrentProfile, id: string) {
   if (error) reportFailure(error);
   const payload = data as ClosedReportData;
   if (!payload?.closing || !payload.office_name || !payload.lawyer_name) throw new ReportError("Fechamento indisponível.", 404);
-  return closingDocument(payload, profile.full_name, (data as { issued_at: string }).issued_at);
+  return { ...closingDocument(payload, profile.full_name, (data as { issued_at: string }).issued_at), payoutAgenda: payload.payout_agenda };
 }

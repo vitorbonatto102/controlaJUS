@@ -164,6 +164,12 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
         <input inputMode="numeric" maxLength={10} value={values.firstDue}
           onChange={(event) => set("firstDue", dateInput(event.target.value))} placeholder="DD/MM/AAAA" />
         <FieldNote note={note("firstDue")} /></label></div>}
+      <div className="condition-block"><h3>Repasses deste contrato</h3>
+        <p>O escritório paga após o fechamento do mês em que o cliente efetivamente pagar. Padrão: dia 1 para clientes próprios e outras origens; dia 15 para Tráfego HP.</p>
+        <div className="form-grid"><label>Dia do repasse no mês seguinte<input type="number" min="1" max="31" value={values.payoutDay || (values.origin === "Tráfego HP" ? "15" : "1")} onChange={e=>set("payoutDay",e.target.value)} /></label>
+          <label>Primeiro repasse a partir de (opcional)<input inputMode="numeric" maxLength={10} value={values.firstPayoutDate} onChange={e=>set("firstPayoutDate",dateInput(e.target.value))} placeholder="DD/MM/AAAA" /></label></div>
+        <small className="field-hint">A data inicial limita o começo dos repasses. A agenda final depende dos recebimentos e do fechamento; pagamentos parciais do escritório ficam registrados no histórico.</small>
+      </div>
       {values.paymentStartType === "condition" && <div className="condition-block">
         <label>Condição para início dos pagamentos
           <textarea maxLength={500} rows={3} value={values.paymentStartCondition}
@@ -181,6 +187,7 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
           <label>Vencimento da entrada<input inputMode="numeric" maxLength={10} value={values.entryDue}
             onChange={(event) => set("entryDue", dateInput(event.target.value))} placeholder="DD/MM/AAAA" /></label></div>}
       </>}</>}
+      {values.method === "success_only" && <div className="condition-block"><h3>Repasses após o êxito</h3><p>A agenda será apurada quando houver recebimento e fechamento. Você pode definir o dia do repasse para essa ocasião.</p><div className="form-grid"><label>Dia do repasse<input type="number" min="1" max="31" value={values.payoutDay || (values.origin === "Tráfego HP" ? "15" : "1")} onChange={e=>set("payoutDay",e.target.value)} /></label><label>Primeiro repasse a partir de (opcional)<input value={values.firstPayoutDate} onChange={e=>set("firstPayoutDate",dateInput(e.target.value))} placeholder="DD/MM/AAAA" inputMode="numeric" maxLength={10}/></label></div></div>}
     </section>
   </>;
 }
@@ -192,23 +199,24 @@ export function InternalFields({ values, set, note }: {
     <section className="form-panel"><Heading number="05" title="Informações internas"
       description="Origem e participação da advogada são definidos por você." />
       <div className="form-grid"><label>Origem da contratação<select value={values.origin}
-        onChange={(event) => set("origin", event.target.value)}><option value="">Selecione</option>
+        onChange={(event) => { const traffic = event.target.value === "Tráfego HP"; set("origin", event.target.value); set("commercialPercentage", traffic ? "5" : "0"); set("payoutDay", traffic ? "15" : "1"); if (traffic) set("percentage", "5"); }}><option value="">Selecione</option>
         {ORIGINS.map((origin) => <option key={origin}>{origin}</option>)}</select></label>
-        <label>Minha participação<select value={values.percentage}
+        <label>Minha participação<select disabled={values.origin === "Tráfego HP" && values.commercialPercentage !== "0"} value={values.percentage}
           onChange={(event) => set("percentage", event.target.value)}><option value="">Selecione</option>
           {PERCENTAGES.map((percentage) => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label></div>
+      {values.origin === "Tráfego HP" && <p className="field-hint">{values.commercialPercentage === "0" ? <>Contrato legado sem reserva comercial. <button type="button" className="text-button" onClick={()=>{set("commercialPercentage","5");set("percentage","5");}}>Aplicar divisão 5% advogada + 5% comercial</button></> : "Divisão: 5% advogada · 5% comercial · 90% gestores."}</p>}
       <fieldset className="commission-choice"><legend>Como será feito o pagamento das comissões deste contrato?</legend>
         <div className="payment-choice">{Object.entries(commissionModeLabels).map(([mode, label]) =>
           <label key={mode}><input type="radio" name="commission-mode" checked={values.commissionMode === mode}
             onChange={() => set("commissionMode", mode as CommissionMode)} />{label}</label>)}</div>
         <p className="field-hint">{values.commissionMode === "upfront" ?
-          "Os primeiros valores recebidos serão destinados integralmente à sua comissão até quitar o limite. Se necessário, a retenção continua nas parcelas seguintes." :
+          (values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? "Os primeiros recebimentos serão divididos entre advogada e comercial, até quitar os limites de 5% para cada um. O repasse será após o fechamento." : "Os primeiros valores recebidos serão destinados à sua comissão até quitar o limite. O repasse será após o fechamento.") :
           "Em cada pagamento recebido, sua comissão é calculada pelo percentual selecionado, do início ao fim do contrato."}</p>
         {values.commissionMode === "upfront" && (values.method === "success_only" ?
           <label>Limite total da minha comissão (R$)<input inputMode="decimal" value={values.commissionLimit}
             onChange={(event) => set("commissionLimit", event.target.value)}
             onBlur={() => set("commissionLimit", moneyInput(values.commissionLimit))} placeholder="R$ 0,00" />
-            <small className="field-hint">Informe o valor máximo da comissão da advogada para este contrato sem valor definido.</small></label> :
+            <small className="field-hint">Informe o valor máximo da comissão da advogada para este contrato sem valor definido.{values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? " O comercial terá o mesmo limite, com divisão dos primeiros recebimentos entre ambos." : ""}</small></label> :
           <p className="field-hint">O limite é o valor total do contrato multiplicado pelo seu percentual de participação.</p>)}
       </fieldset>
     </section>
@@ -261,6 +269,8 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
         <div><dt>Pagamento das comissões</dt><dd>{commissionModeLabels[preview.commissionMode]}</dd></div>
         {preview.commissionMode === "upfront" && preview.commissionLimitCents !== null &&
           <div><dt>Limite total da comissão</dt><dd>{formatBRL(preview.commissionLimitCents / 100)}</dd></div>}
+        <div><dt>Reserva comercial</dt><dd>{preview.commercialPercentage}%</dd></div>
+        <div><dt>Repasse após fechamento</dt><dd>Dia {preview.payoutDay} do mês seguinte{preview.firstPayoutDate ? ` · a partir de ${formatDateBR(preview.firstPayoutDate)}` : ""}</dd></div>
         <div><dt>PDF</dt><dd>{file?.name ?? existingFileName ?? "Cadastro manual sem PDF"}</dd></div></dl>
       {!successOnly && values.hasAdditionalFee && <p className="review-additional">
         Honorários adicionais previstos: {values.additionalFeePercentage ? `${values.additionalFeePercentage}%` : "percentual não informado"} sobre {
@@ -444,14 +454,14 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v4", {
+      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v5", {
         p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
           ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
         p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
         p_file_path: filePath, p_file_name: file?.name ?? null,
       });
       if (saveError) throw new Error(saveError.code === "PGRST202" ?
-        "Peça ao administrador para aplicar a atualização das formas de comissão no Supabase." : saveError.message);
+        "Peça ao administrador para aplicar a atualização de reserva comercial e repasses no Supabase." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();
