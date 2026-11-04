@@ -6,7 +6,7 @@ No cadastro manual ou por PDF, em **Informações internas**, a advogada respond
 
 **Como será feito o pagamento das comissões deste contrato?**
 
-- **Retenção proporcional em cada parcela:** comportamento anterior. Cada recebimento gera comissão sobre o valor efetivamente pago, incluindo juros e multa, pelo percentual gravado no contrato.
+- **Retenção proporcional em cada parcela:** cada pagamento registrado gera comissão pelo percentual gravado no contrato. Desde 04/11/2026, os novos lançamentos informam o valor pago da parcela sem os juros pagos pelo cliente.
 - **Retenção total no primeiro acerto:** os primeiros recebimentos são destinados integralmente à comissão, limitados à participação contratada. Se o primeiro recebimento não quitar a comissão, a retenção continua nos seguintes; quando o limite é alcançado, os demais recebimentos geram comissão zero. A parcela em que o limite é atingido retém somente o saldo necessário.
 
 O percentual e a forma de retenção são escolhas independentes. O sistema não presume a forma pelo percentual ou pela origem. Contratos existentes permanecem proporcionais; a migration não altera comissões já registradas.

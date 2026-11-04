@@ -18,7 +18,7 @@ A abertura da página destaca somente a previsão do mês selecionado:
 Recebimentos efetivos, saldo a receber do escritório, gráficos e fechamentos ficam na seção recolhida **Recebimentos, repasses e histórico**:
 
 - **Contratos fechados no mês:** contagem pela data do contrato dentro do mês selecionado, até a data atual em São Paulo. Inclui contratos sem valor definido e independe do recebimento ou do cronograma. O mês anterior aparece como comparação abaixo do número principal. Cliente e origem seguem os filtros selecionados; datas futuras não contam como contratos já fechados.
-- **Recebido dos clientes:** soma de cada pagamento válido pela sua própria data, mesmo quando a parcela venceu em outro mês. Inclui juros e multa efetivamente recebidos.
+- **Recebido dos clientes:** soma de cada pagamento válido pela sua própria data, mesmo quando a parcela venceu em outro mês. Desde 04/11/2026, novos lançamentos excluem os juros pagos pelo cliente; valores históricos permanecem como registrados, salvo correção auditada.
 - **Comissão gerada:** soma das comissões persistidas dos pagamentos válidos. Não é recalculada com percentuais atuais nem substituída por uma estimativa quando não há comissão registrada.
 - **Previsão para os próximos meses:** considera o saldo positivo das parcelas, a forma de retenção e as comissões já geradas. Na retenção integral, a previsão para de gerar participação quando o limite da comissão já foi quitado. Pagamentos antecipados saem dessa previsão de saldo restante. Não é uma promessa de data de repasse.
 - **Participação em atraso:** a mesma estimativa de saldo pendente para vencimentos anteriores à data atual em São Paulo, incluindo parcelas parcialmente pagas.

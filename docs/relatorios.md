@@ -25,7 +25,7 @@ Datas usam DD/MM/AAAA e o calendário de America/Sao_Paulo. Pagamentos estornado
 
 O nome e o CPF pesquisam qualquer contratante do contrato sem multiplicar valores por pessoa. Nomes e serviços são buscas literais parciais; CPF é exato, com 11 dígitos. Os valores a apurar em contratos de êxito não são inventados. A data do documento não prova assinatura/fechamento comercial.
 
-A comissão dos recebimentos vem da tabela `commissions`, com o valor efetivo já calculado pelo sistema. Não há recálculo proporcional que ignore retenção integral, multa ou juros. Um pagamento sem comissão registrada aparece como **A apurar** e fica fora do total de comissões, com uma nota explicativa.
+A comissão dos recebimentos vem da tabela `commissions`, com o valor efetivo já calculado pelo sistema e a forma de retenção do contrato. Desde 04/11/2026, novos lançamentos devem excluir os juros pagos pelo cliente. Não há subtração automática de valores presumidos nem alteração retroativa dos demais pagamentos. Um pagamento sem comissão registrada aparece como **A apurar** e fica fora do total de comissões, com uma nota explicativa.
 
 ## Fechamento completo e histórico
 

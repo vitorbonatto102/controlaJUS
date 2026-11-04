@@ -164,6 +164,8 @@ Migrations novas desta etapa:
 | `20261103000600_commercial_recipient.sql` | Nome do beneficiário comercial no contrato, snapshots e identificação dos repasses, com revisão auditada. |
 | `20261104000100_custom_commercial_percentages.sql` | Percentuais editáveis de advogada/comercial no tráfego, soma limitada a 100% e retenção integral pelos limites individuais. |
 
+Novos pagamentos desde 04/11/2026 excluem os juros pagos pelo cliente. Ver [registro de pagamentos](docs/registro-de-pagamentos.md) para a orientação de lançamento e correção de meses fechados.
+
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 
 ## Rodar e verificar

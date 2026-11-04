@@ -5,6 +5,7 @@ import { addCollectionNote, registerPayment, revisePayment } from "@/app/secreta
 import { emptyActionState } from "@/lib/action-state";
 import { noteTypeLabels, type OperationalContract } from "@/lib/secretary/view";
 import { formatBRL } from "@/lib/formatters";
+import { PaymentAmountField } from "@/components/payment-amount-field";
 
 function ActionFeedback({ error, success }: { error: string | null; success: string | null }) {
   return <>{error && <p className="form-error-box" role="alert">{error}</p>}
@@ -29,8 +30,7 @@ export function PaymentForm({ clientId, installmentId, contractualCents, dueDate
     <form action={action} className="operation-form">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="installment_id" value={installmentId} />
-      <label>Valor efetivamente recebido (R$)<input name="amount_paid" inputMode="decimal"
-        defaultValue={formatBRL(contractualCents / 100).replace(/^R\$\s*/, "")} required /></label>
+      <PaymentAmountField name="amount_paid" defaultValue={formatBRL(contractualCents / 100).replace(/^R\$\s*/, "")} />
       <label>Data do pagamento<input name="payment_date" type="date" defaultValue={dueDate} required /></label>
       <label>Observação (opcional)<textarea name="observation" maxLength={1000} rows={2} /></label>
       <button className="primary-button" disabled={pending} type="submit">{pending ? "Registrando…" : "Confirmar pagamento"}</button>
@@ -76,7 +76,7 @@ function PaymentRevisionForm({ clientId, paymentId, amount, date, mode }: Paymen
       <input type="hidden" name="payment_id" value={paymentId} />
       <input type="hidden" name="mode" value={mode} />
       {mode === "void" && <p className="operation-wide">O registro será retirado do total recebido e o saldo da parcela será recalculado. O histórico será preservado.</p>}
-      {mode === "replace" && <><label>Novo valor (R$)<input name="amount_paid" defaultValue={amount} inputMode="decimal" required /></label>
+      {mode === "replace" && <><PaymentAmountField name="amount_paid" defaultValue={amount} correction />
         <label>Nova data<input name="payment_date" type="date" defaultValue={date} required /></label></>}
       <label>Motivo da {mode === "void" ? "exclusão" : "edição"}<textarea name="reason" minLength={5} maxLength={1000} rows={2} required /></label>
       <button className="secondary-button" disabled={pending} type="submit">{pending ? "Salvando…" :

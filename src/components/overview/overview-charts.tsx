@@ -73,6 +73,6 @@ export function OverviewDistribution({ origins, total }: { origins: { origin: st
         <strong>{money(origin.cents)}</strong><small>{Math.round(origin.cents / total * 100)}% do total</small>
       </li>)}{total === 0 && <li className={styles.distributionEmpty}>Os recebimentos registrados vão compor esta visão.</li>}</ul>
     </div>
-    <p className={styles.panelFootnote}>Inclui sua participação sobre multas e juros efetivamente recebidos.</p>
+    <p className={styles.panelFootnote}>Participação sobre os valores registrados. Novos lançamentos não incluem juros.</p>
   </section>;
 }

@@ -18,6 +18,7 @@ import { closingAvailability } from "@/lib/finance/closing-period";
 import { ManagerContractInstallments } from "@/components/manager-contract-installments";
 import { commissionModeLabels } from "@/lib/contracts/commission-retention";
 import { PayoutTermsForm } from "./payout-terms-form";
+import { PaymentAmountField } from "@/components/payment-amount-field";
 import { ManagerCommissionTermsForm } from "@/components/manager-commission-terms-form";
 import { EngagementForm } from "@/components/contracts/engagement-form";
 import Link from "next/link";
@@ -114,7 +115,7 @@ function PaymentCorrection({ row }: { row: ManagerPaymentRow }) {
       <label>Ação<select name="mode" value={mode} onChange={(event) => setMode(event.target.value)}>
         <option value="replace">Estornar e substituir</option><option value="void">Somente estornar</option>
       </select></label>
-      {mode === "replace" && <><label>Novo valor (R$)<input name="amount" defaultValue={(row.paidCents / 100).toFixed(2).replace(".", ",")} required /></label>
+      {mode === "replace" && <><PaymentAmountField name="amount" defaultValue={(row.paidCents / 100).toFixed(2).replace(".", ",")} correction />
         <label>Nova data<input name="payment_date" type="date" defaultValue={row.paymentDate} required /></label></>}
       <label>Motivo<textarea name="reason" minLength={5} maxLength={1000} required /></label>
       <button type="submit" className="secondary-button" disabled={pending}>Confirmar correção</button>
@@ -128,7 +129,7 @@ function LatePaymentForm({ installmentId }: { installmentId: string }) {
   return <details className="operation-details"><summary>Lançamento complementar</summary>
     <form action={action} className="operation-form">
       <input type="hidden" name="installment_id" value={installmentId} />
-      <label>Valor recebido (R$)<input name="amount" required /></label>
+      <PaymentAmountField name="amount" />
       <label>Data do recebimento<input name="payment_date" type="date" required /></label>
       <label>Observação<textarea name="observation" maxLength={1000} /></label>
       <label>Motivo do lançamento posterior<textarea name="reason" minLength={5} maxLength={1000} required /></label>

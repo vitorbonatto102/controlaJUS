@@ -46,7 +46,7 @@ export function ParticipationChart({ months, referenceMonth }: { months: WalletM
         </tr></thead><tbody>{months.map((month) => <tr key={month.month}><td>{monthLabel(month.month)}</td>
           <td>{money(month.estimatedCents)}</td><td>{money(month.generatedCents)}</td></tr>)}</tbody></table></div></details>
     </>}
-    <p className={styles.balanceNote} style={{ color: "var(--muted)" }}>Previsto pelo vencimento; efetivo pela data de cada pagamento, incluindo juros e multas recebidos.</p>
+    <p className={styles.balanceNote} style={{ color: "var(--muted)" }}>Previsto pelo vencimento; efetivo pela data de cada pagamento registrado, sem incluir juros nos novos lançamentos.</p>
   </section>;
 }
 

@@ -2,6 +2,7 @@
 import {useActionState,useState} from "react";
 import {correctClosedValues} from "@/app/fechamentos/[id]/actions";
 import {emptyActionState} from "@/lib/action-state";
+import {PaymentAmountField} from "@/components/payment-amount-field";
 
 export function ClosingCorrectionForm({closing,payments,installments}:{closing:string;
   payments:{id:string;label:string}[];installments:{id:string;label:string}[]}) {
@@ -18,7 +19,7 @@ export function ClosingCorrectionForm({closing,payments,installments}:{closing:s
         {installments.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label>:
         <label>Recebimento<select name="payment" required defaultValue=""><option value="" disabled>Selecione o recebimento</option>
           {payments.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label>}
-      {mode!=="void"&&<><label>Valor efetivamente recebido (R$)<input name="amount" inputMode="decimal" placeholder="0,00" required/></label>
+      {mode!=="void"&&<><PaymentAmountField name="amount" correction={mode==="replace"}/>
         <label>Data real do pagamento neste mês<input name="date" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" required/></label></>}
       <label>Por que está corrigindo?<textarea name="reason" minLength={5} maxLength={1000} required/></label>
       <button className="primary-button" disabled={pending}>{pending?"Salvando…":"Salvar correção e notificar"}</button>
