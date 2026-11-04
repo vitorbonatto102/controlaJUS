@@ -6,6 +6,7 @@ import { parseMoneyBR } from "@/lib/contracts/finance";
 import { brazilianToIso } from "@/lib/contracts/registration";
 import { isReportId } from "@/lib/reports/model";
 import type { ActionState } from "@/lib/action-state";
+import { PERCENTAGES } from "@/lib/contracts/validation";
 
 function refresh(id: string) {
   for (const path of ["/gestor", "/advogada", "/advogada/carteira", "/advogada/fechamentos", "/notificacoes", "/advogada/notificacoes", `/fechamentos/${id}`]) revalidatePath(path);
@@ -42,7 +43,7 @@ export async function savePayoutTerms(_state: ActionState, form: FormData): Prom
   const commercialRecipientName = String(form.get("commercialRecipientName") ?? "").trim();
   let start: string | null = null;
   try { if (rawStart) start = brazilianToIso(rawStart); } catch { return { error: "Informe a data inicial em DD/MM/AAAA.", success: null }; }
-  if (!isReportId(contract) || ![0, 5].includes(commercial) || !Number.isInteger(day) || day < 1 || day > 31 || reason.length < 5 || reason.length > 1000 ||
+  if (!isReportId(contract) || (commercial !== 0 && !PERCENTAGES.some(item => item === commercial)) || !Number.isInteger(day) || day < 1 || day > 31 || reason.length < 5 || reason.length > 1000 ||
     (commercial > 0 && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160)))
     return { error: "Confira a reserva, o dia e o motivo.", success: null };
   const supabase = await createClient();

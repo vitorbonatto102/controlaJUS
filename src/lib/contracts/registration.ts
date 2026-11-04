@@ -95,8 +95,9 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
       (commissionLimitCents === null || commissionLimitCents <= 0 || commissionLimitCents > 99999999999999))
     throw new Error("Informe o limite total da comissão da advogada para este contrato apenas no êxito.");
   const commercialPercentage = values.commercialPercentage === "" ? (values.origin === "Tráfego HP" ? 5 : 0) : Number(values.commercialPercentage);
-  if (![0, 5].includes(commercialPercentage) || (commercialPercentage > 0 && (values.origin !== "Tráfego HP" || percentage !== 5)))
-    throw new Error("A reserva comercial de tráfego exige 5% para a advogada e 5% para o comercial.");
+  if (commercialPercentage !== 0 && (!PERCENTAGES.some(item => item === commercialPercentage) || values.origin !== "Tráfego HP"))
+    throw new Error("Selecione um percentual permitido para o comercial de Tráfego HP.");
+  if (percentage + commercialPercentage > 100) throw new Error("A soma das participações da advogada e do comercial não pode ultrapassar 100%.");
   const commercialRecipientName = commercialPercentage > 0 ? values.commercialRecipientName.trim() : null;
   if (commercialRecipientName !== null && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160 || /[\u0000-\u001f\u007f]/.test(commercialRecipientName)))
     throw new Error("Informe o nome de quem receberá a comissão do comercial (2 a 160 caracteres).");

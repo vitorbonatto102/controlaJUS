@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { commissionTargetCents, projectContractCommissions } from "../src/lib/contracts/commission-retention";
+import { commercialTargetCents, commissionTargetCents, projectContractCommissions } from "../src/lib/contracts/commission-retention";
 import { blankContractForm, prepareContract } from "../src/lib/contracts/registration";
 import { buildWallet } from "../src/lib/contracts/wallet";
 import type { ContractRecord } from "../src/lib/contracts/view";
@@ -29,10 +29,24 @@ test("tráfego divide a retenção e a previsão com o comercial, preservando li
     origin:"Tráfego HP",percentage:"5",commercialRecipientName:"Marina Comercial",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
   assert.equal(prepareContract(values).payoutDay,15);
   assert.equal(prepareContract({...values,origin:"Cliente próprio"}).payoutDay,1);
-  assert.throws(()=>prepareContract({...values,percentage:"10"}),/5%/);
+  assert.equal(prepareContract({...values,percentage:"10",commercialPercentage:"15"}).commercialPercentage,15);
+  assert.throws(()=>prepareContract({...values,percentage:"60",commercialPercentage:"45"}),/100%/);
+  assert.throws(()=>prepareContract({...values,commercialPercentage:"7"}),/percentual permitido/);
   assert.equal(prepareContract({...values,commercialRecipientName:"  Marina Comercial  "}).commercialRecipientName,"Marina Comercial");
   assert.throws(()=>prepareContract({...values,commercialRecipientName:""}),/nome/);
   assert.throws(()=>prepareContract({...values,commercialRecipientName:"A".repeat(161)}),/nome/);
+});
+
+test("retenção integral personalizável divide pelos limites individuais sem perder centavos", () => {
+  const terms = {commission_mode:"upfront" as const,commission_percentage:10,commercial_percentage:5,total_contract_value:10000};
+  const items=[1,2,3].map(i=>({id:String(i),dueDate:`2026-0${i}-10`,order:i,contractualCents:60000,paidCents:i===1?60000:0}));
+  assert.equal(commercialTargetCents(terms),50000);
+  const results=[...projectContractCommissions(items,terms,40000).values()];
+  assert.deepEqual(results.map(row=>row.estimatedCents),[40000,40000,20000]);
+  assert.deepEqual(results.map(row=>row.remainingEstimatedCents),[0,40000,20000]);
+  assert.equal(commercialTargetCents({...terms,total_contract_value:null,commission_upfront_limit:1000,commercial_percentage:15}),150000);
+  const pennies=[1,2,3,4,5,6].map(i=>({...items[0],id:String(i),order:i,contractualCents:1,paidCents:0}));
+  assert.deepEqual([...projectContractCommissions(pennies,{...terms,commission_percentage:5,commercial_percentage:10,total_contract_value:.4},0).values()].map(row=>row.estimatedCents),[0,1,0,0,1,0]);
 });
 
 test("previsão mensal não cobra a comissão novamente quando os primeiros recebimentos já a quitaram", () => {

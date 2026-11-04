@@ -124,6 +124,29 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     assert.equal(Number(rows.find(r=>r.contract_id===proportional.id&&r.recipient==='lawyer')?.amount),50);
     const snapshot=(await db.query<{amount:string}>("select commercial_amount as amount from monthly_closing_items where closing_id=$1 and payment_id=$2",[closing,pp])).rows[0];
     assert.equal(Number(snapshot.amount),54,'snapshot comercial original preservado');
+    await db.query("select save_contract_payout_terms_v2($1,10,22,null,'Percentual comercial personalizado pelo gestor','Outra pessoa comercial')",[traffic.id]);
+    assert.equal(Number((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.amount),1000,'reserva personalizada gera ajuste no fechamento');
+    assert.equal(Number((await db.query<{amount:string}>("select sum(commercial_amount) as amount from monthly_closing_items s join payments p on p.id=s.payment_id join installments i on i.id=p.installment_id where s.closing_id=$1 and i.contract_id=$2",[closing,traffic.id])).rows[0].amount),500,'composição original preservada');
+    await assert.rejects(db.query("select save_contract_payout_terms_v2($1,10,1,null,'Tentativa de comercial em outra origem','Pessoa comercial')",[normal.id]),/Tráfego HP/);
+    await asUser(lawyer);
+    await assert.rejects(db.query("select create_lawyer_contract_v6($1,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",[
+      randomUUID(),JSON.stringify([{fullName:traffic.values.clientName,cpf:traffic.values.cpf}]),
+      JSON.stringify({...preparedTraffic.changes,commission_percentage:60,commercial_percentage:60}),JSON.stringify(preparedTraffic.schedule)]),/100/);
+    const editable=await create({origin:'Tráfego HP',percentage:'5',commercialPercentage:'60'});
+    const edited=prepareContractEdit({...editable.values,percentage:'50',commercialPercentage:'50'},false);
+    const version=(await db.query<{version:string}>("select updated_at::text as version from contracts where id=$1",[editable.id])).rows[0].version;
+    await db.query("select edit_lawyer_contract_v4($1,$2::timestamptz,$3::jsonb,$4::jsonb,'Percentuais personalizados antes dos pagamentos')",[editable.id,version,JSON.stringify(edited.changes),JSON.stringify(edited.schedule)]);
+    assert.deepEqual((await db.query("select commission_percentage,commercial_percentage from contract_financial_terms where contract_id=$1",[editable.id])).rows[0],{commission_percentage:'50.00',commercial_percentage:50});
+    const unequal=await create({origin:'Tráfego HP',percentage:'10',commercialPercentage:'5'});
+    for(let n=0;n<3;n++) await pay(unequal.installments[n].id,`2003-01-0${n+1}`,600);
+    assert.deepEqual(await amounts(unequal.id),[400,400,200]);
+    await asUser(manager);
+    assert.deepEqual((await db.query<{amount:string}>("select cc.amount from commercial_commissions cc join payments p on p.id=cc.payment_id join installments i on i.id=p.installment_id where i.contract_id=$1 order by p.payment_date,p.created_at,p.id",[unequal.id])).rows.map(r=>Number(r.amount)),[200,200,100]);
+    const customProportional=await create({origin:'Tráfego HP',percentage:'10',commercialPercentage:'15',commissionMode:'proportional'});
+    const customPayment=await pay(customProportional.installments[0].id,'2003-02-01',1080);
+    assert.deepEqual(await amounts(customProportional.id),[108]);
+    await asUser(manager);
+    assert.equal(Number((await db.query<{amount:string}>("select amount from commercial_commissions where payment_id=$1",[customPayment])).rows[0].amount),162);
     await asUser(lawyer);
     await assert.rejects(db.query("select save_contract_payout_terms_v2($1,5,15,null,'Tentativa de mudar beneficiário após pagamento','Outra pessoa')",[traffic.id]),/movimentado/);
     await assert.rejects(db.query("select private.save_commercial_recipient($1,'Outra pessoa','Tentativa direta')",[traffic.id]),/permission denied/);
@@ -151,6 +174,8 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await db.exec(await readFile(new URL('20261103000400_commercial_payouts.sql',migrations),'utf8'));
     await db.exec(await readFile(new URL('20261103000600_commercial_recipient.sql',migrations),'utf8'));
     await db.exec(await readFile(new URL('20261103000600_commercial_recipient.sql',migrations),'utf8'));
+    await db.exec(await readFile(new URL('20261104000100_custom_commercial_percentages.sql',migrations),'utf8'));
+    await db.exec(await readFile(new URL('20261104000100_custom_commercial_percentages.sql',migrations),'utf8'));
     await asUser(manager);assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id)?.due_date,'2001-02-20','reaplicação não reescreve a data revisada');
     assert.ok(first);
   } finally {await db.close();}

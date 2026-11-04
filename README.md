@@ -162,6 +162,7 @@ Migrations novas desta etapa:
 | `20261103000400_commercial_payouts.sql` | Reserva comercial de tráfego e agenda de repasses por contrato, com alocações, pagamentos parciais, estornos e RLS. Ver [comercial e repasses](docs/comercial-e-repasses.md). |
 | `20261103000500_report_multiple_origins.sql` | Seleção de várias origens nos relatórios, mantendo a RLS e uma única consulta consistente para os totais. |
 | `20261103000600_commercial_recipient.sql` | Nome do beneficiário comercial no contrato, snapshots e identificação dos repasses, com revisão auditada. |
+| `20261104000100_custom_commercial_percentages.sql` | Percentuais editáveis de advogada/comercial no tráfego, soma limitada a 100% e retenção integral pelos limites individuais. |
 
 Tabelas existentes: `profiles`, `clients`, `contracts`, `contract_financial_terms`, `installments`, `payments`, `commissions`, `collection_notes`, `monthly_closings`, `audit_logs`, `notifications`. Novas tabelas: `offices`, `monthly_closing_items`, `closing_adjustments`, `commission_transfers`, `lawyer_monthly_goals`. Índices cobrem escritório, advogada, período, data de pagamento, vencimento, repasses, notificações e busca de auditoria por registro.
 

@@ -206,27 +206,31 @@ export function InternalFields({ values, set, note }: {
           if (!traffic) set("commercialRecipientName", "");
         }}><option value="">Selecione</option>
         {ORIGINS.map((origin) => <option key={origin}>{origin}</option>)}</select></label>
-        <label>Minha participação<select disabled={values.origin === "Tráfego HP" && values.commercialPercentage !== "0"} value={values.percentage}
+        <label>Minha participação<select value={values.percentage}
           onChange={(event) => set("percentage", event.target.value)}><option value="">Selecione</option>
           {PERCENTAGES.map((percentage) => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label></div>
-      {values.origin === "Tráfego HP" && <p className="field-hint">{values.commercialPercentage === "0" ? <>Contrato legado sem reserva comercial. <button type="button" className="text-button" onClick={()=>{set("commercialPercentage","5");set("percentage","5");}}>Aplicar divisão 5% advogada + 5% comercial</button></> : "Divisão: 5% advogada · 5% comercial · 90% gestores."}</p>}
-      {values.origin === "Tráfego HP" && values.commercialPercentage !== "0" && <div className="form-grid" style={{marginTop:16}}><label className="span-2">Quem receberá a comissão do comercial?
+      {values.origin === "Tráfego HP" && <div className="form-grid" style={{marginTop:16}}>
+        <label>Participação do comercial<select value={values.commercialPercentage || "5"} onChange={event => set("commercialPercentage", event.target.value)}>
+          <option value="0">Sem participação</option>{PERCENTAGES.map(percentage => <option key={percentage} value={percentage}>{percentage}%</option>)}
+        </select></label>
+        {values.commercialPercentage !== "0" && <label>Quem receberá a comissão do comercial?
         <input value={values.commercialRecipientName} onChange={event => set("commercialRecipientName", event.target.value)}
           minLength={2} maxLength={160} required placeholder="Nome do beneficiário comercial" autoComplete="off" />
-        <small className="field-hint">Esse nome identifica o beneficiário dos 5% do comercial na agenda de repasses.</small></label></div>}
+        <small className="field-hint">Esse nome identifica o beneficiário comercial na agenda de repasses.</small></label>}
+      </div>}
       {values.origin && values.origin !== "Tráfego HP" && <p className="field-hint">O percentual sugerido pode ser personalizado em “Minha participação”.</p>}
       <fieldset className="commission-choice"><legend>Como será feito o pagamento das comissões deste contrato?</legend>
         <div className="payment-choice">{Object.entries(commissionModeLabels).map(([mode, label]) =>
           <label key={mode}><input type="radio" name="commission-mode" checked={values.commissionMode === mode}
             onChange={() => set("commissionMode", mode as CommissionMode)} />{label}</label>)}</div>
         <p className="field-hint">{values.commissionMode === "upfront" ?
-          (values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? "Os primeiros recebimentos serão divididos entre advogada e comercial, até quitar os limites de 5% para cada um. O repasse será após o fechamento." : "Os primeiros valores recebidos serão destinados à sua comissão até quitar o limite. O repasse será após o fechamento.") :
+          (values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? "Os primeiros recebimentos serão divididos conforme as participações escolhidas, até quitar os limites de cada parte. O repasse será após o fechamento." : "Os primeiros valores recebidos serão destinados à sua comissão até quitar o limite. O repasse será após o fechamento.") :
           "Em cada pagamento recebido, sua comissão é calculada pelo percentual selecionado, do início ao fim do contrato."}</p>
         {values.commissionMode === "upfront" && (values.method === "success_only" ?
           <label>Limite total da minha comissão (R$)<input inputMode="decimal" value={values.commissionLimit}
             onChange={(event) => set("commissionLimit", event.target.value)}
             onBlur={() => set("commissionLimit", moneyInput(values.commissionLimit))} placeholder="R$ 0,00" />
-            <small className="field-hint">Informe o valor máximo da comissão da advogada para este contrato sem valor definido.{values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? " O comercial terá o mesmo limite, com divisão dos primeiros recebimentos entre ambos." : ""}</small></label> :
+            <small className="field-hint">Informe o valor máximo da comissão da advogada para este contrato sem valor definido.{values.origin === "Tráfego HP" && values.commercialPercentage !== "0" ? " O limite do comercial será calculado na proporção entre os percentuais escolhidos." : ""}</small></label> :
           <p className="field-hint">O limite é o valor total do contrato multiplicado pelo seu percentual de participação.</p>)}
       </fieldset>
     </section>

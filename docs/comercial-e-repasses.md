@@ -8,17 +8,19 @@ Nenhum SQL foi aplicado automaticamente ao Supabase de produção. Publique o c�
 
 Para a atualização de identificação do comercial, execute somente `supabase/migrations/20261103000600_commercial_recipient.sql` após as anteriores. Não preenche nomes fictícios, não recalcula valores antigos e não requer novas variáveis.
 
+Para personalizar os percentuais do tráfego, execute somente `supabase/migrations/20261104000100_custom_commercial_percentages.sql`, depois das anteriores. A migration é reaplicável e não recalcula contratos antigos. Remove a trava de 5% no banco, mantendo autenticação, RLS, locks e auditoria existentes.
+
 ## Regra confirmada
 
-Novos contratos de **Tráfego HP** usam 5% para a advogada e 5% para o comercial. Na retenção proporcional, cada recebimento efetivo gera os dois percentuais. Na integral, a soma dos dois limites é preenchida com os primeiros recebimentos, metade para cada parte, sem reservar o mesmo dinheiro duas vezes.
+Novos contratos de **Tráfego HP** sugerem 5% para a advogada e 5% para o comercial, ambos editáveis no cadastro. Os percentuais seguem as opções de 5% a 60%, de cinco em cinco; o comercial também pode ficar sem participação. A soma não pode ultrapassar 100%. Na retenção proporcional, cada recebimento efetivo gera os percentuais escolhidos. Na integral, os primeiros recebimentos são divididos na proporção dos limites monetários individuais; percentuais iguais resultam em metade para cada parte, sem reservar o mesmo dinheiro duas vezes.
 
 Exemplo: contrato de R$ 10.000,00 → R$ 500,00 para a advogada e R$ 500,00 para o comercial. Primeiro recebimento de R$ 500,00 → R$ 250,00 para cada um. Segundo de R$ 500,00 → mais R$ 250,00 para cada. Recebimentos seguintes ficam para a participação dos gestores, pois os limites foram quitados. Um recebimento maior que os dois limites reserva somente o necessário e deixa o restante para os gestores.
 
 Valores efetivos usam `amount_paid`. A divisão integral usa arredondamento cumulativo, inclusive para centavos ímpares. A reserva comercial fica fora do saldo a receber da advogada. As condições de outras origens e os percentuais já salvos não foram alterados. Propriedade Intelectual continua usando o percentual do próprio contrato; não existe regra por nome ou e-mail da usuária no código.
 
-Em contratos somente no êxito, a retenção integral continua exigindo o limite manual. No tráfego, o valor informado é o limite de cada beneficiário; não é inventado um valor total do contrato. O formulário explica isso antes da confirmação.
+Em contratos somente no êxito, a retenção integral continua exigindo o limite manual da advogada. O limite comercial usa esse valor × percentual comercial ÷ percentual da advogada. Não é inventado um valor total do contrato. Com percentuais iguais, os limites permanecem iguais. A divisão cumulativa preserva os centavos e os dois limites mesmo com percentuais diferentes.
 
-Ao selecionar **Cliente próprio**, o formulário sugere **5%**; em **Propriedade Intelectual**, **50%**. Ambos permitem personalização. Os valores já salvos são preservados ao abrir uma edição; a sugestão só muda quando a origem é selecionada. Tráfego continua com 5% + 5% e pede o **nome de quem receberá a comissão do comercial** (texto, sem exigir usuário ou criar um novo cargo).
+Ao selecionar **Cliente próprio**, o formulário sugere **5%**; em **Propriedade Intelectual**, **50%**. Ambos permitem personalização. Os valores já salvos são preservados ao abrir uma edição; a sugestão só muda quando a origem é selecionada. Tráfego começa com 5% + 5%, editáveis, e pede o **nome de quem receberá a comissão do comercial** quando sua participação for maior que zero (texto, sem exigir usuário ou criar um novo cargo).
 
 O beneficiário fica nas condições financeiras protegidas do contrato e aparece na revisão final, nos detalhes do contrato e na agenda/relatório do gestor. A secretaria não recebe esse campo. O nome é capturado nos novos fechamentos; mudar o contrato não troca a identificação de snapshots ou pagamentos já registrados. Para fechamentos antigos sem nome capturado, a agenda usa o nome informado no contrato. O histórico do repasse copia a identificação na observação do pagamento.
 
@@ -46,7 +48,7 @@ Repasses antigos sem contrato não são distribuídos arbitrariamente. A agenda 
 
 ## Contratos antigos e correções
 
-Os contratos antigos recebem reserva comercial zero, preservando suas condições financeiras. Para aplicar 5% + 5% a um contrato de tráfego já movimentado: no gestor, selecione a advogada, abra o contrato em **Correções cadastrais** e use **Revisar comercial e datas de repasse**. A participação da advogada deve estar em 5%. Informe o motivo e confira os efeitos nos fechamentos. Não é necessário recadastrar o contrato.
+Os contratos anteriores à reserva comercial recebem reserva zero, preservando suas condições financeiras. Para aplicar ou revisar a participação comercial em um contrato de tráfego já movimentado: no gestor, selecione a advogada, abra o contrato em **Correções cadastrais** e use **Revisar comercial e datas de repasse**. O percentual da advogada também pode ser corrigido pelo fluxo de correções existente. Informe o motivo e confira os efeitos nos fechamentos; a soma dos percentuais deve permanecer em até 100%. Não é necessário recadastrar o contrato.
 
 A revisão recalcula as comissões atuais e lança os ajustes correspondentes. A composição original dos meses confirmados permanece imutável. Excesso já pago fica identificado para regularização. Os cálculos da Carteira e os cards do gestor também distinguem a reserva comercial.
 

@@ -3,14 +3,15 @@ import { useActionState, useState } from "react";
 import { savePayoutTerms } from "@/app/fechamentos/payout-actions";
 import { emptyActionState } from "@/lib/action-state";
 import { formatDateBR } from "@/lib/formatters";
+import { PERCENTAGES } from "@/lib/contracts/validation";
 export function PayoutTermsForm({ contractId, origin, commercial, recipientName, day, start }: { contractId: string; origin: string; commercial: number; recipientName: string | null; day: number; start: string | null }) {
   const [state, action, busy] = useActionState(savePayoutTerms, emptyActionState);
   const [reserve, setReserve] = useState(commercial);
   return <details className="operation-details"><summary>Revisar comercial e datas de repasse</summary>
     <form action={action} className="operation-form"><input type="hidden" name="contract" value={contractId} />
       <label>Reserva comercial<select name="commercial" value={reserve} onChange={event => setReserve(Number(event.target.value))}><option value="0">Sem reserva comercial</option>
-        {origin === "Tráfego HP" && <option value="5">5% comercial + 5% advogada</option>}</select></label>
-      {origin === "Tráfego HP" && <p>A divisão 5% + 5% exige participação da advogada em 5%. A alteração recalcula valores e gera ajustes auditados nos meses já fechados.</p>}
+        {origin === "Tráfego HP" && PERCENTAGES.map(percentage => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label>
+      {origin === "Tráfego HP" && <p>A alteração recalcula valores e gera ajustes auditados nos meses já fechados.</p>}
       {reserve > 0 && <label>Quem receberá a comissão do comercial?<input name="commercialRecipientName" defaultValue={recipientName ?? ""}
         minLength={2} maxLength={160} required placeholder="Nome do beneficiário comercial" /></label>}
       {reserve > 0 && <p>O nome é preservado nos novos fechamentos. Pagamentos comerciais já registrados mantêm a identificação histórica.</p>}
