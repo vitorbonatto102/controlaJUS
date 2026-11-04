@@ -27,7 +27,8 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
     serviceName: contract.service_name ?? "",
     contractDate: formatDateBR(contract.contract_date), total: amount(contract.total_contract_value),
     method: contract.payment_method ?? "", successFeePercentage: contract.success_fee_percentage?.toString() ?? "",
-    count: (contract.installment_count ?? (regular.length || (contract.payment_method === "cash" ? 1 : ""))).toString(),
+    count: (contract.installment_groups?.[0]?.count ?? contract.installment_count ?? (regular.length || (contract.payment_method === "cash" ? 1 : ""))).toString(),
+    installmentGroups: (contract.installment_groups ?? []).slice(1).map(group => ({count: String(group.count), amount: formatBRL(group.amount_cents / 100)})),
     installmentValue: amount(contract.installment_amount ?? regular[0]?.contractual_amount),
     lastInstallmentValue: amount(contract.last_installment_amount),
     paymentStartType: contract.payment_start_type ?? (regular.length ? "fixed_date" : ""),
@@ -53,6 +54,13 @@ export function parseEditValues(raw: unknown): ContractFormValues {
   const record = raw as Record<string, unknown>;
   const values = { ...blankContractForm };
   for (const key of Object.keys(blankContractForm) as (keyof ContractFormValues)[]) {
+    if (key === "installmentGroups") {
+      const groups = record[key] ?? [];
+      if (!Array.isArray(groups) || groups.length > 119 || groups.some(group => !group || typeof group.count !== "string" ||
+        typeof group.amount !== "string" || group.count.length > 3 || group.amount.length > 30)) throw new Error("Confira os grupos de parcelas.");
+      values.installmentGroups = groups.map(group => ({count: group.count, amount: group.amount}));
+      continue;
+    }
     if (key === "additionalContractors") {
       const parties = record[key];
       if (!Array.isArray(parties) || parties.length >= MAX_CONTRACTORS || parties.some((party) =>
@@ -87,6 +95,7 @@ export function prepareContractEdit(values: ContractFormValues, metadataOnly: bo
     first_due_date: preview.firstDueDate,
     payment_start_condition: !success && values.paymentStartType === "condition" ? values.paymentStartCondition.trim() : null,
     installment_count: success ? null : preview.installmentCount,
+    installment_groups: preview.installmentGroups,
     installment_amount: preview.installmentCents === null ? null : preview.installmentCents / 100,
     last_installment_amount: preview.lastInstallmentCents === null ? null : preview.lastInstallmentCents / 100,
     has_additional_fee: !success && values.hasAdditionalFee,

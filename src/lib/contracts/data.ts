@@ -11,7 +11,7 @@ type RawTerms = { commission_percentage: number; upfront_distribution?: "lawyer_
 const contractSelect = `
   id, client_id, origin, contract_date, updated_at, total_contract_value, payment_method, success_fee_percentage,
   contract_file_path, contract_file_name,
-  payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,
+  payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,installment_groups,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
   clients!contracts_client_id_fkey (full_name, cpf),
   contract_financial_terms (commission_percentage,commission_mode,commission_upfront_limit,upfront_distribution,third_party_upfront_limit,commercial_recipient_name,commercial_percentage,payout_day,first_payout_date),
@@ -48,6 +48,7 @@ function normalize(raw: RawContract): ContractRecord {
     payment_start_type: raw.payment_start_type, first_due_date: raw.first_due_date,
     payment_start_condition: raw.payment_start_condition,
     installment_count: raw.installment_count == null ? null : Number(raw.installment_count),
+    installment_groups: raw.installment_groups ?? [],
     installment_amount: raw.installment_amount == null ? null : Number(raw.installment_amount),
     last_installment_amount: raw.last_installment_amount === null ? null : Number(raw.last_installment_amount),
     has_additional_fee: raw.has_additional_fee,
@@ -85,6 +86,9 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
     let { data, error } = await fetchPage();
+    if (error && ["42703","PGRST204"].includes(error.code) && error.message.includes("installment_groups")) {
+      fields=fields.replace(",installment_groups","");({data,error}=await fetchPage());
+    }
     if(error && ["42703","PGRST204"].includes(error.code) && /upfront_distribution|third_party_upfront_limit/.test(error.message)) {
       fields=fields.replace(",upfront_distribution,third_party_upfront_limit","");({data,error}=await fetchPage());
     }
@@ -124,6 +128,9 @@ export async function loadLawyerContract(lawyerId: string, contractId: string): 
     .eq("lawyer_id", lawyerId)
     .maybeSingle();
   let { data, error } = await fetchContract();
+  if (error && ["42703","PGRST204"].includes(error.code) && error.message.includes("installment_groups")) {
+    fields=fields.replace(",installment_groups","");({data,error}=await fetchContract());
+  }
   if(error && ["42703","PGRST204"].includes(error.code) && /upfront_distribution|third_party_upfront_limit/.test(error.message)) {
     fields=fields.replace(",upfront_distribution,third_party_upfront_limit","");({data,error}=await fetchContract());
   }

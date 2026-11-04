@@ -4,6 +4,7 @@ import { isValidCpf, ORIGINS, PERCENTAGES } from "./validation";
 import { validateContractors, type ContractorInput } from "./parties";
 import { validateServiceName } from "./service";
 import type { CommissionMode } from "./commission-retention";
+import { installmentAmounts, type InstallmentGroup, type InstallmentGroupInput } from "./installment-groups";
 
 export type ContractFormValues = {
   clientName: string;
@@ -16,6 +17,7 @@ export type ContractFormValues = {
   successFeePercentage: string;
   count: string;
   installmentValue: string;
+  installmentGroups: InstallmentGroupInput[];
   lastInstallmentValue: string;
   paymentStartType: "" | "fixed_date" | "condition";
   firstDue: string;
@@ -41,6 +43,7 @@ export type ContractFormValues = {
 
 type PreviewBase = {
   rows: ScheduleRow[];
+  installmentGroups: InstallmentGroup[];
   lastInstallmentCents: number | null;
   differenceCents: number;
   additionalFeeAmountCents: number | null;
@@ -66,7 +69,7 @@ export type ContractPreview = PreviewBase & ({
 
 export const blankContractForm: ContractFormValues = {
   clientName: "", cpf: "", additionalContractors: [], serviceName: "", contractDate: "", total: "", method: "", successFeePercentage: "", count: "",
-  installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
+  installmentValue: "", installmentGroups: [], lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
   origin: "", percentage: "", commissionMode: "", commissionLimit: "", upfrontDistribution: "", thirdPartyTotal: "", commercialPercentage: "", commercialRecipientName: "", payoutDay: "", firstPayoutDate: "",
@@ -120,7 +123,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     if (!/^\d{1,3}(?:\.\d{1,2})?$/.test(rawPercentage) || successFeePercentage <= 0 || successFeePercentage > 100) {
       throw new Error("Informe o percentual cobrado do cliente no êxito, entre 0,01% e 100%.");
     }
-    return { method: "success_only", successFeePercentage, rows: [], totalCents: null,
+    return { method: "success_only", successFeePercentage, rows: [], installmentGroups: [], totalCents: null,
       installmentCents: null, installmentCount: 0, lastInstallmentCents: null,
       sumCents: null, differenceCents: 0, additionalFeeAmountCents: null,
       percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents, upfrontDistribution, thirdPartyLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate };
@@ -132,7 +135,11 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   if (values.method !== "cash" && values.method !== "installments") {
     throw new Error("Selecione a forma de pagamento.");
   }
-  const installmentCount = values.method === "cash" ? 1 : Number(values.count);
+  const additionalGroups = values.method === "installments" ? values.installmentGroups ?? [] : [];
+  if (!Array.isArray(additionalGroups) || additionalGroups.length > 119) throw new Error("Confira os grupos de parcelas (até 120 no total).");
+  const installmentGroups = additionalGroups.length ? [{count: Number(values.count), amount_cents: parseMoneyBR(values.installmentValue) ?? 0},
+    ...additionalGroups.map(group => ({count: Number(group.count), amount_cents: parseMoneyBR(group.amount) ?? 0}))] : [];
+  const installmentCount = values.method === "cash" ? 1 : installmentGroups.length ? installmentGroups.reduce((sum, group) => sum + group.count, 0) : Number(values.count);
   const installmentCents = parseMoneyBR(values.installmentValue);
   if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > 120 ||
       installmentCents === null || installmentCents <= 0) {
@@ -145,6 +152,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
        lastInstallmentCents === null || lastInstallmentCents <= 0)) {
     throw new Error("Informe um valor válido para a última parcela.");
   }
+  const amounts = installmentAmounts(installmentCount, installmentCents, installmentGroups, lastInstallmentCents ?? undefined);
   if (values.paymentStartType !== "fixed_date" && values.paymentStartType !== "condition") {
     throw new Error("Defina o início dos pagamentos.");
   }
@@ -173,14 +181,13 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   }
 
   let rows: ScheduleRow[] = [];
-  let sumCents = (installmentCount - 1) * installmentCents +
-    (lastInstallmentCents ?? installmentCents);
+  let sumCents = amounts.reduce((sum, amount) => sum + amount, 0);
   if (firstDueDate) {
     const schedule = values.method === "cash" ? buildSchedule({
       method: "cash", totalCents, cashCents: installmentCents, cashDueDate: firstDueDate,
     }) : buildSchedule({
       method: "installments", totalCents, count: installmentCount,
-      installmentCents, firstDueDate,
+      installmentCents, firstDueDate, groups: installmentGroups,
       ...(lastInstallmentCents !== null ? { lastInstallmentCents } : {}),
       ...(values.hasEntry ? { entryCents: parseMoneyBR(values.entryValue) ?? 0,
         entryDueDate: brazilianToIso(values.entryDue) } : {}),
@@ -188,7 +195,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     rows = schedule.rows;
     sumCents = schedule.sumCents;
   }
-  return { method: values.method, successFeePercentage: null, rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
+  return { method: values.method, successFeePercentage: null, rows, installmentGroups, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
     differenceCents: totalCents - sumCents, additionalFeeAmountCents,
     percentage, contractDate, firstDueDate, commissionMode: values.commissionMode,
     upfrontDistribution, thirdPartyLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate,

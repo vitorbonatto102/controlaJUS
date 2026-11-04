@@ -14,6 +14,7 @@ import { MAX_CONTRACTORS } from "@/lib/contracts/parties";
 import { prepareContractEdit } from "@/lib/contracts/editing";
 import { MAX_SERVICE_NAME_LENGTH } from "@/lib/contracts/service";
 import { commercialTargetCents, commissionModeLabels, type CommissionMode } from "@/lib/contracts/commission-retention";
+import { InstallmentGroupsFields } from "@/components/contracts/installment-groups-fields";
 
 type Mode = "choose" | "import" | "manual";
 type EditKey = keyof ContractFormValues;
@@ -124,11 +125,11 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
       description="As datas só serão criadas quando houver um primeiro vencimento definido." />
       <div className="payment-choice" role="group" aria-label="Forma de pagamento">
         <label><input type="radio" name="payment-method" checked={values.method === "cash"}
-          onChange={() => { set("method", "cash"); set("count", "1"); set("lastInstallmentValue", ""); }} /> À vista</label>
+          onChange={() => { set("method", "cash"); set("count", "1"); set("lastInstallmentValue", ""); set("installmentGroups", []); }} /> À vista</label>
         <label><input type="radio" name="payment-method" checked={values.method === "installments"}
           onChange={() => { set("method", "installments"); if (values.count === "1") set("count", ""); }} /> Parcelado</label>
         <label><input type="radio" name="payment-method" checked={values.method === "success_only"}
-          onChange={() => set("method", "success_only")} /> Apenas no êxito</label>
+          onChange={() => { set("method", "success_only"); set("installmentGroups", []); }} /> Apenas no êxito</label>
       </div><FieldNote note={note("method")} />
       {values.method === "success_only" && <div className="condition-block">
         <label>Percentual cobrado do cliente no êxito (%)
@@ -138,22 +139,25 @@ export function ContractDataFields({ values, set, note, cpfNotice, checkCpf, rea
         <p>O valor depende do resultado da ação. Este contrato ficará em Acompanhamento, sem valor a cobrar, parcelas ou vencimentos definidos.</p>
       </div>}
       {values.method && values.method !== "success_only" && <div className="form-grid">
-        {values.method === "installments" && <label>Quantidade de parcelas
+        {values.method === "installments" && <label>{values.installmentGroups.length ? "Quantidade de parcelas do primeiro grupo" : "Quantidade de parcelas"}
           <input type="number" min="1" max="120" value={values.count}
             onChange={(event) => set("count", event.target.value)} placeholder="20" />
           <FieldNote note={note("count")} /></label>}
-        <label>{values.method === "cash" ? "Valor à vista" : "Valor de cada parcela"}
+        <label>{values.method === "cash" ? "Valor à vista" : values.installmentGroups.length ? "Valor de cada parcela do primeiro grupo" : "Valor de cada parcela"}
           <input inputMode="decimal" value={values.installmentValue}
             onChange={(event) => set("installmentValue", event.target.value)}
             onBlur={() => set("installmentValue", moneyInput(values.installmentValue))}
             placeholder="R$ 200,00" /><FieldNote note={note("installmentValue")} /></label>
-        {values.method === "installments" && <label>Última parcela, se diferente (opcional)
+      </div>}
+      {values.method === "installments" && <>
+        <InstallmentGroupsFields firstCount={values.count} groups={values.installmentGroups} onChange={groups=>set("installmentGroups",groups)}/>
+        <div className="form-grid" style={{marginTop:20}}><label>Última parcela, se diferente (opcional)
           <input inputMode="decimal" value={values.lastInstallmentValue}
             onChange={(event) => set("lastInstallmentValue", event.target.value)}
             onBlur={() => set("lastInstallmentValue", moneyInput(values.lastInstallmentValue))}
             placeholder="Informe se houver diferença de centavos" />
-          <small className="extraction-hint">O valor informado aparecerá na revisão do cronograma.</small></label>}
-      </div>}
+          <small className="extraction-hint">Ajusta somente a última parcela de todo o cronograma, inclusive quando há vários grupos.</small></label></div>
+      </>}
       {values.method && values.method !== "success_only" && <><div className="start-choice" role="group" aria-label="Início dos pagamentos">
         <label><input type="radio" name="payment-start" checked={values.paymentStartType === "fixed_date"}
           onChange={() => { set("paymentStartType", "fixed_date"); set("paymentStartCondition", ""); }} /> Data fixa</label>
@@ -284,7 +288,7 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
         <div><dt>Valor total</dt><dd>{preview.totalCents === null ? "A apurar após o êxito" : formatBRL(preview.totalCents / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{successOnly ? "Apenas no êxito" : values.method === "cash" ? "À vista" : "Parcelado"}</dd></div>
         {successOnly ? <div><dt>Honorários cobrados do cliente</dt><dd>{preview.successFeePercentage.toLocaleString("pt-BR")}% sobre o resultado da ação</dd></div> :
-        <div><dt>Parcelas</dt><dd>{preview.installmentCount} × {formatBRL(preview.installmentCents / 100)}{
+        <div><dt>Parcelas</dt><dd>{preview.installmentGroups.length ? preview.installmentGroups.map(group=>`${group.count} × ${formatBRL(group.amount_cents/100)}`).join(" + ") : `${preview.installmentCount} × ${formatBRL(preview.installmentCents / 100)}`}{
           preview.lastInstallmentCents !== null ? ` · última: ${formatBRL(preview.lastInstallmentCents / 100)}` : ""}</dd></div>
         }
         <div><dt>Início dos pagamentos</dt><dd>{successOnly ? "Depende do êxito da ação" : pending ? values.paymentStartCondition : values.firstDue}</dd></div>
@@ -351,7 +355,7 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
   const set: SetField = (key, value) => {
     setValues((current) => ({ ...current, [key]: value,
       ...(key === "method" && value === "success_only" ? {
-        total: "", count: "", installmentValue: "", lastInstallmentValue: "",
+        total: "", count: "", installmentValue: "", installmentGroups: [], lastInstallmentValue: "",
         firstDue: "", paymentStartType: "" as const, paymentStartCondition: "",
         hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
         additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
@@ -480,14 +484,14 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v7", {
+      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v8", {
         p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
           ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
         p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
         p_file_path: filePath, p_file_name: file?.name ?? null,
       });
       if (saveError) throw new Error(saveError.code === "PGRST202" ?
-        "Peça ao administrador para aplicar a atualização de retenção e terceiros no Supabase." : saveError.message);
+        "Peça ao administrador para aplicar a atualização de grupos de parcelas no Supabase." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();

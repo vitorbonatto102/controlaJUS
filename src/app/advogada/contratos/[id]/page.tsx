@@ -59,6 +59,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <div><dt>Participação contratual estimada</dt><dd>{totalCents === null ? "Depende do valor recebido" : formatBRL(participationCents(totalCents, contract.commission_percentage) / 100)}</dd></div>
         <div><dt>Forma de pagamento</dt><dd>{contract.payment_method === "cash" ? "À vista" :
           contract.payment_method === "installments" ? "Parcelado" : contract.payment_method === "success_only" ? "Apenas no êxito" : "Não informada"}</dd></div>
+        {!!contract.installment_groups?.length && <div><dt>Grupos de parcelas</dt><dd>{contract.installment_groups.map(group=>`${group.count} × ${formatBRL(group.amount_cents/100)}`).join(" + ")}</dd></div>}
         {contract.success_fee_percentage != null && <div><dt>Honorários cobrados do cliente no êxito</dt>
           <dd>{contract.success_fee_percentage.toLocaleString("pt-BR")}% sobre o resultado da ação</dd></div>}
         {contract.payment_start_type === "condition" && <div><dt>Início dos pagamentos</dt>

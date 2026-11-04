@@ -2,6 +2,7 @@ import { numericToCents } from "./finance";
 import { contractClientLabel, type ContractParty } from "./parties";
 import { commercialTargetCents, commissionTargetCents, projectContractCommissions, type CommissionMode } from "./commission-retention";
 import type { EngagementFields } from "./engagement";
+import type { InstallmentGroup } from "./installment-groups";
 
 export type PaymentRecord = {
   id: string;
@@ -53,6 +54,7 @@ export type ContractRecord = EngagementFields & {
   commission_upfront_limit?: number | null;
   updated_at?: string;
   installment_count?: number | null;
+  installment_groups?: InstallmentGroup[];
   installment_amount?: number | null;
   installments: InstallmentRecord[];
 };
