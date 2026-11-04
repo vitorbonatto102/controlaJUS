@@ -30,7 +30,7 @@ function TransferEntry({ agenda, item }: { agenda: PayoutAgenda; item: PayoutIte
       <option value="">Selecione o pagamento existente</option>{agenda.unallocated_transfers.map(t => <option key={t.id} value={t.id}>{formatDateBR(t.payment_date)} · {formatBRL(t.amount)} sem vínculo</option>)}</select></label>}
     <label>Valor {existing ? "a vincular" : "efetivamente pago"}<input name="amount" inputMode="decimal" defaultValue={formatBRL(item.balance)} required /></label>
     {!existing && <label>Data real do pagamento<input name="date" placeholder="DD/MM/AAAA" inputMode="numeric" maxLength={10} required /></label>}
-    <label>{item.recipient === "commercial" ? "Beneficiário comercial / observação" : "Observação / motivo do vínculo"}<textarea name="notes" maxLength={1000} minLength={existing ? 5 : undefined} required={!!existing || item.recipient === "commercial"} /></label>
+    <label>{item.recipient === "commercial" ? "Beneficiário comercial / observação" : "Observação / motivo do vínculo"}<textarea name="notes" defaultValue={item.recipient === "commercial" ? item.recipient_name ?? "" : ""} maxLength={1000} minLength={existing ? 5 : undefined} required={!!existing || item.recipient === "commercial"} /></label>
     <button disabled={busy || (item.recipient === "lawyer" && agenda.unallocated_transfers.length > 0 && !existing)} className="primary-button">{busy ? "Salvando…" : existing ? "Vincular pagamento existente" : "Confirmar repasse realizado"}</button>
     {state.error && <p className="form-error-box" role="alert">{state.error}</p>}{state.success && <p role="status">{state.success}</p>}
   </form></details>;
@@ -41,7 +41,7 @@ export function PayoutAgendaView({ agenda, manager, today }: { agenda: PayoutAge
     {agenda.unallocated_transfers.length > 0 && <p className="adjustment-notice">Há {formatBRL(agenda.unallocated_transfers.reduce((sum,t) => sum + Number(t.amount),0))} em repasses já registrados, aguardando vínculo aos contratos. {manager ? "Vincule-os abaixo antes de lançar novos repasses à advogada." : "O gestor fará a identificação desses valores. O total já recebido do escritório permanece no fechamento."}</p>}
     <div className="table-scroll"><table className="data-table" style={{minWidth:900}}><thead><tr><th>Contrato</th><th>Beneficiário</th><th>Data prevista</th><th>Valor</th><th>Pago identificado</th><th>Saldo</th>{manager && <th>Ações</th>}</tr></thead>
       <tbody>{agenda.items.map(item => <tr key={`${item.contract_id}:${item.recipient}`}>
-        <td>{item.client_name}<small style={{display:"block"}}>{item.service_name || item.origin} · {item.origin}</small></td><td>{item.recipient === "lawyer" ? "Advogada" : "Comercial"}</td>
+        <td>{item.client_name}<small style={{display:"block"}}>{item.service_name || item.origin} · {item.origin}</small></td><td>{item.recipient === "lawyer" ? "Advogada" : <>Comercial<small style={{display:"block"}}>{item.recipient_name || "Beneficiário ainda não informado"}</small></>}</td>
         <td>{formatDateBR(item.due_date)}{item.balance > 0 && item.due_date < today && <small style={{display:"block"}}>Previsão vencida</small>}</td>
         <td>{formatBRL(item.amount)}</td><td>{formatBRL(item.paid)}</td><td>{formatBRL(item.balance)}{item.overpaid > 0 && <small style={{display:"block"}}>Excesso a regularizar: {formatBRL(item.overpaid)}</small>}</td>
         {manager && <td>{item.balance > 0 && <TransferEntry agenda={agenda} item={item} />}{item.recipient === "lawyer" && <DateRevision closing={agenda.closing_id} item={item} />}</td>}

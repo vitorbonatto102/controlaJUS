@@ -6,7 +6,7 @@ import type { ContractRecord, InstallmentRecord, PaymentRecord } from "./view";
 import type { CommissionMode } from "./commission-retention";
 import { loadContractEngagements } from "./engagement-data";
 
-type RawTerms = { commission_percentage: number; commercial_percentage?: number; payout_day?: number | null; first_payout_date?: string | null; commission_mode?: CommissionMode; commission_upfront_limit?: number | null };
+type RawTerms = { commission_percentage: number; commercial_recipient_name?: string | null; commercial_percentage?: number; payout_day?: number | null; first_payout_date?: string | null; commission_mode?: CommissionMode; commission_upfront_limit?: number | null };
 
 const contractSelect = `
   id, client_id, origin, contract_date, updated_at, total_contract_value, payment_method, success_fee_percentage,
@@ -14,7 +14,7 @@ const contractSelect = `
   payment_start_type, first_due_date, payment_start_condition, installment_count, installment_amount, last_installment_amount,
   has_additional_fee, additional_fee_percentage, additional_fee_basis, additional_fee_amount,
   clients!contracts_client_id_fkey (full_name, cpf),
-  contract_financial_terms (commission_percentage,commission_mode,commission_upfront_limit,commercial_percentage,payout_day,first_payout_date),
+  contract_financial_terms (commission_percentage,commission_mode,commission_upfront_limit,commercial_recipient_name,commercial_percentage,payout_day,first_payout_date),
   installments (
     id, installment_number, kind, regular_number, due_date, contractual_amount,
     payments (id, payment_date, amount_paid, voided_at, commissions (commission_amount))
@@ -55,6 +55,7 @@ function normalize(raw: RawContract): ContractRecord {
     additional_fee_basis: raw.additional_fee_basis,
     additional_fee_amount: raw.additional_fee_amount === null ? null : Number(raw.additional_fee_amount),
     commission_percentage: Number(terms.commission_percentage),
+    commercial_recipient_name: terms.commercial_recipient_name ?? null,
     commercial_percentage: Number(terms.commercial_percentage ?? 0), payout_day: terms.payout_day ?? (raw.origin === "Tráfego HP" ? 15 : 1), first_payout_date: terms.first_payout_date ?? null,
     commission_mode: terms.commission_mode ?? "proportional",
     commission_upfront_limit: terms.commission_upfront_limit == null ? null : Number(terms.commission_upfront_limit),
@@ -83,8 +84,12 @@ export async function loadLawyerContracts(lawyerId: string): Promise<ContractRec
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
     let { data, error } = await fetchPage();
+    if (error && ["42703", "PGRST204"].includes(error.code) && error.message.includes("commercial_recipient_name")) {
+      fields = fields.replace(",commercial_recipient_name", "");
+      ({ data, error } = await fetchPage());
+    }
     if (error && ["42703", "PGRST204"].includes(error.code) && /commercial_percentage|payout_day|first_payout_date/.test(error.message)) {
-      fields = fields.replace(",commercial_percentage,payout_day,first_payout_date", "");
+      fields = fields.replace(",commercial_percentage,payout_day,first_payout_date", "").replace(",commercial_recipient_name", "");
       ({ data, error } = await fetchPage());
     }
     // Mantém os contratos existentes acessíveis entre o deploy e a migration.
@@ -115,8 +120,12 @@ export async function loadLawyerContract(lawyerId: string, contractId: string): 
     .eq("lawyer_id", lawyerId)
     .maybeSingle();
   let { data, error } = await fetchContract();
+  if (error && ["42703", "PGRST204"].includes(error.code) && error.message.includes("commercial_recipient_name")) {
+    fields = fields.replace(",commercial_recipient_name", "");
+    ({ data, error } = await fetchContract());
+  }
   if (error && ["42703", "PGRST204"].includes(error.code) && /commercial_percentage|payout_day|first_payout_date/.test(error.message)) {
-    fields = fields.replace(",commercial_percentage,payout_day,first_payout_date", "");
+    fields = fields.replace(",commercial_percentage,payout_day,first_payout_date", "").replace(",commercial_recipient_name", "");
     ({ data, error } = await fetchContract());
   }
   if (error?.code === "42703" && error.message.includes("success_fee_percentage")) {

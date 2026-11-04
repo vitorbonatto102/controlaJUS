@@ -199,12 +199,22 @@ export function InternalFields({ values, set, note }: {
     <section className="form-panel"><Heading number="05" title="Informações internas"
       description="Origem e participação da advogada são definidos por você." />
       <div className="form-grid"><label>Origem da contratação<select value={values.origin}
-        onChange={(event) => { const traffic = event.target.value === "Tráfego HP"; set("origin", event.target.value); set("commercialPercentage", traffic ? "5" : "0"); set("payoutDay", traffic ? "15" : "1"); if (traffic) set("percentage", "5"); }}><option value="">Selecione</option>
+        onChange={(event) => {
+          const origin = event.target.value, traffic = origin === "Tráfego HP";
+          set("origin", origin); set("commercialPercentage", traffic ? "5" : "0"); set("payoutDay", traffic ? "15" : "1");
+          set("percentage", origin === "Propriedade Intelectual" ? "50" : origin ? "5" : "");
+          if (!traffic) set("commercialRecipientName", "");
+        }}><option value="">Selecione</option>
         {ORIGINS.map((origin) => <option key={origin}>{origin}</option>)}</select></label>
         <label>Minha participação<select disabled={values.origin === "Tráfego HP" && values.commercialPercentage !== "0"} value={values.percentage}
           onChange={(event) => set("percentage", event.target.value)}><option value="">Selecione</option>
           {PERCENTAGES.map((percentage) => <option key={percentage} value={percentage}>{percentage}%</option>)}</select></label></div>
       {values.origin === "Tráfego HP" && <p className="field-hint">{values.commercialPercentage === "0" ? <>Contrato legado sem reserva comercial. <button type="button" className="text-button" onClick={()=>{set("commercialPercentage","5");set("percentage","5");}}>Aplicar divisão 5% advogada + 5% comercial</button></> : "Divisão: 5% advogada · 5% comercial · 90% gestores."}</p>}
+      {values.origin === "Tráfego HP" && values.commercialPercentage !== "0" && <div className="form-grid" style={{marginTop:16}}><label className="span-2">Quem receberá a comissão do comercial?
+        <input value={values.commercialRecipientName} onChange={event => set("commercialRecipientName", event.target.value)}
+          minLength={2} maxLength={160} required placeholder="Nome do beneficiário comercial" autoComplete="off" />
+        <small className="field-hint">Esse nome identifica o beneficiário dos 5% do comercial na agenda de repasses.</small></label></div>}
+      {values.origin && values.origin !== "Tráfego HP" && <p className="field-hint">O percentual sugerido pode ser personalizado em “Minha participação”.</p>}
       <fieldset className="commission-choice"><legend>Como será feito o pagamento das comissões deste contrato?</legend>
         <div className="payment-choice">{Object.entries(commissionModeLabels).map(([mode, label]) =>
           <label key={mode}><input type="radio" name="commission-mode" checked={values.commissionMode === mode}
@@ -270,6 +280,7 @@ export function ContractReview({ values, preview, file, saving, onBack, onConfir
         {preview.commissionMode === "upfront" && preview.commissionLimitCents !== null &&
           <div><dt>Limite total da comissão</dt><dd>{formatBRL(preview.commissionLimitCents / 100)}</dd></div>}
         <div><dt>Reserva comercial</dt><dd>{preview.commercialPercentage}%</dd></div>
+        {preview.commercialRecipientName && <div><dt>Beneficiário comercial</dt><dd>{preview.commercialRecipientName}</dd></div>}
         <div><dt>Repasse após fechamento</dt><dd>Dia {preview.payoutDay} do mês seguinte{preview.firstPayoutDate ? ` · a partir de ${formatDateBR(preview.firstPayoutDate)}` : ""}</dd></div>
         <div><dt>PDF</dt><dd>{file?.name ?? existingFileName ?? "Cadastro manual sem PDF"}</dd></div></dl>
       {!successOnly && values.hasAdditionalFee && <p className="review-additional">
@@ -454,14 +465,14 @@ export function NewContractForm({ lawyerId }: { lawyerId: string }) {
           .upload(filePath, file, { contentType: "application/pdf", upsert: false });
         if (uploadError) throw new Error(`Não foi possível enviar o PDF: ${uploadError.message}`);
       }
-      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v5", {
+      const { error: saveError } = await supabase.rpc("create_lawyer_contract_v6", {
         p_contract_id: contractId, p_parties: [{ fullName: values.clientName.trim(), cpf: onlyDigits(values.cpf) },
           ...values.additionalContractors.map((party) => ({ fullName: party.fullName.trim(), cpf: onlyDigits(party.cpf) }))],
         p_details: prepareContractEdit(values, false).changes, p_schedule: preview.rows,
         p_file_path: filePath, p_file_name: file?.name ?? null,
       });
       if (saveError) throw new Error(saveError.code === "PGRST202" ?
-        "Peça ao administrador para aplicar a atualização de reserva comercial e repasses no Supabase." : saveError.message);
+        "Peça ao administrador para aplicar a atualização do beneficiário comercial no Supabase." : saveError.message);
       saved = true;
       router.push(`/advogada/contratos/${contractId}?criado=1`);
       router.refresh();

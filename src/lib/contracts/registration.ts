@@ -32,6 +32,7 @@ export type ContractFormValues = {
   commissionMode: CommissionMode;
   commissionLimit: string;
   commercialPercentage: string;
+  commercialRecipientName: string;
   payoutDay: string;
   firstPayoutDate: string;
 };
@@ -47,6 +48,7 @@ type PreviewBase = {
   commissionMode: CommissionMode;
   commissionLimitCents: number | null;
   commercialPercentage: number;
+  commercialRecipientName: string | null;
   payoutDay: number;
   firstPayoutDate: string | null;
 };
@@ -63,7 +65,7 @@ export const blankContractForm: ContractFormValues = {
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
-  origin: "", percentage: "", commissionMode: "proportional", commissionLimit: "", commercialPercentage: "", payoutDay: "", firstPayoutDate: "",
+  origin: "", percentage: "", commissionMode: "proportional", commissionLimit: "", commercialPercentage: "", commercialRecipientName: "", payoutDay: "", firstPayoutDate: "",
 };
 
 export function brazilianToIso(value: string): string {
@@ -95,6 +97,9 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   const commercialPercentage = values.commercialPercentage === "" ? (values.origin === "Tráfego HP" ? 5 : 0) : Number(values.commercialPercentage);
   if (![0, 5].includes(commercialPercentage) || (commercialPercentage > 0 && (values.origin !== "Tráfego HP" || percentage !== 5)))
     throw new Error("A reserva comercial de tráfego exige 5% para a advogada e 5% para o comercial.");
+  const commercialRecipientName = commercialPercentage > 0 ? values.commercialRecipientName.trim() : null;
+  if (commercialRecipientName !== null && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160 || /[\u0000-\u001f\u007f]/.test(commercialRecipientName)))
+    throw new Error("Informe o nome de quem receberá a comissão do comercial (2 a 160 caracteres).");
   const payoutDay = values.payoutDay === "" ? (values.origin === "Tráfego HP" ? 15 : 1) : Number(values.payoutDay);
   if (!Number.isInteger(payoutDay) || payoutDay < 1 || payoutDay > 31) throw new Error("Informe um dia de repasse entre 1 e 31.");
   const firstPayoutDate = values.firstPayoutDate.trim() ? brazilianToIso(values.firstPayoutDate) : null;
@@ -107,7 +112,7 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     return { method: "success_only", successFeePercentage, rows: [], totalCents: null,
       installmentCents: null, installmentCount: 0, lastInstallmentCents: null,
       sumCents: null, differenceCents: 0, additionalFeeAmountCents: null,
-      percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents, commercialPercentage, payoutDay, firstPayoutDate };
+      percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate };
   }
   const totalCents = parseMoneyBR(values.total);
   if (totalCents === null || totalCents <= 0) throw new Error("Informe o valor total contratado.");
@@ -173,6 +178,6 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   return { method: values.method, successFeePercentage: null, rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
     differenceCents: totalCents - sumCents, additionalFeeAmountCents,
     percentage, contractDate, firstDueDate, commissionMode: values.commissionMode,
-    commercialPercentage, payoutDay, firstPayoutDate,
+    commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate,
     commissionLimitCents: values.commissionMode === "upfront" ? participationCents(totalCents, percentage) : null };
 }

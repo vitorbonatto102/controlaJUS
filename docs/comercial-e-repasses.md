@@ -6,6 +6,8 @@ Depois das migrations anteriores, execute **somente** `supabase/migrations/20261
 
 Nenhum SQL foi aplicado automaticamente ao Supabase de produção. Publique o código pelo fluxo existente. As telas mantêm consultas legadas durante a transição, e a agenda aparece depois da atualização do banco.
 
+Para a atualização de identificação do comercial, execute somente `supabase/migrations/20261103000600_commercial_recipient.sql` após as anteriores. Não preenche nomes fictícios, não recalcula valores antigos e não requer novas variáveis.
+
 ## Regra confirmada
 
 Novos contratos de **Tráfego HP** usam 5% para a advogada e 5% para o comercial. Na retenção proporcional, cada recebimento efetivo gera os dois percentuais. Na integral, a soma dos dois limites é preenchida com os primeiros recebimentos, metade para cada parte, sem reservar o mesmo dinheiro duas vezes.
@@ -15,6 +17,12 @@ Exemplo: contrato de R$ 10.000,00 → R$ 500,00 para a advogada e R$ 500,00 para
 Valores efetivos usam `amount_paid`. A divisão integral usa arredondamento cumulativo, inclusive para centavos ímpares. A reserva comercial fica fora do saldo a receber da advogada. As condições de outras origens e os percentuais já salvos não foram alterados. Propriedade Intelectual continua usando o percentual do próprio contrato; não existe regra por nome ou e-mail da usuária no código.
 
 Em contratos somente no êxito, a retenção integral continua exigindo o limite manual. No tráfego, o valor informado é o limite de cada beneficiário; não é inventado um valor total do contrato. O formulário explica isso antes da confirmação.
+
+Ao selecionar **Cliente próprio**, o formulário sugere **5%**; em **Propriedade Intelectual**, **50%**. Ambos permitem personalização. Os valores já salvos são preservados ao abrir uma edição; a sugestão só muda quando a origem é selecionada. Tráfego continua com 5% + 5% e pede o **nome de quem receberá a comissão do comercial** (texto, sem exigir usuário ou criar um novo cargo).
+
+O beneficiário fica nas condições financeiras protegidas do contrato e aparece na revisão final, nos detalhes do contrato e na agenda/relatório do gestor. A secretaria não recebe esse campo. O nome é capturado nos novos fechamentos; mudar o contrato não troca a identificação de snapshots ou pagamentos já registrados. Para fechamentos antigos sem nome capturado, a agenda usa o nome informado no contrato. O histórico do repasse copia a identificação na observação do pagamento.
+
+Contratos antigos permanecem sem nome até identificação real. O gestor pode preencher em **Correções cadastrais → Revisar comercial e datas de repasse**, com motivo e auditoria. A advogada pode editar antes de haver pagamentos; depois, a revisão fica com o gestor. A identificação precisa estar preenchida antes de registrar novos repasses comerciais.
 
 ## Datas e revisão do contrato
 

@@ -38,9 +38,9 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
       const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
         contractDate: "01/01/2001", total: "10.000,00", method: "installments" as const, count: "10", installmentValue: "1.000,00",
         paymentStartType: "fixed_date" as const, firstDue: "10/01/2001", origin: "Cliente próprio", percentage: "5",
-        commissionMode: "upfront" as const, ...overrides };
+        commissionMode: "upfront" as const, commercialRecipientName: overrides.origin === "Tráfego HP" ? "Marina Comercial" : "", ...overrides };
       const prepared = prepareContractEdit(values, false);
-      await db.query("select public.create_lawyer_contract_v5($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
+      await db.query("select public.create_lawyer_contract_v6($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
         [id, JSON.stringify([{ fullName: values.clientName, cpf: values.cpf }]), JSON.stringify(prepared.changes), JSON.stringify(prepared.schedule)]);
       const installments = (await db.query<{ id: string }>("select id from public.installments where contract_id=$1 order by installment_number", [id])).rows;
       return { id, installments, values };
@@ -61,6 +61,11 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     assert.equal((await calendar(2026,12,15)).rows[0].day,'2027-01-15');
     assert.equal((await calendar(2026,10,1,'2026-11-10')).rows[0].day,'2026-11-10');
     const traffic=await create({origin:"Tráfego HP",commissionMode:"upfront",commercialPercentage:"5",payoutDay:"15",count:"20",installmentValue:"500,00"});
+    const preparedTraffic=prepareContractEdit(traffic.values,false);
+    await assert.rejects(db.query("select create_lawyer_contract_v6($1,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",[
+      randomUUID(),JSON.stringify([{fullName:traffic.values.clientName,cpf:traffic.values.cpf}]),
+      JSON.stringify({...preparedTraffic.changes,commercial_recipient_name:null}),JSON.stringify(preparedTraffic.schedule)]),/beneficiário comercial/);
+    assert.equal((await db.query<{name:string}>("select commercial_recipient_name as name from contract_financial_terms where contract_id=$1",[traffic.id])).rows[0].name,"Marina Comercial");
     const first=await pay(traffic.installments[0].id,"2001-01-10",500);
     await pay(traffic.installments[1].id,"2001-01-15",500);
     await pay(traffic.installments[2].id,"2001-01-20",1080);
@@ -80,12 +85,13 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     assert.deepEqual(await amounts(proportional.id),[54]);
     await asUser(manager);
     const closing=(await db.query<{id:string}>("select confirm_monthly_closing($1,1::smallint,2001::smallint) as id",[lawyer])).rows[0].id;
-    type Item={contract_id:string;recipient:string;amount:number;balance:number;paid:number;due_date:string};
+    type Item={contract_id:string;recipient:string;recipient_name:string|null;amount:number;balance:number;paid:number;due_date:string};
     const agenda=async()=>(await db.query<{data:{items:Item[];unallocated_transfers:{id:string;amount:number}[];commercial_transfers?:{id:string;amount:number;reversed_at:string|null}[]}}>("select closing_payout_agenda($1) as data",[closing])).rows[0].data;
     let rows=(await agenda()).items;
     assert.equal(rows.find(r=>r.contract_id===traffic.id&&r.recipient==='lawyer')?.due_date,'2001-02-15');
     assert.equal(rows.find(r=>r.contract_id===normal.id&&r.recipient==='lawyer')?.due_date,'2001-02-01');
     assert.equal(Number(rows.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.amount),500);
+    assert.equal(rows.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.recipient_name,'Marina Comercial');
     const today=(await db.query<{day:string}>("select to_char(now() at time zone 'America/Sao_Paulo','YYYY-MM-DD') as day")).rows[0].day;
     const transfer=async(contract:string,recipient:string,amount:number,existing:string|null=null)=>(await db.query<{id:string}>(
       "select register_scheduled_transfer($1,$2,$3,$4::bigint,$5::date,'Pagamento conferido pelo gestor',$6) as id",[closing,contract,recipient,amount,existing?null:today,existing])).rows[0].id;
@@ -95,6 +101,7 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await assert.rejects(transfer(traffic.id,'lawyer',1),/saldo/);
     assert.equal(Number((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='lawyer')?.balance),0);
     const tc=await transfer(traffic.id,'commercial',10000);
+    assert.match((await db.query<{notes:string}>("select notes from commercial_transfers where id=$1",[tc])).rows[0].notes,/Marina Comercial/);
     assert.equal(Number((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.balance),400);
     await db.query("select reverse_commercial_transfer($1,'Pagamento comercial estornado por conferência')",[tc]);
     assert.equal(Number((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.balance),500);
@@ -105,8 +112,10 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     assert.equal(Number((await agenda()).items.find(r=>r.contract_id===normal.id)?.paid),25);
     await db.query("select reverse_commission_transfer($1,'Correção de repasse conferida')",[t1]);
     assert.equal(Number((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='lawyer')?.balance),200);
-    await db.query("select save_contract_payout_terms($1,5,22,null,'Novo dia apenas para próximos fechamentos')",[traffic.id]);
+    await db.query("select save_contract_payout_terms_v2($1,5,22,null,'Novo beneficiário e dia para próximos fechamentos','Outra pessoa comercial')",[traffic.id]);
     assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id)?.due_date,'2001-02-15','prazo do snapshot fechado não muda ao editar o contrato');
+    assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id&&r.recipient==='commercial')?.recipient_name,'Marina Comercial','nome do fechamento preservado após revisão do contrato');
+    assert.match((await db.query<{notes:string}>("select notes from commercial_transfers where id=$1",[tc])).rows[0].notes,/Marina Comercial/,'nome do pagamento original preservado');
     await db.query("select revise_payout_date($1,$2,'2001-02-20','Prazo revisto conforme acordo')",[closing,traffic.id]);
     assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id)?.due_date,'2001-02-20');
     await db.query("select revise_manager_payment($1,'Valor corrigido após fechamento',100000::bigint,'2001-01-12'::date)",[pp]);
@@ -116,6 +125,8 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     const snapshot=(await db.query<{amount:string}>("select commercial_amount as amount from monthly_closing_items where closing_id=$1 and payment_id=$2",[closing,pp])).rows[0];
     assert.equal(Number(snapshot.amount),54,'snapshot comercial original preservado');
     await asUser(lawyer);
+    await assert.rejects(db.query("select save_contract_payout_terms_v2($1,5,15,null,'Tentativa de mudar beneficiário após pagamento','Outra pessoa')",[traffic.id]),/movimentado/);
+    await assert.rejects(db.query("select private.save_commercial_recipient($1,'Outra pessoa','Tentativa direta')",[traffic.id]),/permission denied/);
     assert.equal((await agenda()).items.some(r=>r.recipient==='commercial'),false);
     const personalReport=(await db.query<{data:{payout_agenda:{items:Item[];commercial_transfers?:unknown[]}}}>("select closed_month_report($1) as data",[closing])).rows[0].data;
     assert.equal(personalReport.payout_agenda.items.some(i=>i.recipient==='commercial'),false);
@@ -125,6 +136,7 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await assert.rejects(transfer(traffic.id,'lawyer',100),/não autorizado/);
     await asUser(colleague);await assert.rejects(agenda(),/indisponível/);
     await asUser(secretary);await assert.rejects(agenda(),/não autorizado/);
+    assert.equal((await db.query("select commercial_recipient_name from contract_financial_terms")).rows.length,0);
     assert.equal((await db.query("select * from commercial_transfers")).rows.length,0);
     assert.equal((await db.query("select * from commercial_commissions")).rows.length,0);
     await db.exec('reset role;reset request.jwt.claim.sub');
@@ -133,9 +145,12 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await db.query("insert into auth.users(id,email) values($1,'other-manager@example.com')",[otherManager]);
     await db.query("update profiles set active=true,role='manager',office_id=$2 where id=$1",[otherManager,otherOffice]);
     await asUser(otherManager);await assert.rejects(agenda(),/não autorizado/);
+    await assert.rejects(db.query("select save_contract_payout_terms_v2($1,5,15,null,'Tentativa fora do escritório','Outra pessoa')",[traffic.id]),/não autorizado/);
     await assert.rejects(transfer(normal.id,'commercial',1),/não autorizado/);
     await db.exec('reset role;reset request.jwt.claim.sub');
     await db.exec(await readFile(new URL('20261103000400_commercial_payouts.sql',migrations),'utf8'));
+    await db.exec(await readFile(new URL('20261103000600_commercial_recipient.sql',migrations),'utf8'));
+    await db.exec(await readFile(new URL('20261103000600_commercial_recipient.sql',migrations),'utf8'));
     await asUser(manager);assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id)?.due_date,'2001-02-20','reaplicação não reescreve a data revisada');
     assert.ok(first);
   } finally {await db.close();}

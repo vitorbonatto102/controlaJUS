@@ -46,7 +46,7 @@ export function closingDocument(data: ClosedReportData, issuedBy: string, issued
       ...(data.payout_agenda ? [{ title: "Agenda de repasses por contrato", columns: [
         { label: "Cliente / beneficiário", weight: 3.8 }, { label: "Previsto para", weight: 1.6 }, { label: "Valor", weight: 1.8, align: "right" as const },
         { label: "Pago identificado", weight: 1.8, align: "right" as const }, { label: "Saldo", weight: 1.8, align: "right" as const }],
-        rows: data.payout_agenda.items.map(item => [`${item.client_name}\n${item.origin} · ${item.recipient === "lawyer" ? "Advogada" : "Comercial"}`,
+        rows: data.payout_agenda.items.map(item => [`${item.client_name}\n${item.origin} · ${item.recipient === "lawyer" ? "Advogada" : `Comercial: ${item.recipient_name || "não informado"}`}`,
           formatDateBR(item.due_date), money(item.amount), money(item.paid), money(item.balance)]), empty: "Sem valores programados." }] : []),
       ...(data.payout_agenda?.commercial_transfers?.length ? [{ title: "Repasses comerciais", columns: [
         { label: "Data", weight: 1.5 }, { label: "Valor", weight: 1.8, align: "right" as const }, { label: "Beneficiário / situação", weight: 6.5 }],

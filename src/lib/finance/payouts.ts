@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 export type PayoutItem = { contract_id: string; client_name: string; origin: string; service_name: string | null;
-  recipient: "lawyer" | "commercial"; amount: number; paid: number; balance: number; overpaid: number; due_date: string };
+  recipient: "lawyer" | "commercial"; recipient_name?: string | null; amount: number; paid: number; balance: number; overpaid: number; due_date: string };
 export type PayoutAgenda = { closing_id: string; items: PayoutItem[]; unallocated_transfers: { id: string; amount: number; payment_date: string }[];
   commercial_transfers?: { id: string; contract_id: string; amount: number; payment_date: string; notes: string | null; reversed_at: string | null; reversal_reason: string | null }[] };
 export async function loadPayoutAgenda(id: string): Promise<PayoutAgenda | null> {

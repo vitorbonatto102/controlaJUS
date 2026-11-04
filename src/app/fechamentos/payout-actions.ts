@@ -39,12 +39,16 @@ export async function savePayoutTerms(_state: ActionState, form: FormData): Prom
   await requireRole("manager");
   const contract = String(form.get("contract") ?? ""), commercial = Number(form.get("commercial")), day = Number(form.get("day"));
   const reason = String(form.get("reason") ?? "").trim(), rawStart = String(form.get("start") ?? "").trim();
+  const commercialRecipientName = String(form.get("commercialRecipientName") ?? "").trim();
   let start: string | null = null;
   try { if (rawStart) start = brazilianToIso(rawStart); } catch { return { error: "Informe a data inicial em DD/MM/AAAA.", success: null }; }
-  if (!isReportId(contract) || ![0, 5].includes(commercial) || !Number.isInteger(day) || day < 1 || day > 31 || reason.length < 5 || reason.length > 1000)
+  if (!isReportId(contract) || ![0, 5].includes(commercial) || !Number.isInteger(day) || day < 1 || day > 31 || reason.length < 5 || reason.length > 1000 ||
+    (commercial > 0 && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160)))
     return { error: "Confira a reserva, o dia e o motivo.", success: null };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_contract_payout_terms", { p_contract: contract, p_commercial: commercial, p_day: day, p_start: start, p_reason: reason });
+  const { error } = await supabase.rpc("save_contract_payout_terms_v2", { p_contract: contract, p_commercial: commercial,
+    p_recipient_name: commercialRecipientName || null, p_day: day, p_start: start, p_reason: reason });
+  if (error?.code === "PGRST202") return { error: "Peça ao administrador para aplicar a atualização do beneficiário comercial no Supabase.", success: null };
   if (error) return { error: error.code === "P0001" ? error.message : "Não foi possível revisar as condições.", success: null };
   revalidatePath("/gestor"); revalidatePath("/advogada/carteira"); revalidatePath("/advogada/contratos", "layout"); revalidatePath("/fechamentos", "layout");
   return { error: null, success: "Condições atualizadas. Comissões e ajustes foram recalculados; datas de fechamentos já existentes permanecem no histórico." };

@@ -26,10 +26,13 @@ test("tráfego divide a retenção e a previsão com o comercial, preservando li
   const pennies = [1,2,3,4].map(i=>({...items[0],id:String(i),order:i,contractualCents:1,paidCents:0}));
   assert.deepEqual([...projectContractCommissions(pennies,{...terms,total_contract_value:.4},0).values()].map(r=>r.estimatedCents),[1,0,1,0]);
   const values = {...blankContractForm,clientName:"Cliente Teste",cpf:"52998224725",serviceName:"Revisional",contractDate:"01/10/2026",
-    origin:"Tráfego HP",percentage:"5",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
+    origin:"Tráfego HP",percentage:"5",commercialRecipientName:"Marina Comercial",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
   assert.equal(prepareContract(values).payoutDay,15);
   assert.equal(prepareContract({...values,origin:"Cliente próprio"}).payoutDay,1);
   assert.throws(()=>prepareContract({...values,percentage:"10"}),/5%/);
+  assert.equal(prepareContract({...values,commercialRecipientName:"  Marina Comercial  "}).commercialRecipientName,"Marina Comercial");
+  assert.throws(()=>prepareContract({...values,commercialRecipientName:""}),/nome/);
+  assert.throws(()=>prepareContract({...values,commercialRecipientName:"A".repeat(161)}),/nome/);
 });
 
 test("previsão mensal não cobra a comissão novamente quando os primeiros recebimentos já a quitaram", () => {

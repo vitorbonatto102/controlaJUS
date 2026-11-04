@@ -299,6 +299,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
           {term && <p className="field-hint">Comissões: {commissionModeLabels[term.commission_mode ?? "proportional"]}
             {term.commission_upfront_limit != null && ` · Limite definido: ${formatBRL(term.commission_upfront_limit)}`}</p>}
           {term && <PayoutTermsForm contractId={contract.id} origin={contract.origin} commercial={term.commercial_percentage ?? 0}
+            recipientName={term.commercial_recipient_name ?? null}
             day={term.payout_day ?? (contract.origin === "Tráfego HP" ? 15 : 1)} start={term.first_payout_date ?? null} />}
           {term && <ManagerCommissionTermsForm key={`${term.commission_mode}:${term.commission_upfront_limit}`}
             contractId={contract.id} mode={term.commission_mode ?? "proportional"} limit={term.commission_upfront_limit ?? null}

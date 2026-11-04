@@ -51,6 +51,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <div><dt>Data do contrato</dt><dd>{formatDateBR(contract.contract_date)}</dd></div>
         <div><dt>Valor contratado</dt><dd>{totalCents === null ? "A apurar após o êxito" : formatBRL(totalCents / 100)}</dd></div>
         <div><dt>Minha participação</dt><dd>{contract.commission_percentage}%</dd></div>
+        {!!contract.commercial_percentage && <div><dt>Beneficiário comercial · {contract.commercial_percentage}%</dt><dd>{contract.commercial_recipient_name || "Ainda não informado"}</dd></div>}
         <div><dt>Pagamento das comissões</dt><dd>{commissionModeLabels[contract.commission_mode ?? "proportional"]}</dd></div>
         {contract.commission_mode === "upfront" && <div><dt>Limite total da comissão</dt>
           <dd>{formatBRL((commissionTargetCents(contract) ?? 0) / 100)}</dd></div>}
