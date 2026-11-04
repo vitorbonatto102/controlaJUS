@@ -46,7 +46,7 @@ test("cadastro valida todos os CPFs, recusa duplicação e conta os valores do c
   const preview = prepareContract({ ...blankContractForm, clientName: parties[0].fullName, cpf: parties[0].cpf, serviceName: "Ação revisional",
     additionalContractors: [parties[1]], contractDate: "22/10/2026", total: "1.000,00", method: "cash",
     installmentValue: "1.000,00", count: "1", paymentStartType: "fixed_date", firstDue: "10/11/2026",
-    origin: "Cliente próprio", percentage: "40" });
+    origin: "Cliente próprio", percentage: "40",commissionMode:"proportional" });
   const summary = summarizeContracts([{ id: "contract", client_id: "client-1", client_name: parties[0].fullName,
     client_cpf: parties[0].cpf, contractors: parties.map((party, index) => ({ ...party, clientId: `client-${index + 1}` })),
     origin: "Cliente próprio", contract_date: "2026-10-22", total_contract_value: 1000, commission_percentage: 40,

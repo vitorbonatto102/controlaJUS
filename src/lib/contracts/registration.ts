@@ -29,8 +29,10 @@ export type ContractFormValues = {
   additionalFeeAmount: string;
   origin: string;
   percentage: string;
-  commissionMode: CommissionMode;
+  commissionMode: CommissionMode | "";
   commissionLimit: string;
+  upfrontDistribution: "" | "lawyer_only" | "shared";
+  thirdPartyTotal: string;
   commercialPercentage: string;
   commercialRecipientName: string;
   payoutDay: string;
@@ -47,9 +49,11 @@ type PreviewBase = {
   firstDueDate: string | null;
   commissionMode: CommissionMode;
   commissionLimitCents: number | null;
+  upfrontDistribution: "lawyer_only" | "shared" | null;
+  thirdPartyLimitCents: number | null;
   commercialPercentage: number;
   commercialRecipientName: string | null;
-  payoutDay: number;
+  payoutDay: number | null;
   firstPayoutDate: string | null;
 };
 export type ContractPreview = PreviewBase & ({
@@ -65,7 +69,7 @@ export const blankContractForm: ContractFormValues = {
   installmentValue: "", lastInstallmentValue: "", paymentStartType: "", firstDue: "", paymentStartCondition: "",
   hasEntry: false, entryValue: "", entryDue: "", hasAdditionalFee: false,
   additionalFeePercentage: "", additionalFeeBasis: "", additionalFeeAmount: "",
-  origin: "", percentage: "", commissionMode: "proportional", commissionLimit: "", commercialPercentage: "", commercialRecipientName: "", payoutDay: "", firstPayoutDate: "",
+  origin: "", percentage: "", commissionMode: "", commissionLimit: "", upfrontDistribution: "", thirdPartyTotal: "", commercialPercentage: "", commercialRecipientName: "", payoutDay: "", firstPayoutDate: "",
 };
 
 export function brazilianToIso(value: string): string {
@@ -94,15 +98,21 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   if (values.commissionMode === "upfront" && values.method === "success_only" &&
       (commissionLimitCents === null || commissionLimitCents <= 0 || commissionLimitCents > 99999999999999))
     throw new Error("Informe o limite total da comissão da advogada para este contrato apenas no êxito.");
-  const commercialPercentage = values.commercialPercentage === "" ? (values.origin === "Tráfego HP" ? 5 : 0) : Number(values.commercialPercentage);
+  const upfrontDistribution = values.commissionMode === "upfront" && values.upfrontDistribution !== "" ? values.upfrontDistribution : null;
+  if (values.commissionMode === "upfront" && upfrontDistribution !== "lawyer_only" && upfrontDistribution !== "shared")
+    throw new Error("Informe se as primeiras parcelas serão destinadas somente à advogada ou divididas com terceiro.");
+  const thirdPartyLimitCents = upfrontDistribution === "shared" ? parseMoneyBR(values.thirdPartyTotal) : null;
+  if (upfrontDistribution === "shared" && (thirdPartyLimitCents === null || thirdPartyLimitCents <= 0 || thirdPartyLimitCents > 99999999999999))
+    throw new Error("Informe o valor total a quitar ao terceiro/comercial.");
+  const commercialPercentage = upfrontDistribution === "lawyer_only" ? 0 : values.commercialPercentage === "" ? (values.origin === "Tráfego HP" ? 5 : 0) : Number(values.commercialPercentage);
   if (commercialPercentage !== 0 && (!PERCENTAGES.some(item => item === commercialPercentage) || values.origin !== "Tráfego HP"))
     throw new Error("Selecione um percentual permitido para o comercial de Tráfego HP.");
   if (percentage + commercialPercentage > 100) throw new Error("A soma das participações da advogada e do comercial não pode ultrapassar 100%.");
-  const commercialRecipientName = commercialPercentage > 0 ? values.commercialRecipientName.trim() : null;
+  const commercialRecipientName = commercialPercentage > 0 || upfrontDistribution === "shared" ? values.commercialRecipientName.trim() : null;
   if (commercialRecipientName !== null && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160 || /[\u0000-\u001f\u007f]/.test(commercialRecipientName)))
     throw new Error("Informe o nome de quem receberá a comissão do comercial (2 a 160 caracteres).");
-  const payoutDay = values.payoutDay === "" ? (values.origin === "Tráfego HP" ? 15 : 1) : Number(values.payoutDay);
-  if (!Number.isInteger(payoutDay) || payoutDay < 1 || payoutDay > 31) throw new Error("Informe um dia de repasse entre 1 e 31.");
+  const payoutDay = values.payoutDay === "" ? null : Number(values.payoutDay);
+  if (payoutDay !== null && (!Number.isInteger(payoutDay) || payoutDay < 1 || payoutDay > 31)) throw new Error("Condição de repasse anterior inválida.");
   const firstPayoutDate = values.firstPayoutDate.trim() ? brazilianToIso(values.firstPayoutDate) : null;
   if (values.method === "success_only") {
     const rawPercentage = values.successFeePercentage.trim().replace(",", ".");
@@ -113,10 +123,12 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
     return { method: "success_only", successFeePercentage, rows: [], totalCents: null,
       installmentCents: null, installmentCount: 0, lastInstallmentCents: null,
       sumCents: null, differenceCents: 0, additionalFeeAmountCents: null,
-      percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate };
+      percentage, contractDate, firstDueDate: null, commissionMode: values.commissionMode, commissionLimitCents, upfrontDistribution, thirdPartyLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate };
   }
   const totalCents = parseMoneyBR(values.total);
   if (totalCents === null || totalCents <= 0) throw new Error("Informe o valor total contratado.");
+  if (thirdPartyLimitCents !== null && participationCents(totalCents, percentage) + thirdPartyLimitCents > totalCents)
+    throw new Error("Os valores totais da advogada e do terceiro não podem ultrapassar o valor do contrato.");
   if (values.method !== "cash" && values.method !== "installments") {
     throw new Error("Selecione a forma de pagamento.");
   }
@@ -179,6 +191,6 @@ export function prepareContract(values: ContractFormValues, { validateClient = t
   return { method: values.method, successFeePercentage: null, rows, totalCents, installmentCents, lastInstallmentCents, installmentCount, sumCents,
     differenceCents: totalCents - sumCents, additionalFeeAmountCents,
     percentage, contractDate, firstDueDate, commissionMode: values.commissionMode,
-    commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate,
+    upfrontDistribution, thirdPartyLimitCents, commercialPercentage, commercialRecipientName, payoutDay, firstPayoutDate,
     commissionLimitCents: values.commissionMode === "upfront" ? participationCents(totalCents, percentage) : null };
 }

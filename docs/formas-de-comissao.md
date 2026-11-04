@@ -4,12 +4,12 @@
 
 No cadastro manual ou por PDF, em **Informações internas**, a advogada responde:
 
-**Como será feito o pagamento das comissões deste contrato?**
+**Como será retida a participação deste contrato?** A pergunta é obrigatória, sem opção previamente marcada.
 
-- **Retenção proporcional em cada parcela:** cada pagamento registrado gera comissão pelo percentual gravado no contrato. Desde 04/11/2026, os novos lançamentos informam o valor pago da parcela sem os juros pagos pelo cliente.
-- **Retenção total no primeiro acerto:** os primeiros recebimentos são destinados integralmente à comissão, limitados à participação contratada. Se o primeiro recebimento não quitar a comissão, a retenção continua nos seguintes; quando o limite é alcançado, os demais recebimentos geram comissão zero. A parcela em que o limite é atingido retém somente o saldo necessário.
+- **Proporcionalmente em todas as parcelas:** cada pagamento registrado gera comissão pelo percentual gravado no contrato. Desde 04/11/2026, os novos lançamentos informam o valor pago da parcela sem os juros pagos pelo cliente.
+- **Nas primeiras parcelas, até quitar a participação:** os primeiros recebimentos são destinados às participações informadas, até quitar seus limites. É obrigatório escolher se atendem apenas a advogada ou também um terceiro/comercial. No segundo caso, informe nome e valor total a quitar ao terceiro. A divisão segue a proporção dos totais; não é valor por parcela.
 
-O percentual e a forma de retenção são escolhas independentes. O sistema não presume a forma pelo percentual ou pela origem. Contratos existentes permanecem proporcionais; a migration não altera comissões já registradas.
+O percentual e a forma de retenção são escolhas independentes. O sistema não presume a forma pelo percentual ou pela origem. Contratos existentes preservam suas condições e comissões já registradas.
 
 ### Contrato com valor definido
 
@@ -46,3 +46,5 @@ Após as migrations anteriores, incluindo `20261022000600_secretary_notification
 `supabase/migrations/20261026000100_commission_retention.sql`
 
 Ele é transacional e pode ser reaplicado. Não edite nem reaplique as migrations antigas. Não exige novas variáveis de ambiente, chaves ou buckets. As páginas existentes continuam legíveis antes da migration, com o comportamento proporcional legado; cadastrar ou editar pela nova versão exige a migration.
+
+Para a atualização de 04/11/2026, após as migrations já existentes, aplique `20261104000200_explicit_retention_allocation.sql` e `20261104000300_closing_origin_reports.sql`, nessa ordem. Veja [retenção, terceiros e repasses](comercial-e-repasses.md) para exemplos e relatórios por origem. O cadastro não define calendário de repasse.

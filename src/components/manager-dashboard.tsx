@@ -228,7 +228,7 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
 
     <section className="card-grid manager-cards" aria-label="Resumo do período">
       <FinancialCard title="Recebido pelo escritório" value={money(totals.receivedCents)} hint="Pagamentos válidos no período" />
-      <FinancialCard title="Reserva comercial gerada" value={money(totals.commercialCents)} hint="Separada da comissão da advogada" />
+      <FinancialCard title="Participações de terceiros" value={money(totals.commercialCents)} hint="Separadas da participação da advogada" />
       <FinancialCard title="Participação dos gestores" value={money(totals.officeParticipationCents)} hint="Recebido menos comissão e reserva comercial; antes de despesas e tributos" />
       <FinancialCard title="Comissão gerada" value={money(totals.commissionCents)} hint="Sobre recebimentos efetivos" />
       <FinancialCard title="Já repassado" value={money(totals.transferredCents)} hint="Repasses ativos dos fechamentos" />
@@ -301,7 +301,8 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
             {term.commission_upfront_limit != null && ` · Limite definido: ${formatBRL(term.commission_upfront_limit)}`}</p>}
           {term && <PayoutTermsForm contractId={contract.id} origin={contract.origin} commercial={term.commercial_percentage ?? 0}
             recipientName={term.commercial_recipient_name ?? null}
-            day={term.payout_day ?? (contract.origin === "Tráfego HP" ? 15 : 1)} start={term.first_payout_date ?? null} />}
+            mode={term.commission_mode ?? "proportional"} distribution={term.upfront_distribution ?? null}
+            thirdLimit={term.third_party_upfront_limit ?? null} />}
           {term && <ManagerCommissionTermsForm key={`${term.commission_mode}:${term.commission_upfront_limit}`}
             contractId={contract.id} mode={term.commission_mode ?? "proportional"} limit={term.commission_upfront_limit ?? null}
             totalKnown={data.contractTotals.find((item) => item.id === contract.id)?.total_contract_value != null} />}

@@ -1,6 +1,7 @@
 import { blankContractForm, brazilianToIso, prepareContract, type ContractFormValues } from "./registration";
 import type { ContractRecord } from "./view";
 import { ORIGINS } from "./validation";
+import { commercialTargetCents } from "./commission-retention";
 import { formatBRL, formatDateBR } from "../formatters";
 import { getContractParties, MAX_CONTRACTORS } from "./parties";
 import { validateServiceName } from "./service";
@@ -35,7 +36,9 @@ export function contractToForm(contract: ContractRecord): ContractFormValues {
     origin: contract.origin, percentage: String(contract.commission_percentage),
     commissionMode: contract.commission_mode ?? "proportional",
     commissionLimit: amount(contract.commission_upfront_limit),
-    commercialPercentage: String(contract.commercial_percentage ?? 0), payoutDay: String(contract.payout_day ?? (contract.origin === "Tráfego HP" ? 15 : 1)),
+    upfrontDistribution: contract.commission_mode === "upfront" ? contract.upfront_distribution ?? ((contract.commercial_percentage ?? 0) > 0 ? "shared" : "lawyer_only") : "",
+    thirdPartyTotal: contract.commission_mode === "upfront" && ((contract.commercial_percentage ?? 0) > 0 || (contract.third_party_upfront_limit ?? 0) > 0) ? formatBRL((commercialTargetCents(contract) ?? 0)/100) : "",
+    commercialPercentage: String(contract.commercial_percentage ?? 0), payoutDay: contract.payout_day == null ? "" : String(contract.payout_day),
     commercialRecipientName: contract.commercial_recipient_name ?? "",
     firstPayoutDate: contract.first_payout_date ? formatDateBR(contract.first_payout_date) : "",
   };
@@ -71,6 +74,7 @@ export function prepareContractEdit(values: ContractFormValues, metadataOnly: bo
   if (preview.differenceCents !== 0) throw new Error("O total do cronograma deve ser igual ao valor do contrato.");
   const success = preview.method === "success_only";
   return { changes: { ...base, commercial_percentage: preview.commercialPercentage, commercial_recipient_name: preview.commercialRecipientName, payout_day: preview.payoutDay, first_payout_date: preview.firstPayoutDate, commission_percentage: preview.percentage,
+    upfront_distribution: preview.upfrontDistribution, third_party_upfront_limit: preview.thirdPartyLimitCents === null ? null : preview.thirdPartyLimitCents / 100,
     commission_mode: preview.commissionMode,
     commission_upfront_limit: success && preview.commissionLimitCents !== null ? preview.commissionLimitCents / 100 : null,
     total_contract_value: preview.totalCents === null ? null : preview.totalCents / 100,

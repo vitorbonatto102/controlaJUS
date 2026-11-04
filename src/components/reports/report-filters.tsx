@@ -14,7 +14,7 @@ function DateField({ name, label, initial }: { name: string; label: string; init
       .replace(/^(\d{2})(\d)/, "$1/$2").replace(/^(\d{2}\/\d{2})(\d)/, "$1/$2"))} /></label>;
 }
 
-function OriginFilter({ initial }: { initial: string[] }) {
+export function OriginFilter({ initial }: { initial: string[] }) {
   const [selected, setSelected] = useState(initial);
   const dropdown = useRef<HTMLDetailsElement>(null);
   useEffect(() => {

@@ -2,8 +2,8 @@ import { numericToCents, participationCents } from "./finance";
 
 export type CommissionMode = "proportional" | "upfront";
 export const commissionModeLabels: Record<CommissionMode, string> = {
-  proportional: "Retenção proporcional em cada parcela",
-  upfront: "Retenção total no primeiro acerto",
+  proportional: "Proporcionalmente em todas as parcelas",
+  upfront: "Nas primeiras parcelas, até quitar a participação",
 };
 
 export type CommissionTerms = {
@@ -12,6 +12,7 @@ export type CommissionTerms = {
   commission_upfront_limit?: number | null;
   total_contract_value: number | null;
   commercial_percentage?: number;
+  third_party_upfront_limit?: number | null;
 };
 
 export function commissionTargetCents(terms: CommissionTerms): number | null {
@@ -30,6 +31,8 @@ function roundedRatio(amount: number, numerator: number, denominator: number): n
 }
 
 export function commercialTargetCents(terms: CommissionTerms): number | null {
+  if (terms.commission_mode === "upfront" && terms.third_party_upfront_limit != null)
+    return numericToCents(terms.third_party_upfront_limit);
   const commercial = terms.commercial_percentage ?? 0;
   if (commercial === 0) return 0;
   if (terms.commission_mode === "upfront" && terms.commission_upfront_limit != null)
@@ -48,7 +51,7 @@ export function projectContractCommissions(items: ProjectionItem[], terms: Commi
   if (upfront && target === null) throw new Error("Contrato com retenção total sem limite de comissão definido.");
   let forecastBudget = target ?? 0;
   let remainingBudget = Math.max(0, forecastBudget - generatedCents);
-  const shared = upfront && (terms.commercial_percentage ?? 0) > 0;
+  const shared = upfront && ((terms.commercial_percentage ?? 0) > 0 || (terms.third_party_upfront_limit ?? 0) > 0);
   const combinedTarget = (target ?? 0) + (shared ? commercialTargetCents(terms) ?? 0 : 0);
   const cumulativeShare = (cash: number) => roundedRatio(Math.min(cash, combinedTarget), target ?? 0, combinedTarget);
   let forecastCash = 0;

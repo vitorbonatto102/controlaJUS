@@ -133,7 +133,7 @@ test("revisão condicionada não gera cronograma nem soma adicional à comissão
     contractDate: "21/05/2026", total: "R$ 4.000,00", method: "installments",
     count: "20", installmentValue: "R$ 200,00", paymentStartType: "condition",
     paymentStartCondition: "Após a efetiva liberação dos valores de indenização.",
-    origin: "Cliente próprio", percentage: "40", hasAdditionalFee: true,
+    origin: "Cliente próprio", percentage: "40", commissionMode:"proportional",hasAdditionalFee: true,
     additionalFeePercentage: "30", additionalFeeBasis: "proveito econômico",
   });
   assert.deepEqual(preview.rows, []);
@@ -147,7 +147,7 @@ test("diferença legítima de centavo exige última parcela explícita", () => {
   const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
     contractDate: "21/05/2026", total: "R$ 1.000,00", method: "installments" as const,
     count: "3", installmentValue: "R$ 333,33", paymentStartType: "fixed_date" as const,
-    firstDue: "10/06/2026", origin: "Cliente próprio", percentage: "40" };
+    firstDue: "10/06/2026", origin: "Cliente próprio", percentage: "40",commissionMode:"proportional" as const };
   assert.equal(prepareContract(values).differenceCents, 1);
   const corrected = prepareContract({ ...values, lastInstallmentValue: "R$ 333,34" });
   assert.equal(corrected.differenceCents, 0);

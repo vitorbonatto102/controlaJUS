@@ -1,5 +1,7 @@
 # Fechamento automático e correções
 
+A atualização de 04/11/2026 mantém este agendamento e o fechamento integral do mês. Depois das migrations anteriores, aplique `20261104000200_explicit_retention_allocation.sql` e `20261104000300_closing_origin_reports.sql`, nessa ordem, para retenção explicitamente escolhida, terceiro com total monetário e relatórios de um mesmo fechamento filtrados por múltiplas origens. Não é necessário alterar o Cron. Veja [retenção e repasses](comercial-e-repasses.md).
+
 ## Ativar no Supabase
 
 1. Após as migrations anteriores, execute integralmente `supabase/migrations/20261103000200_automatic_closings.sql` no SQL Editor como proprietário do projeto. Ela recupera imediatamente os meses vencidos **a partir de outubro/2026**. Não fecha setembro nem períodos anteriores. Não altera um fechamento já confirmado, mesmo que tenha sido manual. Uma apuração vazia pode ser concluída; apuração com snapshot inesperado aborta a transação para conferência.

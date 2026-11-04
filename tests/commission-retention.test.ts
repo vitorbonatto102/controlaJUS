@@ -26,9 +26,11 @@ test("tráfego divide a retenção e a previsão com o comercial, preservando li
   const pennies = [1,2,3,4].map(i=>({...items[0],id:String(i),order:i,contractualCents:1,paidCents:0}));
   assert.deepEqual([...projectContractCommissions(pennies,{...terms,total_contract_value:.4},0).values()].map(r=>r.estimatedCents),[1,0,1,0]);
   const values = {...blankContractForm,clientName:"Cliente Teste",cpf:"52998224725",serviceName:"Revisional",contractDate:"01/10/2026",
-    origin:"Tráfego HP",percentage:"5",commercialRecipientName:"Marina Comercial",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
-  assert.equal(prepareContract(values).payoutDay,15);
-  assert.equal(prepareContract({...values,origin:"Cliente próprio"}).payoutDay,1);
+    origin:"Tráfego HP",percentage:"5",commissionMode:"proportional" as const,commercialRecipientName:"Marina Comercial",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
+  assert.equal(prepareContract(values).payoutDay,null);
+  assert.equal(prepareContract({...values,origin:"Cliente próprio"}).payoutDay,null);
+  assert.throws(()=>prepareContract({...values,commissionMode:""}),/como será feito/);
+  assert.throws(()=>prepareContract({...values,commissionMode:"upfront"}),/destinadas/);
   assert.equal(prepareContract({...values,percentage:"10",commercialPercentage:"15"}).commercialPercentage,15);
   assert.throws(()=>prepareContract({...values,percentage:"60",commercialPercentage:"45"}),/100%/);
   assert.throws(()=>prepareContract({...values,commercialPercentage:"7"}),/percentual permitido/);
@@ -47,6 +49,21 @@ test("retenção integral personalizável divide pelos limites individuais sem p
   assert.equal(commercialTargetCents({...terms,total_contract_value:null,commission_upfront_limit:1000,commercial_percentage:15}),150000);
   const pennies=[1,2,3,4,5,6].map(i=>({...items[0],id:String(i),order:i,contractualCents:1,paidCents:0}));
   assert.deepEqual([...projectContractCommissions(pennies,{...terms,commission_percentage:5,commercial_percentage:10,total_contract_value:.4},0).values()].map(row=>row.estimatedCents),[0,1,0,0,1,0]);
+});
+
+test("terceiro recebe um total fixo também em cliente próprio, sem reaplicar a participação já quitada",()=>{
+  const terms={commission_mode:"upfront" as const,commission_percentage:5,total_contract_value:10000,commercial_percentage:0,third_party_upfront_limit:750};
+  const items=[1,2,3].map(i=>({id:String(i),dueDate:`2026-0${i}-10`,order:i,contractualCents:100000,paidCents:i===1?100000:0}));
+  const rows=[...projectContractCommissions(items,terms,40000).values()];
+  assert.equal(commercialTargetCents(terms),75000);
+  assert.deepEqual(rows.map(row=>row.estimatedCents),[40000,10000,0]);
+  assert.deepEqual(rows.map(row=>row.remainingEstimatedCents),[0,10000,0]);
+  const values={...blankContractForm,clientName:"Cliente Teste",cpf:"52998224725",serviceName:"Revisional",contractDate:"01/10/2026",origin:"Cliente próprio",percentage:"5",commissionMode:"upfront" as const,upfrontDistribution:"shared" as const,thirdPartyTotal:"750,00",commercialRecipientName:"Parceiro Teste",method:"cash" as const,total:"10.000,00",count:"1",installmentValue:"10.000,00",paymentStartType:"fixed_date" as const,firstDue:"10/10/2026"};
+  assert.equal(prepareContract(values).thirdPartyLimitCents,75000);
+  const solo=prepareContract({...values,upfrontDistribution:"lawyer_only"});
+  assert.equal(solo.thirdPartyLimitCents,null);assert.equal(solo.commercialRecipientName,null);
+  assert.throws(()=>prepareContract({...values,thirdPartyTotal:"9.600,00"}),/ultrapassar/);
+  assert.throws(()=>prepareContract({...values,thirdPartyTotal:""}),/total/);
 });
 
 test("previsão mensal não cobra a comissão novamente quando os primeiros recebimentos já a quitaram", () => {
@@ -73,7 +90,7 @@ test("previsão mensal não cobra a comissão novamente quando os primeiros rece
 test("limite manual de êxito é uma comissão monetária explícita, independente do percentual cobrado do cliente", () => {
   const form = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
     contractDate: "26/10/2026", origin: "Cliente próprio", percentage: "5", method: "success_only" as const,
-    successFeePercentage: "30", commissionMode: "upfront" as const, commissionLimit: "750,00" };
+    successFeePercentage: "30", commissionMode: "upfront" as const, upfrontDistribution:"lawyer_only" as const,commissionLimit: "750,00" };
   const preview = prepareContract(form);
   assert.equal(preview.commissionLimitCents, 75000);
   assert.equal(preview.totalCents, null);

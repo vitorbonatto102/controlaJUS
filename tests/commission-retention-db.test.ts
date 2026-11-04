@@ -38,9 +38,9 @@ test("retenções são atômicas, respeitam o limite e preservam RLS, estornos e
       const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
         contractDate: "01/01/2001", total: "10.000,00", method: "installments" as const, count: "10", installmentValue: "1.000,00",
         paymentStartType: "fixed_date" as const, firstDue: "10/01/2001", origin: "Cliente próprio", percentage: "5",
-        commissionMode: "upfront" as const, ...overrides };
+        commissionMode: "upfront" as const, upfrontDistribution:"lawyer_only" as const,...overrides };
       const prepared = prepareContractEdit(values, false);
-      await db.query("select public.create_lawyer_contract_v5($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
+      await db.query("select public.create_lawyer_contract_v7($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
         [id, JSON.stringify([{ fullName: values.clientName, cpf: values.cpf }]), JSON.stringify(prepared.changes), JSON.stringify(prepared.schedule)]);
       const installments = (await db.query<{ id: string }>("select id from public.installments where contract_id=$1 order by installment_number", [id])).rows;
       return { id, installments, values };
@@ -61,7 +61,7 @@ test("retenções são atômicas, respeitam o limite e preservam RLS, estornos e
       await asUser(lawyer);
       const version = (await db.query<{ updated_at: string }>("select updated_at::text from public.contracts where id=$1", [editable.id])).rows[0].updated_at;
       const prepared = prepareContractEdit(values, false);
-      await db.query("select public.edit_lawyer_contract_v3($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Forma revisada antes de qualquer pagamento')",
+      await db.query("select public.edit_lawyer_contract_v5($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Forma revisada antes de qualquer pagamento')",
         [editable.id, version, JSON.stringify(prepared.changes), JSON.stringify(prepared.schedule)]);
     };
     await edit({ ...editable.values, commissionMode: "proportional" });
@@ -138,7 +138,7 @@ test("retenções são atômicas, respeitam o limite e preservam RLS, estornos e
     await asUser(lawyer);
     const version = (await db.query<{ updated_at: string }>("select updated_at::text from public.contracts where id=$1", [closed.id])).rows[0].updated_at;
     const changes = prepareContractEdit({ ...closed.values, commissionMode: "proportional" }, false);
-    await assert.rejects(db.query("select public.edit_lawyer_contract_v3($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Tentativa de trocar retenção após pagamento')",
+    await assert.rejects(db.query("select public.edit_lawyer_contract_v5($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Tentativa de trocar retenção após pagamento')",
       [closed.id, version, JSON.stringify(changes.changes), JSON.stringify(changes.schedule)]), /histórico de pagamentos/);
     const before = await amounts(closed.id);
     await db.exec("reset role; reset request.jwt.claim.sub");

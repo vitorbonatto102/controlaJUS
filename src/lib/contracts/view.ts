@@ -44,6 +44,8 @@ export type ContractRecord = EngagementFields & {
   commission_percentage: number;
   commercial_percentage?: number;
   commercial_recipient_name?: string | null;
+  upfront_distribution?: "lawyer_only" | "shared" | null;
+  third_party_upfront_limit?: number | null;
   payout_day?: number;
   first_payout_date?: string | null;
   commission_mode?: CommissionMode;

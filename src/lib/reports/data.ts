@@ -4,6 +4,7 @@ import type { CurrentProfile } from "@/lib/auth/profile";
 import { numericToCents } from "@/lib/contracts/finance";
 import { ReportError, isReportId, operationalDocument, reportScope, type ReportFilters, type OperationalReportRow } from "./model";
 import { closingDocument, type ClosedReportData } from "./closing";
+import {closingOriginDocument,type ClosingOriginData} from "./closing-origin";
 
 function reportFailure(error: { code?: string; message: string }): never {
   if (error.code === "PGRST202") throw new ReportError("O módulo de relatórios aguarda a atualização do banco. Peça ao administrador para aplicar a migration de relatórios.", 503);
@@ -56,13 +57,18 @@ export async function loadOperationalReport(profile: CurrentProfile, filters: Re
   return operationalDocument(rows, filters, scope, { officeName: office.name, lawyerName, issuedBy: profile.full_name,
     issuedAt: payload.issued_at, today: payload.as_of }, commissions);
 }
-export async function loadClosedReport(profile: CurrentProfile, id: string) {
+export async function loadClosedReport(profile: CurrentProfile, id: string, origins:string[] = []) {
   const scope = reportScope(profile);
   if (!scope.financial) throw new ReportError("Seu perfil permite emitir apenas relatórios operacionais.", 403);
   if (!isReportId(id)) throw new ReportError("Fechamento inválido.", 404);
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("closed_month_report", { p_closing: id });
+  let { data, error } = await supabase.rpc("closed_month_origin_report", { p_closing: id,p_origins:origins });
+  if(error?.code === "PGRST202" && origins.length===0)({data,error}=await supabase.rpc("closed_month_report",{p_closing:id}));
   if (error) reportFailure(error);
+  if(data?.version===2){
+    const payload=data as ClosingOriginData;
+    return {...closingOriginDocument(payload,profile.full_name),payoutAgenda:payload.full_report?.payout_agenda};
+  }
   const payload = data as ClosedReportData;
   if (!payload?.closing || !payload.office_name || !payload.lawyer_name) throw new ReportError("Fechamento indisponível.", 404);
   return { ...closingDocument(payload, profile.full_name, (data as { issued_at: string }).issued_at), payoutAgenda: payload.payout_agenda };

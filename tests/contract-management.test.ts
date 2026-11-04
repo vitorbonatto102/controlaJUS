@@ -8,7 +8,7 @@ import { blankContractForm, prepareContract } from "../src/lib/contracts/registr
 
 const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
   contractDate: "22/10/2026", total: "1.200,00", method: "cash" as const, installmentValue: "1.200,00",
-  count: "1", paymentStartType: "fixed_date" as const, firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "45" };
+  count: "1", paymentStartType: "fixed_date" as const, firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "45",commissionMode:"proportional" as const };
 
 test("edição reutiliza validação e cronograma, preservando a identificação do cliente", () => {
   const result = prepareContractEdit(values, false);
@@ -66,7 +66,7 @@ test("gestão de contratos aplica isolamento, validação, auditoria e proteçã
       'fixed_date','2026-12-10'::date,null,1,100000::bigint,false,null,null,null,null)`, [id]);
     const prepared = prepareContractEdit(values, false);
     const edit = (id: string, stamp: string, changes: object = prepared.changes, schedule: unknown = prepared.schedule) => db.query(
-      "select public.edit_lawyer_contract_v3($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Correção solicitada pela advogada')",
+      "select public.edit_lawyer_contract_v5($1::uuid,$2::timestamptz,$3::jsonb,$4::jsonb,'Correção solicitada pela advogada')",
       [id, stamp, JSON.stringify(changes), schedule === null ? null : JSON.stringify(schedule)]);
     const remove = (id: string, stamp: string) => db.query("select public.delete_lawyer_contract($1::uuid,$2::timestamptz,'Cadastro duplicado identificado')", [id, stamp]);
 

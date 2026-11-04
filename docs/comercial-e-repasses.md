@@ -1,71 +1,47 @@
-# Comercial e agenda de repasses
+# Retenção, terceiros e repasses
 
-## Ativação
+## Ativação desta atualização
 
-Depois das migrations anteriores, execute **somente** `supabase/migrations/20261103000400_commercial_payouts.sql` inteiro no SQL Editor do Supabase. A migration é transacional e reaplicável. Não requer variável de ambiente ou novo job Cron. O fechamento automático já configurado passa a capturar as condições de repasse e a reserva comercial dos novos recebimentos.
+Depois das migrations já aplicadas, execute no SQL Editor do Supabase, nesta ordem e cada arquivo inteiro:
 
-Nenhum SQL foi aplicado automaticamente ao Supabase de produção. Publique o código pelo fluxo existente. As telas mantêm consultas legadas durante a transição, e a agenda aparece depois da atualização do banco.
+1. `supabase/migrations/20261104000200_explicit_retention_allocation.sql`
+2. `supabase/migrations/20261104000300_closing_origin_reports.sql`
 
-Para a atualização de identificação do comercial, execute somente `supabase/migrations/20261103000600_commercial_recipient.sql` após as anteriores. Não preenche nomes fictícios, não recalcula valores antigos e não requer novas variáveis.
+São transacionais e reaplicáveis. Não requerem novas variáveis, bucket ou job Cron. Não foram aplicadas automaticamente em produção. Não reaplique os arquivos antigos. Publique o código pelo fluxo existente depois de atualizar o banco.
 
-Para personalizar os percentuais do tráfego, execute somente `supabase/migrations/20261104000100_custom_commercial_percentages.sql`, depois das anteriores. A migration é reaplicável e não recalcula contratos antigos. Remove a trava de 5% no banco, mantendo autenticação, RLS, locks e auditoria existentes.
+## Cadastro
 
-## Regra confirmada
+O percentual da advogada continua editável. Cliente próprio sugere 5%, Propriedade Intelectual sugere 50% e Tráfego HP sugere 5% para a advogada e 5% para o comercial. Não há regra por nome ou e-mail.
 
-Novos contratos de **Tráfego HP** sugerem 5% para a advogada e 5% para o comercial, ambos editáveis no cadastro. Os percentuais seguem as opções de 5% a 60%, de cinco em cinco; o comercial também pode ficar sem participação. A soma não pode ultrapassar 100%. Na retenção proporcional, cada recebimento efetivo gera os percentuais escolhidos. Na integral, os primeiros recebimentos são divididos na proporção dos limites monetários individuais; percentuais iguais resultam em metade para cada parte, sem reservar o mesmo dinheiro duas vezes.
+A pergunta sobre retenção é obrigatória e começa sem resposta, em qualquer origem:
 
-Exemplo: contrato de R$ 10.000,00 → R$ 500,00 para a advogada e R$ 500,00 para o comercial. Primeiro recebimento de R$ 500,00 → R$ 250,00 para cada um. Segundo de R$ 500,00 → mais R$ 250,00 para cada. Recebimentos seguintes ficam para a participação dos gestores, pois os limites foram quitados. Um recebimento maior que os dois limites reserva somente o necessário e deixa o restante para os gestores.
+- **Proporcionalmente em todas as parcelas:** cada recebimento gera a participação percentual escolhida. Em Tráfego HP, o percentual comercial também é editável e exige nome quando positivo.
+- **Nas primeiras parcelas, até quitar a participação:** o limite da advogada é o total do contrato × seu percentual. Em contratos apenas no êxito, sem valor definido, ela informa seu limite monetário manualmente.
 
-Valores efetivos usam `amount_paid`. A divisão integral usa arredondamento cumulativo, inclusive para centavos ímpares. A reserva comercial fica fora do saldo a receber da advogada. As condições de outras origens e os percentuais já salvos não foram alterados. Propriedade Intelectual continua usando o percentual do próprio contrato; não existe regra por nome ou e-mail da usuária no código.
+Na segunda opção, é obrigatório escolher se os primeiros recebimentos serão destinados somente à participação da advogada ou divididos com **um único terceiro/comercial**. Para dividir, informe nome e **valor TOTAL em reais a quitar ao terceiro**, não valor por parcela. Essa opção também existe fora do tráfego.
 
-Em contratos somente no êxito, a retenção integral continua exigindo o limite manual da advogada. O limite comercial usa esse valor × percentual comercial ÷ percentual da advogada. Não é inventado um valor total do contrato. Com percentuais iguais, os limites permanecem iguais. A divisão cumulativa preserva os centavos e os dois limites mesmo com percentuais diferentes.
+O tráfego oferece uma sugestão de total do comercial calculada pelo percentual, mas o total informado e confirmado no formulário é o limite efetivo. A soma das duas participações não pode superar o valor conhecido do contrato. O nome e o limite aparecem na revisão final e nos detalhes protegidos do contrato.
 
-Ao selecionar **Cliente próprio**, o formulário sugere **5%**; em **Propriedade Intelectual**, **50%**. Ambos permitem personalização. Os valores já salvos são preservados ao abrir uma edição; a sugestão só muda quando a origem é selecionada. Tráfego começa com 5% + 5%, editáveis, e pede o **nome de quem receberá a comissão do comercial** quando sua participação for maior que zero (texto, sem exigir usuário ou criar um novo cargo).
+Exemplo: contrato de R$ 10.000,00, advogada com 5% (R$ 500,00) e comercial com total de R$ 500,00. Um recebimento de R$ 500,00 destina R$ 250,00 a cada pessoa. O seguinte de R$ 500,00 quita os dois limites. Recebimentos posteriores não geram essas participações novamente. Um recebimento maior reserva apenas o saldo necessário; o restante fica para o escritório.
 
-O beneficiário fica nas condições financeiras protegidas do contrato e aparece na revisão final, nos detalhes do contrato e na agenda/relatório do gestor. A secretaria não recebe esse campo. O nome é capturado nos novos fechamentos; mudar o contrato não troca a identificação de snapshots ou pagamentos já registrados. Para fechamentos antigos sem nome capturado, a agenda usa o nome informado no contrato. O histórico do repasse copia a identificação na observação do pagamento.
+Com limites diferentes, a divisão segue a proporção desses totais, com arredondamento cumulativo em centavos. Isso vale para comissões persistidas e previsões da Carteira. Não há duplicação do mesmo dinheiro.
 
-Contratos antigos permanecem sem nome até identificação real. O gestor pode preencher em **Correções cadastrais → Revisar comercial e datas de repasse**, com motivo e auditoria. A advogada pode editar antes de haver pagamentos; depois, a revisão fica com o gestor. A identificação precisa estar preenchida antes de registrar novos repasses comerciais.
+## Fechamento e relatórios
 
-## Datas e revisão do contrato
+O fechamento automático continua único por advogada e mês, reunindo os recebimentos daquele mês. O cadastro não pergunta dia nem data inicial de repasse e não presume dia 1 ou 15 pela origem.
 
-Na seção **04 · Forma de pagamento**, após a primeira parcela, há **Repasses deste contrato**:
+No fechamento confirmado, advogada e gestor podem selecionar várias origens em **Emitir relatório por origem**. Por exemplo, Cliente próprio + Propriedade Intelectual em um relatório e Tráfego HP em outro. Tela e PDF usam a mesma seleção e mostram recebimentos, participação da advogada, valor destinado ao terceiro e nome de cada beneficiário.
 
-- Dia mensal do repasse: padrão 1 para clientes próprios/outras origens, 15 para Tráfego HP; editável entre 1 e 31.
-- Primeiro repasse a partir de: limite inicial opcional, no formato DD/MM/AAAA.
-- Resumo na revisão final com a reserva e as condições escolhidas.
+Esses são recortes do mesmo fechamento, sem abrir outra competência. Valores retidos não comprovam repasse pago. Os pagamentos efetivos ficam no fechamento completo. O gestor pode registrá-los em partes, com valor e data reais; não existe transferência bancária automática.
 
-São duas rodadas do escritório por origem, não uma divisão automática de cada repasse em 50%/50%. O gestor pode registrar o pagamento de um saldo em partes, conforme o que efetivamente acontecer. A comissão é retida primeiro, mas paga após o fechamento.
+O relatório completo mantém composição original, ajustes auditados e histórico de repasses. Os recortes mostram a composição efetiva, somando ajustes vinculados a cada pagamento. A origem capturada no fechamento é preservada em substituições posteriores, mesmo que a origem cadastral do contrato seja alterada. Ajustes antigos sem referência confiável exigem conferência, em vez de distribuição arbitrária de valores.
 
-A previsão é no mês seguinte à competência em que o cliente pagou, não ao vencimento original da parcela. Se o cliente atrasar, o fechamento do recebimento real determina a competência. O dia 31 é limitado ao último dia do mês quando necessário, inclusive fevereiro bissexto. A data inicial é um limite mínimo; não antecipa o repasse para antes da competência encerrada. Pagamentos condicionados/êxito não criam comissões nem repasses sem recebimento.
+## Correções, legado e acesso
 
-## Conferir e registrar
+Contratos antigos não são recalculados ou convertidos automaticamente. Condições, snapshots, datas antigas e datas revisadas permanecem armazenados como histórico, sem campos de calendário na nova tela. Antes de haver pagamentos, a advogada pode editar o contrato. Depois, o gestor pode revisar a destinação em **Correções cadastrais → Revisar destinação ao terceiro/comercial**, com motivo, auditoria e notificação. A revisão recalcula comissões e cria ajustes nos meses afetados sem alterar os snapshots confirmados.
 
-Em **Fechamentos → Visualizar / corrigir valores**, a **Agenda de repasses** mostra, por contrato, beneficiário, previsão, valor consolidado, pago identificado e saldo. O gestor abre **Registrar / vincular repasse** e informa o valor e a data reais, sem data futura. Repasses comerciais exigem identificar o beneficiário na observação.
+O limite explícito fica em `contract_financial_terms.third_party_upfront_limit`, com a escolha em `upfront_distribution`. O ledger técnico `commercial_commissions` atende o único terceiro/comercial, inclusive quando a origem não é tráfego. As tabelas financeiras continuam sem escrita direta pela API e protegidas por RLS.
 
-O pagamento à advogada continua atualizando `commission_transfers` e os totais do fechamento. Sua alocação identifica qual contrato foi quitado. O comercial tem um histórico próprio, com estorno auditado, e não reduz o saldo da advogada. Um estorno da transferência da advogada mantém suas alocações históricas e retira seu efeito dos valores pagos.
+A RPC `closed_month_origin_report` valida autenticação, cargo ativo, escritório e titularidade antes de ler dados protegidos. Advogadas recebem apenas seus fechamentos e as destinações contratuais correspondentes. A secretaria não recebe percentuais, comissões, beneficiários ou fechamentos. A permissão administrativa extra não amplia o escopo financeiro. Recortes não carregam registros das origens excluídas, nem o demonstrativo completo oculto no payload.
 
-Repasses antigos sem contrato não são distribuídos arbitrariamente. A agenda exibe **aguardando vínculo**; o gestor seleciona o pagamento existente e o contrato e informa o motivo. Isso não cria novo pagamento. Antes de registrar nova saída para a advogada, o sistema exige identificar os repasses antigos daquele fechamento. Os totais históricos permanecem preservados.
-
-## Contratos antigos e correções
-
-Os contratos anteriores à reserva comercial recebem reserva zero, preservando suas condições financeiras. Para aplicar ou revisar a participação comercial em um contrato de tráfego já movimentado: no gestor, selecione a advogada, abra o contrato em **Correções cadastrais** e use **Revisar comercial e datas de repasse**. O percentual da advogada também pode ser corrigido pelo fluxo de correções existente. Informe o motivo e confira os efeitos nos fechamentos; a soma dos percentuais deve permanecer em até 100%. Não é necessário recadastrar o contrato.
-
-A revisão recalcula as comissões atuais e lança os ajustes correspondentes. A composição original dos meses confirmados permanece imutável. Excesso já pago fica identificado para regularização. Os cálculos da Carteira e os cards do gestor também distinguem a reserva comercial.
-
-As datas capturadas no fechamento permanecem estáveis ao mudar o padrão do contrato. Para corrigir a previsão de um mês específico, o gestor usa **Revisar data prevista** na agenda, com motivo e notificação. A previsão é compartilhada pelos beneficiários daquele contrato; as datas reais dos pagamentos não mudam.
-
-Fechamentos legados recebem apenas uma referência de calendário em tabela separada (dia 1 ou 15), sem editar seus snapshots ou transformar pagamentos antigos em novos. Reaplicar a migration preserva as revisões dessas datas.
-
-## Dados, relatórios e acesso
-
-Novas estruturas: `commercial_commissions`, `commercial_closing_adjustments`, `commission_transfer_allocations`, `commercial_transfers` e `closing_payout_dates`. As condições ficam em `contract_financial_terms`; os novos snapshots registram a reserva comercial, dia e data inicial. A agenda é derivada da composição original mais ajustes, nunca de uma divisão arbitrária do saldo global. Inconsistência por ajuste antigo sem contrato identificado gera erro para conferência, não total parcial silencioso.
-
-As tabelas têm RLS e nenhuma escrita direta para usuários da API. RPCs verificam cargo ativo, escritório, titularidade, competência e saldo, com locks financeiros. A advogada recebe só os itens dela; nem admin extra amplia o escopo. A secretaria não recebe percentuais, reservas ou repasses. Valores e pagamentos comerciais detalhados ficam restritos ao gestor, inclusive nos logs de pagamento comercial. Condições contratuais da própria carteira permanecem visíveis à advogada para revisão.
-
-O relatório em tela e o PDF incluem a agenda e os repasses identificados. O gestor também recebe o histórico comercial. A consulta do PDF usa o mesmo snapshot SQL para composição, ajustes, agenda e pagamentos. Valores pagos sem identificação aparecem com ressalva, pois já fazem parte do total repassado e não devem ser pagos novamente.
-
-Não existe transferência bancária automática: registrar um repasse significa anotar dinheiro efetivamente pago pelo escritório.
-
-## Verificação
-
-Testes focados cobrem retenção proporcional/integral, centavos, limites conjuntos, calendários, pagamentos parciais, alocação de repasses antigos, estornos, correções após fechamento, preservação do snapshot e isolamento entre cargos/escritórios. Prévia web e PDFs são revisados com dados fictícios, sem gravar pagamentos no Supabase de produção.
+As verificações focadas cobrem limites iguais/diferentes, centavos, terceiros de outras origens, edição e estornos, correções após fechamento por gestor/advogada, autoria, RLS e isolamento entre escritórios. As prévias locais usam dados fictícios.

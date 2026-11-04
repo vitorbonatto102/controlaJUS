@@ -38,21 +38,23 @@ export async function revisePayoutDate(_state: ActionState, form: FormData): Pro
 }
 export async function savePayoutTerms(_state: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("manager");
-  const contract = String(form.get("contract") ?? ""), commercial = Number(form.get("commercial")), day = Number(form.get("day"));
-  const reason = String(form.get("reason") ?? "").trim(), rawStart = String(form.get("start") ?? "").trim();
+  const contract = String(form.get("contract") ?? ""), commercial = Number(form.get("commercial"));
+  const reason = String(form.get("reason") ?? "").trim(), mode=String(form.get("mode")??"");
+  const distribution=mode === "upfront" ? String(form.get("distribution")??"") : null;
+  const limit=distribution === "shared" ? parseMoneyBR(String(form.get("thirdLimit")??"")) : null;
   const commercialRecipientName = String(form.get("commercialRecipientName") ?? "").trim();
-  let start: string | null = null;
-  try { if (rawStart) start = brazilianToIso(rawStart); } catch { return { error: "Informe a data inicial em DD/MM/AAAA.", success: null }; }
-  if (!isReportId(contract) || (commercial !== 0 && !PERCENTAGES.some(item => item === commercial)) || !Number.isInteger(day) || day < 1 || day > 31 || reason.length < 5 || reason.length > 1000 ||
-    (commercial > 0 && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160)))
-    return { error: "Confira a reserva, o dia e o motivo.", success: null };
+  if (!isReportId(contract) || (commercial !== 0 && !PERCENTAGES.some(item => item === commercial)) || reason.length < 5 || reason.length > 1000 ||
+    !["upfront","proportional"].includes(mode) || (mode === "upfront" && !["lawyer_only","shared"].includes(distribution ?? "")) ||
+    (distribution === "shared" && (!limit || limit>99999999999999)) ||
+    ((commercial > 0 || distribution === "shared") && (commercialRecipientName.length < 2 || commercialRecipientName.length > 160)))
+    return { error: "Confira a destinação, os valores e o motivo.", success: null };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_contract_payout_terms_v2", { p_contract: contract, p_commercial: commercial,
-    p_recipient_name: commercialRecipientName || null, p_day: day, p_start: start, p_reason: reason });
-  if (error?.code === "PGRST202") return { error: "Peça ao administrador para aplicar a atualização do beneficiário comercial no Supabase.", success: null };
+  const { error } = await supabase.rpc("save_contract_distribution", { p_contract: contract, p_commercial: commercial,
+    p_distribution:distribution,p_limit:limit === null ? null : limit/100,p_name: commercialRecipientName || null, p_reason: reason });
+  if (error?.code === "PGRST202") return { error: "Peça ao administrador para aplicar a atualização de retenção e terceiros no Supabase.", success: null };
   if (error) return { error: error.code === "P0001" ? error.message : "Não foi possível revisar as condições.", success: null };
   revalidatePath("/gestor"); revalidatePath("/advogada/carteira"); revalidatePath("/advogada/contratos", "layout"); revalidatePath("/fechamentos", "layout");
-  return { error: null, success: "Condições atualizadas. Comissões e ajustes foram recalculados; datas de fechamentos já existentes permanecem no histórico." };
+  return { error: null, success: "Destinação atualizada. Participações e ajustes foram recalculados com histórico e notificação." };
 }
 export async function reverseCommercialTransfer(_state: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("manager");

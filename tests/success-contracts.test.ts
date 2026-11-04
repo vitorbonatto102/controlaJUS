@@ -5,7 +5,7 @@ import { filterFollowUpContracts, followUpReasons, type FollowUpContract } from 
 import { summarizeContracts, type ContractRecord } from "../src/lib/contracts/view";
 
 const form = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação indenizatória", contractDate: "07/10/2026",
-  method: "success_only" as const, successFeePercentage: "30", origin: "Cliente próprio", percentage: "40" };
+  method: "success_only" as const, successFeePercentage: "30", origin: "Cliente próprio", percentage: "40",commissionMode:"proportional" as const };
 
 test("apenas no êxito exige somente percentual e não fabrica valores, parcelas ou vencimentos", () => {
   const preview = prepareContract({ ...form, total: "1.000,00", firstDue: "10/12/2026", count: "3" });

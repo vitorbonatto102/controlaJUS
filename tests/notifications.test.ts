@@ -42,10 +42,10 @@ test("avisos operacionais são atômicos, sem duplicar edições e isolados por 
     };
     const prepared = prepareContractEdit({ ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725",
       serviceName: "Ação revisional", contractDate: "22/10/2026", total: "1.000,00", method: "cash", count: "1",
-      installmentValue: "1.000,00", paymentStartType: "fixed_date", firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "40" }, false);
+      installmentValue: "1.000,00", paymentStartType: "fixed_date", firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "40",commissionMode:"proportional" }, false);
     await asUser(lawyer);
     const contract = randomUUID();
-    await db.query("select public.create_lawyer_contract_v3($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
+    await db.query("select public.create_lawyer_contract_v7($1::uuid,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",
       [contract, JSON.stringify([{ fullName: "Cliente Teste", cpf: "52998224725" }]), JSON.stringify(prepared.changes), JSON.stringify(prepared.schedule)]);
     const installment = (await db.query<{ id: string }>("select id from public.installments where contract_id=$1", [contract])).rows[0].id;
     const client = (await db.query<{ client_id: string }>("select client_id from public.contracts where id=$1", [contract])).rows[0].client_id;

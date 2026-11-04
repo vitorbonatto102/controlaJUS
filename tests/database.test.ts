@@ -185,9 +185,10 @@ test("secretaria registra recebimentos e notas, mas só corrige os próprios pag
       insert into public.payments(installment_id,payment_date,amount_paid,observation)
       values ($1,'2026-10-10',600,'Pagamento parcial') returning id`, [installmentId]);
     const firstId = first.rows[0].id;
-    const second = await db.query<{ id: string }>(`
-      insert into public.payments(installment_id,payment_date,amount_paid)
-      values ($1,'2026-10-15',400) returning id`, [installmentId]);
+    const second = await db.query<{ id: string; replaces_payment_id: string | null }>(`
+      insert into public.payments(installment_id,payment_date,amount_paid,replaces_payment_id)
+      values ($1,'2026-10-15',400,$2) returning id,replaces_payment_id`, [installmentId, firstId]);
+    assert.equal(second.rows[0].replaces_payment_id,null,"INSERT comum não pode forjar uma substituição");
     const secondId = second.rows[0].id;
     const note = await db.query<{ id: string; author_id: string }>(`
       insert into public.collection_notes(client_id,contract_id,installment_id,note_type,content)

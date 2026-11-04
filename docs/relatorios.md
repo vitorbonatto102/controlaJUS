@@ -31,7 +31,9 @@ A comissão dos recebimentos vem da tabela `commissions`, com o valor efetivo j�
 
 O demonstrativo mensal usa `monthly_closing_items` como composição original, não uma reconstrução a partir dos pagamentos atuais. Correções ficam em seção separada, conforme `closing_adjustments`. O resumo soma os totais originais aos ajustes. Repasses estornados ficam visíveis no histórico e fora do total repassado. A posição dos repasses é a da emissão, não uma promessa de que já estavam pagos na data do fechamento.
 
-O relatório do fechamento é integral, por advogada/competência. Não distribui repasses ou ajustes arbitrariamente entre clientes. Para um recorte por cliente, origem, serviço ou datas específicas, use os relatórios de registros da central. O snapshot antigo não contém serviço/CPF; esses campos não são inventados ou preenchidos com cadastros atuais no demonstrativo histórico.
+O fechamento é integral, por advogada/competência. Após `20261104000300_closing_origin_reports.sql`, a página do mês confirmado permite selecionar múltiplas origens para consultar e baixar um recorte desse mesmo fechamento, tanto para a advogada quanto para o gestor. A composição efetiva soma snapshots e ajustes vinculados a pagamentos, com recebimentos, participação da advogada, terceiro/comercial e identificação dos beneficiários. Retenção não é comprovação de repasse pago. O histórico completo e os pagamentos permanecem no fechamento integral.
+
+A origem capturada no fechamento prevalece sobre mudanças cadastrais posteriores, inclusive nas substituições de pagamentos. Ajustes legados sem referência confiável exigem conferência; não são distribuídos arbitrariamente. Um recorte não entrega registros das origens excluídas em seu payload. Para cliente, serviço ou datas específicas, continuam disponíveis os relatórios de registros da central. Serviço e CPF ausentes do snapshot histórico não são inventados.
 
 ## Controle de acesso
 
@@ -48,6 +50,8 @@ As funções `filtered_activity_report` e `closed_month_report` são **SECURITY 
 Recebimentos e comissões são consultados no mesmo snapshot SQL; o mesmo vale para composição, ajustes e repasses de um fechamento. O resultado JSON evita a truncagem padrão de 1.000 linhas da API, com limite explícito de 5.000. Falhas de permissão ou consulta não são convertidas em totais zero.
 
 A função `filtered_activity_report_multi` combina as origens selecionadas no mesmo snapshot, reutilizando a consulta original com **SECURITY INVOKER**. O limite de 5.000 considera a soma dos registros selecionados. Repetir uma origem não duplica valores; os limites por cargo, advogada e escritório continuam sendo verificados no banco.
+
+A nova `closed_month_origin_report` é **SECURITY DEFINER** para reunir as destinações contratuais protegidas, com validação explícita de usuário ativo, papel, escritório e titularidade antes de qualquer leitura. Somente advogada e gestor podem executá-la; secretaria é recusada. A advogada recebe apenas seus próprios fechamentos e os beneficiários vinculados a eles, sem acesso direto ao ledger comercial. Nenhuma chave privilegiada é usada pelo frontend. O relatório completo legado continua sendo `SECURITY INVOKER`.
 
 PDFs são gerados sob demanda em Node.js, sem persistência pública. Downloads e erros usam `Cache-Control: private, no-store`, variam por Cookie e não expõem erros SQL internos. O botão apresenta erros e sessão expirada sem abrir uma página de falha genérica.
 
