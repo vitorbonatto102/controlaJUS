@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { FollowUpContract } from "./follow-up";
 import { loadContractParties } from "./parties-data";
 import { loadContractServices } from "./service-data";
+import {loadLawyerContracts} from "./data";
+import {hasPendingContractParticipation,todayInSaoPaulo} from "./view";
+import {followUpReasons} from "./follow-up";
 
 type RawContract = {
   id: string; client_id: string; lawyer_id: string; contract_date: string; origin: string;
@@ -20,6 +23,15 @@ const nullableNumber = (value: number | null | undefined) => value == null ? nul
 
 export async function loadFollowUpContracts(profile: CurrentProfile): Promise<FollowUpContract[]> {
   if (!profile.active || !profile.office_id) throw new Error("Acesso não autorizado.");
+  if(profile.role==="lawyer"){
+    const today=todayInSaoPaulo();
+    return (await loadLawyerContracts(profile.id)).filter(c=>followUpReasons(c).length>0&&hasPendingContractParticipation(c,today)).map(c=>({
+      id:c.id,clientId:c.client_id,clientName:c.contractors?.map(p=>p.fullName).join(" / ")||c.client_name,clientCpf:c.client_cpf,
+      lawyerId:profile.id,lawyerName:profile.full_name,origin:c.origin,contractDate:c.contract_date,totalValue:c.total_contract_value,
+      contractors:c.contractors,serviceName:c.service_name,payment_method:c.payment_method,has_additional_fee:c.has_additional_fee,payment_start_type:c.payment_start_type,
+      paymentCondition:c.payment_start_condition??null,successFeePercentage:c.success_fee_percentage??null,additionalFeePercentage:c.additional_fee_percentage??null,
+      additionalFeeAmount:c.additional_fee_amount??null,additionalFeeBasis:c.additional_fee_basis??null}));
+  }
   const supabase = await createClient();
   const contracts: FollowUpContract[] = [];
   let includeSuccessFee = true;

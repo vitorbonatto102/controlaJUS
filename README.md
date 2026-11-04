@@ -166,6 +166,7 @@ Migrations novas desta etapa:
 | `20261104000200_explicit_retention_allocation.sql` | Retenção obrigatoriamente escolhida no cadastro, terceiro único com limite monetário total e remoção dos padrões de calendário em novos contratos. |
 | `20261104000300_closing_origin_reports.sql` | Relatórios de um fechamento por múltiplas origens, destinação por beneficiário e identidade histórica preservada em correções. |
 | `20261104000400_delete_contract_with_voided_payments.sql` | Exclusão lógica quando só há pagamentos estornados, preservando histórico, auditoria e bloqueios de fechamentos/repasses. |
+| `20261104000500_personal_participation_reports.sql` | Controle pessoal da retenção inicial e relatórios com participações da advogada, terceiro identificado e escritório. |
 
 Novos pagamentos desde 04/11/2026 excluem os juros pagos pelo cliente. Ver [registro de pagamentos](docs/registro-de-pagamentos.md) para a orientação de lançamento e correção de meses fechados.
 

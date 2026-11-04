@@ -5,6 +5,8 @@ import { test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { blankContractForm, type ContractFormValues } from "../src/lib/contracts/registration";
 import { prepareContractEdit } from "../src/lib/contracts/editing";
+import {participationDocument,type FinancialReportPayload} from "../src/lib/reports/participation";
+import {reportScope,type ReportFilters} from "../src/lib/reports/model";
 
 test("reserva comercial, agenda, repasses parciais e isolamento financeiro", async () => {
   const db = new PGlite();
@@ -185,6 +187,33 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     assert.equal(ownReport.rows.reduce((sum,row)=>sum+Number(row.third_party_amount),0),660);
     await asUser(colleague);await assert.rejects(originReport([]),/indisponível/);
     await asUser(secretary);await assert.rejects(originReport([]),/não autorizado/);
+    const retained=await create({total:'6.000,00',origin:'Tráfego HP',percentage:'5',commercialPercentage:'5',upfrontDistribution:'shared',thirdPartyTotal:'300,00',commercialRecipientName:'Rafael Teste',count:'24',installmentValue:'250,00',contractDate:'01/01/2005',firstDue:'10/01/2005'});
+    const filters:ReportFilters={kind:'installments',from:'2005-01-01',to:'2006-12-31',lawyerId:lawyer,client:'',cpf:'',origins:[],service:'',status:'all'};
+    const financial=async(kind:string,owner=lawyer)=>(await db.query<{data:FinancialReportPayload}>("select financial_activity_report($1,'2005-01-01','2006-12-31',$2,'','',array[]::text[],'','all') as data",[kind,owner])).rows[0].data;
+    const document=(data:FinancialReportPayload,kind:ReportFilters['kind'],managerView=false)=>participationDocument(data,{...filters,kind},reportScope({id:managerView?manager:lawyer,role:managerView?'manager':'lawyer',office_id:office,active:true},lawyer),{officeName:'Escritório Teste',issuedBy:'Usuário Teste',issuedAt:data.issued_at,today:data.as_of});
+    let financialData=await financial('installments');
+    assert.equal(financialData.rows.length,24,'cronograma completo continua armazenado');
+    let reportDocument=document(financialData,'installments');
+    assert.equal(reportDocument.sections[0].rows.length,3);
+    assert.match(reportDocument.sections[0].rows[2].slice(-3).join('|'),/50,00[\s\S]*Rafael Teste[\s\S]*50,00[\s\S]*150,00/);
+    for(let index=0;index<4;index++)await pay(retained.installments[index].id,`2005-0${index+1}-10`,250);
+    await asUser(lawyer);financialData=await financial('payments');reportDocument=document(financialData,'payments');
+    assert.equal(reportDocument.sections[0].rows.length,3,'recebimento exclusivo do escritório sai do controle pessoal');
+    assert.match(reportDocument.sections[0].rows[2].slice(-3).join('|'),/50,00[\s\S]*Rafael Teste[\s\S]*50,00[\s\S]*150,00/);
+    assert.equal(document(await financial('installments'),'installments').sections[0].rows.length,3,'histórico das primeiras três parcelas permanece');
+    await asUser(manager);
+    assert.equal(document(await financial('payments'),'payments',true).sections[0].rows.length,4);
+    assert.equal(document(await financial('installments'),'installments',true).sections[0].rows.length,24);
+    const march=(await db.query<{id:string}>("select confirm_monthly_closing($1,3::smallint,2005::smallint) as id",[lawyer])).rows[0].id;
+    const april=(await db.query<{id:string}>("select confirm_monthly_closing($1,4::smallint,2005::smallint) as id",[lawyer])).rows[0].id;
+    const retainedClosing=async(id:string)=>(await db.query<{data:{rows:{lawyer_amount:number;third_party_amount:number;recipient_name:string}[]}}>("select closed_month_participation_report($1) as data",[id])).rows[0].data;
+    assert.equal((await retainedClosing(april)).rows.length,1,'gestor mantém o recebimento integral do escritório');
+    await asUser(lawyer);
+    assert.equal((await retainedClosing(april)).rows.length,0);
+    assert.equal(Number((await retainedClosing(march)).rows[0].third_party_amount),50);
+    assert.equal((await retainedClosing(march)).rows[0].recipient_name,'Rafael Teste');
+    await asUser(colleague);await assert.rejects(financial('payments'),/próprios dados/);
+    await asUser(secretary);await assert.rejects(financial('payments'),/não autorizado/);await assert.rejects(retainedClosing(march),/não autorizado/);
     await asUser(lawyer);
     await assert.rejects(db.query("select save_contract_payout_terms_v2($1,5,15,null,'Tentativa de mudar beneficiário após pagamento','Outra pessoa')",[traffic.id]),/movimentado/);
     await assert.rejects(db.query("select private.save_commercial_recipient($1,'Outra pessoa','Tentativa direta')",[traffic.id]),/permission denied/);
@@ -206,6 +235,7 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await db.query("insert into auth.users(id,email) values($1,'other-manager@example.com')",[otherManager]);
     await db.query("update profiles set active=true,role='manager',office_id=$2 where id=$1",[otherManager,otherOffice]);
     await asUser(otherManager);await assert.rejects(agenda(),/não autorizado/);
+    assert.equal((await financial('payments')).rows.length,0,'outro escritório não recebe participações ou beneficiários');
     await assert.rejects(originReport([]),/não autorizado/);
     await assert.rejects(db.query("select save_contract_payout_terms_v2($1,5,15,null,'Tentativa fora do escritório','Outra pessoa')",[traffic.id]),/não autorizado/);
     await assert.rejects(transfer(normal.id,'commercial',1),/não autorizado/);
@@ -217,6 +247,7 @@ test("reserva comercial, agenda, repasses parciais e isolamento financeiro", asy
     await db.exec(await readFile(new URL('20261104000100_custom_commercial_percentages.sql',migrations),'utf8'));
     await db.exec(await readFile(new URL('20261104000200_explicit_retention_allocation.sql',migrations),'utf8'));
     await db.exec(await readFile(new URL('20261104000300_closing_origin_reports.sql',migrations),'utf8'));
+    await db.exec(await readFile(new URL('20261104000500_personal_participation_reports.sql',migrations),'utf8'));
     await asUser(manager);assert.equal((await agenda()).items.find(r=>r.contract_id===traffic.id)?.due_date,'2001-02-20','reaplicação não reescreve a data revisada');
     assert.ok(first);
   } finally {await db.close();}

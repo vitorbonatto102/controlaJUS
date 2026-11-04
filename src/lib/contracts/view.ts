@@ -1,11 +1,12 @@
 import { numericToCents } from "./finance";
 import { contractClientLabel, type ContractParty } from "./parties";
-import { commissionTargetCents, projectContractCommissions, type CommissionMode } from "./commission-retention";
+import { commercialTargetCents, commissionTargetCents, projectContractCommissions, type CommissionMode } from "./commission-retention";
 import type { EngagementFields } from "./engagement";
 
 export type PaymentRecord = {
   id: string;
   payment_date: string;
+  created_at?: string;
   amount_paid: number;
   voided_at?: string | null;
   commissions: { commission_amount: number } | null;
@@ -70,6 +71,10 @@ export type FinancialRow = {
   latestPaymentDate: string | null;
   percentage: number;
   estimatedCents: number;
+  thirdPartyEstimatedCents?: number;
+  thirdPartyRemainingCents?: number;
+  officeEstimatedCents?: number;
+  thirdPartyName?: string | null;
   remainingEstimatedCents?: number;
   commissionMode?: CommissionMode;
   commissionCents: number | null;
@@ -128,7 +133,7 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
         contractualCents, paidCents: activePayments.length ? paidCents : null,
         differenceCents: activePayments.length ? paidCents - contractualCents : null,
         latestPaymentDate, percentage: contract.commission_percentage,
-        ...projection.get(item.id)!, commissionMode: contract.commission_mode ?? "proportional",
+        ...projection.get(item.id)!, thirdPartyName:contract.commercial_recipient_name, commissionMode: contract.commission_mode ?? "proportional",
         commissionCents: hasCommission ? commissionCents : null,
         status: installmentStatus(contractualCents, paidCents, item.due_date, today),
       };
@@ -136,11 +141,40 @@ export function buildFinancialRows(contracts: ContractRecord[], today: string): 
   }).sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.clientName.localeCompare(b.clientName));
 }
 
+/** Personal control preserves participating receipts; the office schedule stays intact. */
+export function buildLawyerFinancialRows(contracts:ContractRecord[],today:string):FinancialRow[] {
+  const rows=buildFinancialRows(contracts,today);
+  const relevantPayments=new Set<string>();
+  for(const contract of contracts.filter(item=>item.commission_mode==="upfront")){
+    const target=(commissionTargetCents(contract)??0)+(commercialTargetCents(contract)??0);
+    let cash=0;
+    const payments=contract.installments.flatMap(item=>item.payments.filter(p=>!p.voided_at).map(p=>({...p,installmentId:item.id})))
+      .sort((a,b)=>a.payment_date.localeCompare(b.payment_date)||(a.created_at??"").localeCompare(b.created_at??"")||a.id.localeCompare(b.id));
+    for(const payment of payments){
+      if(cash<target || payment.commissions===null || numericToCents(payment.commissions.commission_amount)>0)relevantPayments.add(payment.installmentId);
+      cash+=numericToCents(payment.amount_paid);
+    }
+  }
+  return rows.filter(row=>row.commissionMode!=="upfront" || (row.remainingEstimatedCents??0)>0 || (row.thirdPartyRemainingCents??0)>0 ||
+    (row.commissionCents??0)>0 || relevantPayments.has(row.installmentId));
+}
+
+export function hasPendingContractParticipation(contract:ContractRecord,today:string):boolean {
+  if(contract.commission_mode!=="upfront")return true;
+  const target=commissionTargetCents(contract);
+  if(target===null)return true;
+  const payments=contract.installments.flatMap(item=>item.payments.filter(p=>!p.voided_at&&p.payment_date<=today));
+  if(payments.some(p=>p.commissions===null))return true;
+  const generated=payments.reduce((sum,p)=>sum+numericToCents(p.commissions!.commission_amount),0);
+  const received=payments.reduce((sum,p)=>sum+numericToCents(p.amount_paid),0);
+  return generated<target||received<target+(commercialTargetCents(contract)??0);
+}
+
 export function summarizeContracts(contracts: ContractRecord[], today: string) {
   const month = today.slice(0, 7);
-  const rows = buildFinancialRows(contracts, today);
+  const rows = buildLawyerFinancialRows(contracts, today);
   const activeContractIds = new Set(rows
-    .filter((row) => row.contractualCents > (row.paidCents ?? 0))
+    .filter((row) => row.contractualCents > (row.paidCents ?? 0) && (row.commissionMode!=="upfront" || (row.remainingEstimatedCents??0)>0 || (row.thirdPartyRemainingCents??0)>0))
     .map((row) => row.contractId));
   return {
     activeContractCount: activeContractIds.size,

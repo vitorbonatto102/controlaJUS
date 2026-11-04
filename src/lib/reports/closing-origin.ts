@@ -5,8 +5,9 @@ import {closingDocument,type ClosedReportData} from "./closing";
 export type ClosingOriginData={
   version:2;issued_at:string;office_name:string;lawyer_name:string;origins:string[];
   full_report?:ClosedReportData;
+  personal_only?:boolean;
   closing:{id:string;reference_month:number;reference_year:number;closed_at:string};
-  rows:{payment_id:string;contract_id:string;payment_date:string;client_name:string;origin:string;received_amount:number;lawyer_amount:number;third_party_amount:number}[];
+  rows:{payment_id:string;contract_id:string;payment_date:string;client_name:string;origin:string;recipient_name?:string|null;received_amount:number;lawyer_amount:number;third_party_amount:number}[];
   recipients:{contract_id:string;client_name:string;origin:string;name:string;kind:string;amount:number}[];
 };
 function total(values:number[]){
@@ -27,7 +28,7 @@ export function closingOriginDocument(data:ClosingOriginData,issuedBy:string):Re
       {label:"Destinado a terceiros",value:money(thirds)},{label:"Participação do escritório",value:money(received-lawyer-thirds),hint:"Antes de despesas e tributos"}],
     sections:[{title:"Recebimentos e participações",columns:[{label:"Pagamento",weight:1.3},{label:"Cliente / origem",weight:3.8},
       {label:"Recebido",weight:1.7,align:"right"},{label:"Advogada",weight:1.7,align:"right"},{label:"Terceiros",weight:1.7,align:"right"}],
-      rows:data.rows.map(row=>[formatDateBR(row.payment_date),`${row.client_name}\n${row.origin}`,formatBRL(Number(row.received_amount)),formatBRL(Number(row.lawyer_amount)),formatBRL(Number(row.third_party_amount))]),empty:"Nenhum recebimento para as origens selecionadas."},
+      rows:data.rows.map(row=>[formatDateBR(row.payment_date),`${row.client_name}\n${row.origin}`,formatBRL(Number(row.received_amount)),formatBRL(Number(row.lawyer_amount)),`${row.recipient_name||data.recipients.find(r=>r.contract_id===row.contract_id&&r.origin===row.origin&&r.kind!=="lawyer")?.name||"Sem terceiro informado"}\n${formatBRL(Number(row.third_party_amount))}`]),empty:"Nenhum recebimento para as origens selecionadas."},
       {title:"Destinação por beneficiário",columns:[{label:"Cliente / origem",weight:4},{label:"Beneficiário",weight:4},{label:"Valor retido",weight:2,align:"right"}],
       rows:data.recipients.map(row=>[`${row.client_name}\n${row.origin}`,`${row.name}\n${row.kind==="lawyer"?"Advogada":row.kind==="commercial"?"Comercial":"Terceiro"}`,formatBRL(Number(row.amount))]),empty:"Nenhuma participação a demonstrar."}],
     notes:["O fechamento mensal permanece integral. A seleção de origens altera somente este relatório.",
@@ -36,9 +37,10 @@ export function closingOriginDocument(data:ClosingOriginData,issuedBy:string):Re
       "A retenção nas primeiras parcelas respeita o limite total de cada beneficiário. A retenção proporcional acompanha cada recebimento registrado.",
       "Não há data de repasse presumida pela origem. Os pagamentos efetivamente realizados continuam registrados pelo gestor."]};
   if(original){
-    report.metrics=[...original.metrics,{label:"Destinado a terceiros",value:money(thirds)}];
-    report.sections.push(...original.sections.filter(section=>section.title!=="Agenda de repasses por contrato"));
+    report.metrics=data.personal_only?[{label:"Recebimentos com participação",value:money(received)},...original.metrics.filter(m=>m.label!=="Recebido pelo escritório"),{label:"Destinado a terceiros",value:money(thirds)}]:[...original.metrics,{label:"Destinado a terceiros",value:money(thirds)}];
+    report.sections.push(...original.sections.filter(section=>section.title!=="Agenda de repasses por contrato"&&(!data.personal_only||section.title==="Histórico de repasses")));
     report.notes.push(...original.notes);
   }
+  if(data.personal_only)report.notes.push("Parcelas da retenção inicial destinadas exclusivamente ao escritório ficam fora deste controle pessoal. O fechamento integral e seus totais originais permanecem preservados.");
   return report;
 }

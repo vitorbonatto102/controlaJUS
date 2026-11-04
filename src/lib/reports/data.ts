@@ -5,6 +5,7 @@ import { numericToCents } from "@/lib/contracts/finance";
 import { ReportError, isReportId, operationalDocument, reportScope, type ReportFilters, type OperationalReportRow } from "./model";
 import { closingDocument, type ClosedReportData } from "./closing";
 import {closingOriginDocument,type ClosingOriginData} from "./closing-origin";
+import {participationDocument,type FinancialReportPayload} from "./participation";
 
 function reportFailure(error: { code?: string; message: string }): never {
   if (error.code === "PGRST202") throw new ReportError("O módulo de relatórios aguarda a atualização do banco. Peça ao administrador para aplicar a migration de relatórios.", 503);
@@ -30,9 +31,12 @@ export async function loadOperationalReport(profile: CurrentProfile, filters: Re
   const supabase = await createClient();
   const args = { p_kind: filters.kind, p_from: filters.from, p_to: filters.to,
     p_lawyer: scope.lawyerId, p_client: filters.client, p_cpf: filters.cpf, p_service: filters.service, p_status: filters.status };
-  const { data, error } = filters.origins.length > 1
+  const { data, error } = scope.financial
+    ? await supabase.rpc("financial_activity_report",{...args,p_origins:filters.origins})
+    : filters.origins.length > 1
     ? await supabase.rpc("filtered_activity_report_multi", { ...args, p_origins: filters.origins })
     : await supabase.rpc("filtered_activity_report", { ...args, p_origin: filters.origins[0] ?? "" });
+  if(error?.code==="PGRST202"&&scope.financial)throw new ReportError("As participações e os beneficiários aguardam a atualização do banco. Peça ao administrador para aplicar a migration de relatórios pessoais.",503);
   if (error?.code === "PGRST202" && filters.origins.length > 1)
     throw new ReportError("A seleção de várias origens aguarda a atualização do banco. Peça ao administrador para aplicar a migration de múltiplas origens nos relatórios.", 503);
   if (error) reportFailure(error);
@@ -54,15 +58,16 @@ export async function loadOperationalReport(profile: CurrentProfile, filters: Re
     if (!lawyer) throw new ReportError("Advogada indisponível neste escritório.", 404);
     lawyerName = lawyer.full_name;
   }
-  return operationalDocument(rows, filters, scope, { officeName: office.name, lawyerName, issuedBy: profile.full_name,
-    issuedAt: payload.issued_at, today: payload.as_of }, commissions);
+  const context={officeName:office.name,lawyerName,issuedBy:profile.full_name,issuedAt:payload.issued_at,today:payload.as_of};
+  return scope.financial?participationDocument(data as FinancialReportPayload,filters,scope,context):operationalDocument(rows, filters, scope,context,commissions);
 }
 export async function loadClosedReport(profile: CurrentProfile, id: string, origins:string[] = []) {
   const scope = reportScope(profile);
   if (!scope.financial) throw new ReportError("Seu perfil permite emitir apenas relatórios operacionais.", 403);
   if (!isReportId(id)) throw new ReportError("Fechamento inválido.", 404);
   const supabase = await createClient();
-  let { data, error } = await supabase.rpc("closed_month_origin_report", { p_closing: id,p_origins:origins });
+  let { data, error } = await supabase.rpc("closed_month_participation_report", { p_closing: id,p_origins:origins });
+  if(error?.code==="PGRST202")({data,error}=await supabase.rpc("closed_month_origin_report",{p_closing:id,p_origins:origins}));
   if(error?.code === "PGRST202" && origins.length===0)({data,error}=await supabase.rpc("closed_month_report",{p_closing:id}));
   if (error) reportFailure(error);
   if(data?.version===2){

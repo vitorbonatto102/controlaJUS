@@ -11,6 +11,6 @@ export async function GET(request: Request) {
     const profile = await reportProfile(), filters = parseReportFilters(new URL(request.url).searchParams, todayInSaoPaulo());
     const report = await loadOperationalReport(profile, filters);
     const names = { payments: "recebimentos", installments: "parcelas", contracts: "contratos" };
-    return await pdfResponse(report, `repassum-${names[filters.kind]}-${filters.from}-${filters.to}.pdf`, filters.kind === "installments");
+    return await pdfResponse(report, `repassum-${names[filters.kind]}-${filters.from}-${filters.to}.pdf`, filters.kind === "installments" || profile.role!=="secretary");
   } catch (error) { return reportErrorResponse(error); }
 }

@@ -35,6 +35,8 @@ function refresh(clientId: string) {
   revalidatePath("/gestor");
   revalidatePath("/advogada/notificacoes");
   revalidatePath("/advogada/contratos", "layout");
+  revalidatePath("/acompanhamento");
+  revalidatePath("/relatorios");
 }
 
 export async function registerPayment(_state: SecretaryActionState, form: FormData): Promise<SecretaryActionState> {

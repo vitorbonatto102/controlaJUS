@@ -1,5 +1,5 @@
 import { numericToCents, participationCents } from "./finance";
-import { buildFinancialRows, type ContractRecord, type FinancialRow } from "./view";
+import { buildLawyerFinancialRows, type ContractRecord, type FinancialRow } from "./view";
 import { commissionTargetCents } from "./commission-retention";
 import { closedContractsInMonth } from "./engagement";
 
@@ -42,7 +42,8 @@ export function filterWalletRows(rows: FinancialRow[], filters: {
   return rows.filter((row) => (filters.allPeriods || row.dueDate.startsWith(filters.referenceMonth)) &&
     (!filters.dueDate || row.dueDate === filters.dueDate) &&
     (!filters.status || (filters.status === "delinquent"
-      ? row.dueDate < today && row.contractualCents > (row.paidCents ?? 0)
+      ? row.dueDate < today && row.contractualCents > (row.paidCents ?? 0) &&
+        (row.commissionMode!=="upfront"||(row.remainingEstimatedCents??0)>0||(row.thirdPartyRemainingCents??0)>0)
       : row.status === filters.status)));
 }
 
@@ -64,7 +65,8 @@ export function walletBalance(contracts: ContractRecord[], transfers: WalletTran
 }
 
 export function buildWallet(contracts: ContractRecord[], today: string, referenceMonth: string) {
-  const rows = buildFinancialRows(contracts, today);
+  const rows = buildLawyerFinancialRows(contracts, today);
+  const visibleInstallments=new Set(rows.map(row=>row.installmentId));
   const months = new Map<string, WalletMonth>();
   const getMonth = (key: string) => {
     if (!months.has(key)) months.set(key, emptyMonth(key));
@@ -75,7 +77,7 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
   let overdueCount = 0;
   for (const row of rows) {
     const month = getMonth(row.dueDate.slice(0, 7));
-    const remaining = Math.max(0, row.contractualCents - (row.paidCents ?? 0));
+    const remaining = row.commissionMode==="upfront" && (row.remainingEstimatedCents??0)===0 && (row.thirdPartyRemainingCents??0)===0 ? 0 : Math.max(0, row.contractualCents - (row.paidCents ?? 0));
     const participation = row.remainingEstimatedCents ?? participationCents(remaining, row.percentage);
     month.contractualCents += row.contractualCents;
     month.estimatedCents += row.estimatedCents;
@@ -90,6 +92,7 @@ export function buildWallet(contracts: ContractRecord[], today: string, referenc
   let missingCommissionCount = 0;
   // Payments on the same installment may belong to different months. Aggregate each one.
   for (const contract of contracts) for (const installment of contract.installments) {
+    if(contract.commission_mode==="upfront" && !visibleInstallments.has(installment.id))continue;
     for (const payment of installment.payments) {
       if (payment.voided_at) continue;
       const month = getMonth(payment.payment_date.slice(0, 7));

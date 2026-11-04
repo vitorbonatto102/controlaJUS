@@ -8,7 +8,7 @@ import { noteTypeLabels } from "@/lib/secretary/view";
 import styles from "@/components/contracts/contract-management.module.css";
 import { requireRole } from "@/lib/auth/profile";
 import { loadLawyerContract } from "@/lib/contracts/data";
-import { buildFinancialRows, statusLabels, todayInSaoPaulo } from "@/lib/contracts/view";
+import { buildLawyerFinancialRows, statusLabels, todayInSaoPaulo } from "@/lib/contracts/view";
 import { numericToCents, participationCents } from "@/lib/contracts/finance";
 import { getContractParties, contractClientLabel } from "@/lib/contracts/parties";
 import { formatCpf } from "@/lib/contracts/validation";
@@ -27,9 +27,10 @@ export default async function ContractDetailPage({ params, searchParams }: {
   if (!contract) notFound();
   const collectionNotes = await loadContractCollectionNotes(id);
   const { criado, editado } = await searchParams;
-  const rows = buildFinancialRows([contract], todayInSaoPaulo());
+  const rows = buildLawyerFinancialRows([contract], todayInSaoPaulo());
+  const personalInstallments=new Set(rows.map(row=>row.installmentId));
   const totalCents = contract.total_contract_value === null ? null : numericToCents(contract.total_contract_value);
-  const paymentRows = contract.installments.flatMap((item) => item.payments.map((payment) => ({
+  const paymentRows = contract.installments.filter(item=>contract.commission_mode!=="upfront"||personalInstallments.has(item.id)).flatMap((item) => item.payments.map((payment) => ({
     ...payment, installmentLabel: rows.find((row) => row.installmentId === item.id)?.installmentLabel ?? "—",
   }))).sort((a, b) => b.payment_date.localeCompare(a.payment_date));
 
@@ -80,6 +81,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
     <section className="table-section detail-table"><div className="section-heading"><div>
       <p className="eyebrow">CRONOGRAMA</p><h2>Parcelas e recebimentos</h2>
       <p>Pagamentos são lançados pela secretaria. Esta página é somente para consulta.</p>
+      {contract.commission_mode==="upfront" && <p>Seu controle mostra apenas as parcelas que envolvem sua participação ou a do terceiro/comercial. O cronograma completo permanece com o escritório.</p>}
     </div></div>
       {rows.length === 0 ? <div className="empty-state"><p>{contract.payment_start_type === "condition" ?
         "Aguardando definição do primeiro vencimento." : contract.payment_method === "success_only" ?
@@ -87,13 +89,15 @@ export default async function ContractDetailPage({ params, searchParams }: {
         <Link className="row-link" href="/acompanhamento">Acompanhar condições do contrato →</Link></div> :
       <div className="table-scroll"><table className="financial-table"><thead><tr><th>Parcela</th>
         <th>Vencimento</th><th>Valor contratual</th><th>Valor pago</th><th>Diferença</th><th>Último pagamento</th>
-        <th>Participação estimada</th><th>Comissão efetiva</th><th>Status</th></tr></thead>
+        <th>Minha participação prevista</th><th>Terceiro/comercial · previsão</th><th>Escritório · previsão</th><th>Comissão efetiva</th><th>Status</th></tr></thead>
         <tbody>{rows.map((row) => <tr key={row.installmentId}><td>{row.installmentLabel}</td>
           <td>{formatDateBR(row.dueDate)}</td><td className="money-cell">{formatBRL(row.contractualCents / 100)}</td>
           <td className="money-cell">{row.paidCents === null ? "—" : formatBRL(row.paidCents / 100)}</td>
           <td className="money-cell">{row.differenceCents === null ? "—" : formatBRL(row.differenceCents / 100)}</td>
           <td>{row.latestPaymentDate ? formatDateBR(row.latestPaymentDate) : "—"}</td>
           <td className="money-cell">{formatBRL(row.estimatedCents / 100)}</td>
+          <td className="money-cell">{row.thirdPartyName&&<small>{row.thirdPartyName}<br/></small>}{formatBRL((row.thirdPartyEstimatedCents??0)/100)}</td>
+          <td className="money-cell">{formatBRL((row.officeEstimatedCents??0)/100)}</td>
           <td className="money-cell">{row.commissionCents === null ? "—" : formatBRL(row.commissionCents / 100)}</td>
           <td><span className={`status status-${row.status}`}>{statusLabels[row.status]}</span></td>
         </tr>)}</tbody></table></div>}

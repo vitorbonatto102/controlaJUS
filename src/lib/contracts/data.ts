@@ -17,11 +17,11 @@ const contractSelect = `
   contract_financial_terms (commission_percentage,commission_mode,commission_upfront_limit,upfront_distribution,third_party_upfront_limit,commercial_recipient_name,commercial_percentage,payout_day,first_payout_date),
   installments (
     id, installment_number, kind, regular_number, due_date, contractual_amount,
-    payments (id, payment_date, amount_paid, voided_at, commissions (commission_amount))
+    payments (id, payment_date, created_at, amount_paid, voided_at, commissions (commission_amount))
   )
 `;
 
-type RawPayment = { id: string; payment_date: string; amount_paid: number; voided_at: string | null;
+type RawPayment = { id: string; payment_date: string; created_at?:string; amount_paid: number; voided_at: string | null;
   commissions: { commission_amount: number } | { commission_amount: number }[] | null };
 type RawInstallment = Omit<InstallmentRecord, "payments"> & { payments: RawPayment[] };
 type RawContract = Omit<ContractRecord, "client_name" | "client_cpf" | "commission_percentage" | "installments"> & {
@@ -65,7 +65,7 @@ function normalize(raw: RawContract): ContractRecord {
       regular_number: item.regular_number, due_date: item.due_date,
       contractual_amount: Number(item.contractual_amount),
       payments: item.payments.map((payment): PaymentRecord => ({
-        id: payment.id, payment_date: payment.payment_date,
+        id: payment.id, payment_date: payment.payment_date,created_at:payment.created_at,
         amount_paid: Number(payment.amount_paid), voided_at: payment.voided_at,
         commissions: one(payment.commissions),
       })),

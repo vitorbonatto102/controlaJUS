@@ -3,7 +3,7 @@ import { followUpReasons } from "@/lib/contracts/follow-up";
 import { contractClientLabel } from "@/lib/contracts/parties";
 import { closedContractsInMonth } from "@/lib/contracts/engagement";
 import { buildWallet, shiftMonth } from "@/lib/contracts/wallet";
-import type { ContractRecord } from "@/lib/contracts/view";
+import {hasPendingContractParticipation,type ContractRecord} from "@/lib/contracts/view";
 import type { Closing, Notification, Transfer } from "@/lib/finance/data";
 
 /** Compare the same elapsed calendar days, clamped at the end of the previous month. */
@@ -27,10 +27,11 @@ export function buildLawyerOverview(contracts: ContractRecord[], closings: Closi
     ...item, payments: item.payments.filter((payment) => payment.payment_date <= today),
   })) }));
   const wallet = buildWallet(snapshot, today, month);
-  const unpaid = wallet.rows.filter((row) => row.contractualCents > (row.paidCents ?? 0));
+  const unpaid = wallet.rows.filter((row) => row.contractualCents > (row.paidCents ?? 0) &&
+    (row.commissionMode!=="upfront" || (row.remainingEstimatedCents??0)>0 || (row.thirdPartyRemainingCents??0)>0));
   const dueToday = unpaid.filter((row) => row.dueDate === today);
   const contractMap = new Map(contracts.map((contract) => [contract.id, contract]));
-  const futureEvents = contracts.filter((contract) => followUpReasons(contract).length > 0);
+  const futureEvents = contracts.filter((contract) => followUpReasons(contract).length > 0 && hasPendingContractParticipation(contract,today));
   const overdue = new Map<string, { contractId: string; clientName: string; service: string | null;
     count: number; balanceCents: number; participationCents: number; oldestDate: string }>();
   for (const row of unpaid.filter((item) => item.dueDate < today)) {

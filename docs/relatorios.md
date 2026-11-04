@@ -14,6 +14,10 @@ No filtro **Origem**, abra a seta e marque uma ou mais opções. Use **Seleciona
 
 ## O que cada relatório mostra
 
+Para os relatórios financeiros de participação, aplique a migration `20261104000500_personal_participation_reports.sql` após as anteriores. A nova `financial_activity_report` valida cargo ativo, escritório e titularidade antes de reunir as condições protegidas e a reserva real do terceiro. A secretaria é recusada nessa função e continua usando as consultas operacionais com RLS, sem comissões ou nomes de beneficiários. A nova `closed_month_participation_report` reutiliza a validação e a reconciliação do fechamento confirmado.
+
+Advogada e gestor recebem o nome do terceiro/comercial e sua destinação, além da participação da advogada e do escritório. Valores do cronograma são previsões; valores de recebimentos usam os ledgers persistidos. Uma participação ausente aparece como **A apurar**, sem estimativa apresentada como dinheiro efetivo. Na retenção inicial, a visão pessoal da advogada retém apenas parcelas com participação pendente ou recebimentos relevantes no histórico; o gestor conserva o cronograma e todos os recebimentos do escritório.
+
 | Relatório | Base do período | Valores |
 | --- | --- | --- |
 | Recebimentos | Data efetiva do pagamento | Recebido válido e, para advogada/gestor, comissão efetivamente registrada |

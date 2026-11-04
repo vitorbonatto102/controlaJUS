@@ -28,6 +28,14 @@ Com limites diferentes, a divisão segue a proporção desses totais, com arredo
 
 ## Fechamento e relatórios
 
+Atualização do controle pessoal: após as migrations anteriores, execute somente `supabase/migrations/20261104000500_personal_participation_reports.sql` inteiro. Não modifica contratos, parcelas, pagamentos ou fechamentos. Publique também o código atualizado; não requer mudança no Cron ou nas variáveis de ambiente.
+
+Na retenção inicial, a Carteira, os próximos recebimentos e os alertas da advogada consideram somente parcelas com participação restante ou histórico de recebimentos que geraram participação. O cronograma completo continua com a secretaria e o gestor. Após quitar os limites, permanecem as parcelas históricas; as seguintes, exclusivas do escritório, saem do controle pessoal. O saldo de repasses já gerados continua nos fechamentos até ser pago. Estornos e correções podem fazer a participação voltar à previsão.
+
+Exemplo: total de R$ 6.000,00, 24 parcelas de R$ 250,00, advogada com limite de R$ 300,00 e terceiro com R$ 300,00. As duas primeiras destinam R$ 125,00 para cada pessoa; a terceira destina R$ 50,00 para cada uma e R$ 150,00 ao escritório. As demais 21 parcelas continuam no cronograma operacional, sem gerar nova participação. A distribuição segue a ordem real dos recebimentos, portanto adiantamentos ou pagamentos fora da ordem podem mudar quais parcelas geram a retenção.
+
+A central de relatórios agora identifica o terceiro pelo nome e demonstra valores da advogada, do terceiro e do escritório. Parcelas mostram previsão contratual; recebimentos mostram valores efetivamente registrados. Contratos mostram os limites totais ou percentuais, conforme a forma de retenção. A secretaria continua recebendo somente o relatório operacional, sem participações ou beneficiários.
+
 O fechamento automático continua único por advogada e mês, reunindo os recebimentos daquele mês. O cadastro não pergunta dia nem data inicial de repasse e não presume dia 1 ou 15 pela origem.
 
 No fechamento confirmado, advogada e gestor podem selecionar várias origens em **Emitir relatório por origem**. Por exemplo, Cliente próprio + Propriedade Intelectual em um relatório e Tráfego HP em outro. Tela e PDF usam a mesma seleção e mostram recebimentos, participação da advogada, valor destinado ao terceiro e nome de cada beneficiário.
@@ -35,6 +43,8 @@ No fechamento confirmado, advogada e gestor podem selecionar várias origens em 
 Esses são recortes do mesmo fechamento, sem abrir outra competência. Valores retidos não comprovam repasse pago. Os pagamentos efetivos ficam no fechamento completo. O gestor pode registrá-los em partes, com valor e data reais; não existe transferência bancária automática.
 
 O relatório completo mantém composição original, ajustes auditados e histórico de repasses. Os recortes mostram a composição efetiva, somando ajustes vinculados a cada pagamento. A origem capturada no fechamento é preservada em substituições posteriores, mesmo que a origem cadastral do contrato seja alterada. Ajustes antigos sem referência confiável exigem conferência, em vez de distribuição arbitrária de valores.
+
+No relatório pessoal do fechamento, recebimentos exclusivos do escritório após a retenção ficam fora da composição exibida. Os totais originais do mês e o saldo de repasses permanecem preservados e identificados. O gestor mantém a composição integral e os ajustes. O nome do terceiro aparece também junto do valor em cada linha, além do resumo por beneficiário.
 
 ## Correções, legado e acesso
 

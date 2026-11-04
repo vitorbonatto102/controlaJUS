@@ -27,7 +27,7 @@ export function LawyerTable({ rows, referenceMonth, today }: {
   return <section className="table-section" aria-labelledby="receipts-title">
     <div className="section-heading"><div><p className="eyebrow">ACOMPANHAMENTO</p>
       <h2 id="receipts-title">Meus recebimentos e contratos</h2>
-      <p>Valores acumulados por parcela. Cliente e origem seguem os filtros do painel.</p></div>
+      <p>Parcelas vinculadas à sua participação. Após quitar a retenção inicial, o histórico permanece e as parcelas exclusivas do escritório saem deste controle.</p></div>
       <span className="record-count">{filtered.length} {filtered.length === 1 ? "parcela" : "parcelas"}</span>
     </div>
     <div className="filters" aria-label="Filtros das parcelas">
@@ -41,8 +41,8 @@ export function LawyerTable({ rows, referenceMonth, today }: {
       <label>Vencimento exato<input type="date" value={filters.dueDate} onChange={(event) => setFilter("dueDate", event.target.value)} /></label>
       <button className="clear-button" type="button" onClick={() => { setFilters(emptyFilters); setPage(1); }}>Limpar filtros</button>
     </div>
-    {rows.length === 0 ? <div className="empty-state"><h3>Nenhuma parcela com cronograma definido</h3>
-      <p>Confira os filtros. Contratos apenas no êxito ou ainda sem data ficam em Acompanhamento.</p>
+    {rows.length === 0 ? <div className="empty-state"><h3>Nenhuma parcela com participação neste controle</h3>
+      <p>Confira os filtros. Retenções quitadas continuam no histórico; contratos apenas no êxito ou sem data ficam em Acompanhamento.</p>
       <Link className="primary-button" href="/advogada/novo-contrato">+ Novo cliente / contrato</Link></div> :
       filtered.length === 0 ? <div className="empty-state"><h3>Nenhuma parcela encontrada</h3>
         <p>Ajuste ou limpe os filtros para ver outros períodos e contratos.</p></div> :

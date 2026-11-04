@@ -18,7 +18,8 @@ export function ReportPreview({ report, pdfHref, page = 1, pageHref }: { report:
     <div className="table-scroll"><table className={styles.reportTable}><thead><tr>{report.sections[0].columns.map(column =>
       <th key={column.label} scope="col" className={column.align === "right" ? styles.money : undefined}>{column.label}</th>)}</tr></thead>
       <tbody>{rows.slice((current - 1) * 40, current * 40).map((row, index) => <tr key={index}>{row.map((cell, column) =>
-        <td key={column} className={report.sections[0].columns[column].align === "right" ? styles.money : undefined}>{cell}</td>)}</tr>)}</tbody></table></div>
+        <td key={column} className={report.sections[0].columns[column].align === "right" ? styles.money : undefined}
+          style={cell.includes("\n")?{whiteSpace:"pre-line"}:undefined}>{cell}</td>)}</tr>)}</tbody></table></div>
     {!rows.length && <div className={styles.empty}><h3>Nenhum registro neste filtro</h3><p>Você pode ajustar as datas ou consultar outro cliente.</p></div>}
     <div className={styles.pagination}><span>{rows.length ? `${Math.min(rows.length, (current - 1) * 40 + 1)}–${Math.min(rows.length, current * 40)} de ${rows.length} ${rows.length === 1 ? "registro" : "registros"}` : "0 registros"}</span>
       {pageCount > 1 && pageHref && <nav aria-label="Páginas da prévia">{current > 1 && <Link href={pageHref(current - 1)}>Anterior</Link>}

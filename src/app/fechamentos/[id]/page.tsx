@@ -8,6 +8,7 @@ import {RepassumLogo} from "@/components/brand";
 import {requireActiveProfile} from "@/lib/auth/profile";
 import {loadClosings} from "@/lib/finance/data";
 import {loadLawyerContracts} from "@/lib/contracts/data";
+import {buildLawyerFinancialRows,todayInSaoPaulo} from "@/lib/contracts/view";
 import {loadClosedReport} from "@/lib/reports/data";
 import {formatBRL,formatDateBR} from "@/lib/formatters";
 import {isReportId} from "@/lib/reports/model";
@@ -25,8 +26,9 @@ export default async function ClosedMonthPage({params,searchParams}:{params:Prom
   const [report,contracts]=await Promise.all([loadClosedReport(profile,id,origins),origins.length?Promise.resolve([]):loadLawyerContracts(closing.lawyer_id)]);
   const agenda=report.payoutAgenda;
   const month=`${closing.reference_year}-${String(closing.reference_month).padStart(2,"0")}`;
-  const installments=contracts.flatMap(c=>c.installments.map(i=>({id:i.id,label:`${c.client_name} · ${c.service_name||c.origin} · parcela ${i.installment_number} · ${formatBRL(i.contractual_amount)}`})));
-  const payments=contracts.flatMap(c=>c.installments.flatMap(i=>i.payments.filter(p=>!p.voided_at&&p.payment_date.startsWith(month)).map(p=>({id:p.id,
+  const personalIds=profile.role==="lawyer"?new Set(buildLawyerFinancialRows(contracts,todayInSaoPaulo()).map(row=>row.installmentId)):null;
+  const installments=contracts.flatMap(c=>c.installments.filter(i=>!personalIds||personalIds.has(i.id)).map(i=>({id:i.id,label:`${c.client_name} · ${c.service_name||c.origin} · parcela ${i.installment_number} · ${formatBRL(i.contractual_amount)}`})));
+  const payments=contracts.flatMap(c=>c.installments.filter(i=>!personalIds||personalIds.has(i.id)).flatMap(i=>i.payments.filter(p=>!p.voided_at&&p.payment_date.startsWith(month)).map(p=>({id:p.id,
     label:`${c.client_name} · parcela ${i.installment_number} · ${formatDateBR(p.payment_date)} · ${formatBRL(p.amount_paid)}`}))));
   return <DashboardShell profile={profile}>
     <Link href={profile.role==="lawyer"?"/advogada/fechamentos":"/gestor#fechamentos"}>← Voltar aos fechamentos</Link>

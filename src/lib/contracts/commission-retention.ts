@@ -41,7 +41,8 @@ export function commercialTargetCents(terms: CommissionTerms): number | null {
 }
 
 type ProjectionItem = { id: string; dueDate: string; order: number; contractualCents: number; paidCents: number };
-export type CommissionProjection = { estimatedCents: number; remainingEstimatedCents: number };
+export type CommissionProjection = { estimatedCents: number; remainingEstimatedCents: number;
+  thirdPartyEstimatedCents: number; thirdPartyRemainingCents: number; officeEstimatedCents: number };
 
 /** Contractual forecast and remaining forecast are distinct from persisted commissions. */
 export function projectContractCommissions(items: ProjectionItem[], terms: CommissionTerms, generatedCents: number) {
@@ -65,11 +66,16 @@ export function projectContractCommissions(items: ProjectionItem[], terms: Commi
       participationCents(item.contractualCents, terms.commission_percentage);
     const remainingEstimatedCents = upfront ? Math.min(remainingBudget, shared ? share(remainingCash, balance) : balance) :
       participationCents(balance, terms.commission_percentage);
+    const thirdPartyEstimatedCents = upfront ? shared ? Math.max(0,Math.min(item.contractualCents,Math.max(0,combinedTarget-forecastCash))-estimatedCents) : 0 :
+      Math.min(participationCents(item.contractualCents,terms.commercial_percentage??0),Math.max(0,item.contractualCents-estimatedCents));
+    const thirdPartyRemainingCents = upfront ? shared ? Math.max(0,Math.min(balance,Math.max(0,combinedTarget-remainingCash))-remainingEstimatedCents) : 0 :
+      Math.min(participationCents(balance,terms.commercial_percentage??0),Math.max(0,balance-remainingEstimatedCents));
     forecastBudget -= upfront ? estimatedCents : 0;
     remainingBudget -= upfront ? remainingEstimatedCents : 0;
     forecastCash += item.contractualCents;
     remainingCash += balance;
-    result.set(item.id, { estimatedCents, remainingEstimatedCents });
+    result.set(item.id, { estimatedCents, remainingEstimatedCents,thirdPartyEstimatedCents,thirdPartyRemainingCents,
+      officeEstimatedCents:Math.max(0,item.contractualCents-estimatedCents-thirdPartyEstimatedCents) });
   }
   return result;
 }
