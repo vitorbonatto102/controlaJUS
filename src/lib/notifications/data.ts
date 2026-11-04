@@ -6,6 +6,8 @@ const paymentTypes = new Set(["secretary_payment_recorded", "secretary_payment_u
 
 export async function loadNotificationLinks(notifications: Notification[]) {
   const links = new Map<string, string>();
+  for(const item of notifications)if(["payout_receipt_confirmed","payout_receipt_reversed"].includes(item.type)&&item.related_record_id)
+    links.set(item.id,`/repasses/${item.related_record_id}`);
   const supabase = await createClient();
   const payments = notifications.filter((item) => paymentTypes.has(item.type) && item.related_record_id);
   const notes = notifications.filter((item) => item.type === "secretary_collection_note" && item.related_record_id);

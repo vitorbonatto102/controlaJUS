@@ -167,6 +167,7 @@ Migrations novas desta etapa:
 | `20261104000300_closing_origin_reports.sql` | Relatórios de um fechamento por múltiplas origens, destinação por beneficiário e identidade histórica preservada em correções. |
 | `20261104000400_delete_contract_with_voided_payments.sql` | Exclusão lógica quando só há pagamentos estornados, preservando histórico, auditoria e bloqueios de fechamentos/repasses. |
 | `20261104000500_personal_participation_reports.sql` | Controle pessoal da retenção inicial e relatórios com participações da advogada, terceiro identificado e escritório. |
+| `20261104000600_lawyer_payout_receipts.sql` | Relatório imutável para repasse, confirmação parcial pela própria advogada, saldo, auditoria e aviso ao gestor. Veja [o fluxo](docs/confirmacao-de-repasses.md). |
 
 Novos pagamentos desde 04/11/2026 excluem os juros pagos pelo cliente. Ver [registro de pagamentos](docs/registro-de-pagamentos.md) para a orientação de lançamento e correção de meses fechados.
 

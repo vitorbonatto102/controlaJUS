@@ -1,5 +1,7 @@
 # Relatórios da Repassum
 
+Além dos demonstrativos abaixo, a advogada pode emitir um **Relatório para repasse** a partir de um mês fechado. Esse documento preserva o saldo na emissão e permite confirmar recebimentos posteriores, sem alterar o PDF. Veja [configuração e uso](confirmacao-de-repasses.md). O gestor acompanha as confirmações; a participação do comercial continua separada.
+
 ## Ativação e uso
 
 1. Após as migrations anteriores, execute **somente** `supabase/migrations/20261103000100_reports.sql` inteiro no SQL Editor do Supabase. A migration é transacional, reaplicável e somente adiciona funções de consulta. Não modifica pagamentos, comissões ou fechamentos. Não foi aplicada automaticamente em produção.

@@ -20,7 +20,7 @@ export default async function NotificationsPage() {
           <p>{item.message}</p><small>{new Date(item.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</small>
           {["automatic_closing", "closing_correction"].includes(item.type) && item.related_record_id && <p><Link href={`/fechamentos/${item.related_record_id}`}>Visualizar fechamento →</Link></p>}
           {links.has(item.id) && <p><Link className="row-link" href={links.get(item.id)!}>
-            {item.type === "secretary_collection_note" ? "Ver anotação no contrato →" : "Ver pagamento no contrato →"}</Link></p>}</div>
+            {["payout_receipt_confirmed", "payout_receipt_reversed"].includes(item.type) ? "Ver relatório e recebimento →" : item.type === "secretary_collection_note" ? "Ver anotação no contrato →" : "Ver pagamento no contrato →"}</Link></p>}</div>
         {!item.read_at && <form action={markNotificationRead}>
           <input type="hidden" name="notification_id" value={item.id} />
           <button type="submit" className="secondary-button">Marcar como lida</button>

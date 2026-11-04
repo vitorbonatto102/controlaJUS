@@ -41,3 +41,15 @@ export function PayoutAgendaView({ agenda, manager }: { agenda: PayoutAgenda; ma
         {t.reversed_at ? <small> · Estornado: {t.reversal_reason}</small> : <ReverseCommercial id={t.id} closing={agenda.closing_id} />}</li>)}</ul></details>}
   </section>;
 }
+
+/** Somente concilia pagamentos antigos: não cria a rotina de confirmar novos repasses. */
+export function LegacyPayoutLinks({agenda}:{agenda:PayoutAgenda}) {
+  if (!agenda.unallocated_transfers.length) return null;
+  return <details className="workspace-panel"><summary>Conferir vínculos de repasses anteriores</summary>
+    <p>Existem pagamentos antigos já registrados sem identificação dos contratos. Vincule esses valores para liberar a confirmação pela advogada, sem lançar o pagamento novamente.</p>
+    <div className="table-scroll"><table className="data-table"><thead><tr><th>Contrato</th><th>Saldo a identificar</th><th>Vínculo</th></tr></thead>
+      <tbody>{agenda.items.filter(item=>item.recipient==="lawyer"&&item.balance>0).map(item=><tr key={item.contract_id}>
+        <td>{item.client_name} · {item.origin}</td><td>{formatBRL(item.balance)}</td><td><TransferEntry agenda={agenda} item={item}/></td>
+      </tr>)}</tbody></table></div>
+  </details>;
+}

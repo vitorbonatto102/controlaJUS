@@ -11,14 +11,16 @@ import { buildWallet, monthLabel } from "@/lib/contracts/wallet";
 import { closingAvailability } from "@/lib/finance/closing-period";
 import { loadClosings, loadLawyerTransfers } from "@/lib/finance/data";
 import { formatBRL } from "@/lib/formatters";
+import {loadPayoutReports} from "@/lib/finance/payout-report-data";
+import {PayoutReportHistory} from "@/components/payout-report-history";
 import styles from "@/components/wallet/wallet.module.css";
 
 export const metadata: Metadata = { title: "Fechamentos e repasses | Repassum" };
 
 export default async function ClosingsPage() {
   const profile = await requireRole("lawyer");
-  const [contracts, closings, transfers] = await Promise.all([
-    loadLawyerContracts(profile.id), loadClosings(profile.id), loadLawyerTransfers(profile.id),
+  const [contracts, closings, transfers,payoutReports] = await Promise.all([
+    loadLawyerContracts(profile.id), loadClosings(profile.id), loadLawyerTransfers(profile.id),loadPayoutReports(profile.id),
   ]);
   const today = todayInSaoPaulo();
   const referenceMonth = today.slice(0, 7);
@@ -43,6 +45,7 @@ export default async function ClosingsPage() {
       </div>
       <p className={styles.description} style={{ marginTop: 16 }}>Prévia do mês: os valores acompanham os recebimentos e as correções registrados até o fechamento.</p>
     </section>}
+    <PayoutReportHistory {...payoutReports}/>
     <WalletSettlements closings={closings} transfers={transfers} />
   </div></DashboardShell>;
 }

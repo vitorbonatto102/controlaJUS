@@ -40,7 +40,7 @@ O fechamento automático continua único por advogada e mês, reunindo os recebi
 
 No fechamento confirmado, advogada e gestor podem selecionar várias origens em **Emitir relatório por origem**. Por exemplo, Cliente próprio + Propriedade Intelectual em um relatório e Tráfego HP em outro. Tela e PDF usam a mesma seleção e mostram recebimentos, participação da advogada, valor destinado ao terceiro e nome de cada beneficiário.
 
-Esses são recortes do mesmo fechamento, sem abrir outra competência. Valores retidos não comprovam repasse pago. Os pagamentos efetivos ficam no fechamento completo. O gestor pode registrá-los em partes, com valor e data reais; não existe transferência bancária automática.
+Esses são recortes do mesmo fechamento, sem abrir outra competência. Valores retidos não comprovam repasse pago. Após a atualização de [confirmação pela advogada](confirmacao-de-repasses.md), ela emite o relatório com as origens desejadas e confirma o próprio recebimento, inclusive parcial, com valor e data reais. O gestor acompanha e é notificado. O comercial recebe sua parte separadamente, sem confirmação presumida pela advogada. Não existe transferência bancária automática.
 
 O relatório completo mantém composição original, ajustes auditados e histórico de repasses. Os recortes mostram a composição efetiva, somando ajustes vinculados a cada pagamento. A origem capturada no fechamento é preservada em substituições posteriores, mesmo que a origem cadastral do contrato seja alterada. Ajustes antigos sem referência confiável exigem conferência, em vez de distribuição arbitrária de valores.
 

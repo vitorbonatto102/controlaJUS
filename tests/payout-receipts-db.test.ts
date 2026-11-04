@@ -1,0 +1,92 @@
+import assert from "node:assert/strict";
+import {randomUUID} from "node:crypto";
+import {readFile,readdir} from "node:fs/promises";
+import {test} from "node:test";
+import {PGlite} from "@electric-sql/pglite";
+import {blankContractForm,type ContractFormValues} from "../src/lib/contracts/registration";
+import {prepareContractEdit} from "../src/lib/contracts/editing";
+import type {PayoutReport} from "../src/lib/finance/payout-report-model";
+import {payoutReportDocument} from "../src/lib/finance/payout-report-model";
+
+test("a advogada confirma o relatório sem aprovação do gestor, com idempotência, escopo, parciais e auditoria",async()=>{
+  const db=new PGlite(),lawyer=randomUUID(),peer=randomUUID(),secretary=randomUUID(),manager=randomUUID(),otherManager=randomUUID();
+  try{
+    await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+      create table auth.users(id uuid primary key,email text not null,raw_user_meta_data jsonb not null default '{}');
+      create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      create table storage.buckets(id text primary key,name text not null,public boolean not null,file_size_limit bigint,allowed_mime_types text[]);
+      create table storage.objects(bucket_id text not null references storage.buckets(id),name text not null,owner_id text,primary key(bucket_id,name));
+      create function storage.filename(path text) returns text language sql immutable as $$select reverse(split_part(reverse(path),'/',1))$$;
+      create function storage.foldername(path text) returns text[] language sql immutable as $$select string_to_array(regexp_replace(path,'/[^/]+$',''),'/')$$;
+      alter table storage.objects enable row level security;grant usage on schema public,auth,storage to authenticated;grant select,insert,delete on storage.objects to authenticated;`);
+    const migrations=new URL("../supabase/migrations/",import.meta.url);
+    for(const file of (await readdir(migrations)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,migrations),'utf8'));
+    const office=(await db.query<{id:string}>("select id from offices where slug='principal'")).rows[0].id,otherOffice=randomUUID();
+    await db.query("insert into offices(id,name,slug) values($1,'Outro escritório','outro-recebimentos')",[otherOffice]);
+    for(const [id,role,off] of [[lawyer,'lawyer',office],[peer,'lawyer',office],[secretary,'secretary',office],[manager,'manager',office],[otherManager,'manager',otherOffice]]){
+      await db.query("insert into auth.users(id,email) values($1,$2)",[id,`${id}@example.com`]);
+      await db.query("update profiles set active=true,role=$2,office_id=$3,full_name='Pessoa Teste' where id=$1",[id,role,off]);
+    }
+    await db.query("update profiles set is_office_admin=true where id in($1,$2)",[lawyer,secretary]);
+    const asUser=async(id:string)=>{await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);};
+    const create=async(overrides:Partial<ContractFormValues>={})=>{
+      await asUser(lawyer);const id=randomUUID(),values={...blankContractForm,clientName:'Cliente Teste',cpf:'52998224725',serviceName:'Serviço Teste',contractDate:'01/01/2001',origin:'Cliente próprio',percentage:'5',total:'10.000,00',method:'installments' as const,count:'10',installmentValue:'1.000,00',paymentStartType:'fixed_date' as const,firstDue:'10/01/2001',commissionMode:'upfront' as const,upfrontDistribution:'lawyer_only' as const,...overrides},prepared=prepareContractEdit(values,false);
+      await db.query("select create_lawyer_contract_v7($1,$2::jsonb,$3::jsonb,$4::jsonb,null,null)",[id,JSON.stringify([{fullName:values.clientName,cpf:values.cpf}]),JSON.stringify(prepared.changes),JSON.stringify(prepared.schedule)]);
+      const installment=(await db.query<{id:string}>("select id from installments where contract_id=$1 order by installment_number limit 1",[id])).rows[0].id;return {id,installment};
+    };
+    const pay=async(installment:string,date:string,amount:number)=>{await asUser(secretary);return(await db.query<{id:string}>("insert into payments(installment_id,payment_date,amount_paid) values($1,$2,$3) returning id",[installment,date,amount])).rows[0].id;};
+    const close=async(month:number)=>{await asUser(manager);return(await db.query<{id:string}>("select confirm_monthly_closing($1,$2::smallint,2001::smallint) as id",[lawyer,month])).rows[0].id;};
+    const issue=async(closing:string,origins:string[]=[],id:string=randomUUID())=>(await db.query<{id:string}>("select issue_payout_report($1,$2,$3::text[]) as id",[id,closing,origins])).rows[0].id;
+    const load=async(id:string)=>(await db.query<{data:PayoutReport}>("select get_payout_report($1) as data",[id])).rows[0].data;
+    const confirm=async(id:string,amount:number,date='2001-02-01',request=randomUUID(),notes:string|null=null)=>(await db.query<{id:string}>("select confirm_payout_receipt($1,$2,$3::bigint,$4::date,$5) as id",[id,request,amount,date,notes])).rows[0].id;
+    const own=await create(),pi=await create({origin:'Propriedade Intelectual',percentage:'50',commissionMode:'proportional'}),traffic=await create({origin:'Tráfego HP',commercialPercentage:'5',upfrontDistribution:'shared',thirdPartyTotal:'500,00',commercialRecipientName:'Comercial Teste'});
+    await pay(own.installment,'2001-01-10',1000);await pay(pi.installment,'2001-01-11',1000);await pay(traffic.installment,'2001-01-12',500);
+    const closing=await close(1);
+    await assert.rejects(issue(closing),/não autorizado/,'gestor não emite solicitação em nome da advogada');
+    await asUser(lawyer);
+    const report=await issue(closing,['Cliente próprio','Propriedade Intelectual']);
+    assert.equal(await issue(closing,['Propriedade Intelectual','Cliente próprio'],report),report,'repetir emissão não duplica o relatório');
+    const overlap=await issue(closing,['Cliente próprio','Propriedade Intelectual']),trafficReport=await issue(closing,['Tráfego HP']);
+    const initial=await load(report),originalDocument=payoutReportDocument(initial);
+    assert.equal(Number(initial.amount_due),1000);assert.equal(initial.items.length,2);assert.equal(initial.available_cents,100000);
+    assert.equal(Number((await load(trafficReport)).amount_due),250,'confirmação não inclui o dinheiro do comercial');
+    await assert.rejects(db.query("update payout_reports set amount_due=1 where id=$1",[report]),/permission denied/);
+    await assert.rejects(confirm(report,100001),/excede o saldo/);
+    await assert.rejects(confirm(report,1,'2099-01-01'),/data reais/);
+    await assert.rejects(confirm(report,1,'2001-01-31'),/data reais/);
+    const request=randomUUID(),first=await confirm(report,33333,'2001-02-01',request,'Parte recebida');
+    assert.equal(await confirm(report,33333,'2001-02-01',request,'Parte recebida'),first,'reenvio da mesma confirmação é idempotente');
+    await assert.rejects(confirm(report,33334,'2001-02-01',request,'Parte recebida'),/já utilizada/);
+    const current=await load(report);assert.equal(current.available_cents,66667);assert.equal(current.receipts.length,1);
+    assert.deepEqual(payoutReportDocument(current),originalDocument,'recebimento não reescreve o PDF emitido');
+    assert.equal(Number((await db.query<{total:string}>("select sum(amount) as total from commission_transfer_allocations where transfer_id=$1",[first])).rows[0].total),333.33);
+    assert.equal((await db.query("select contract_id from commission_transfer_allocations where transfer_id=$1 and contract_id=$2",[first,traffic.id])).rows.length,0,'origem excluída não recebe alocação');
+    await confirm(overlap,66667,'2001-02-02');
+    assert.equal((await load(report)).available_cents,0);await assert.rejects(confirm(report,1),/excede o saldo/);
+    assert.equal((await load(trafficReport)).available_cents,25000,'outro recorte continua independente');
+    await confirm(trafficReport,25000,'2001-02-15');
+    assert.equal((await db.query<{status:string}>("select status from monthly_closings where id=$1",[closing])).rows[0].status,'paid');
+    await asUser(manager);assert.equal((await db.query("select id from commercial_transfers")).rows.length,0,'comercial não foi marcado como recebido pela advogada');
+    assert.equal((await db.query("select id from notifications where user_id=$1 and type='payout_receipt_confirmed'",[manager])).rows.length,3);
+    assert.equal((await db.query("select id from audit_logs where record_id=$1 and field_name='receipt_confirmed' and user_id=$2",[first,lawyer])).rows.length,1);
+    assert.equal((await load(report)).receipts.length,1,'gestor acompanha sem aprovar');
+    await asUser(lawyer);await db.query("select reverse_own_payout_receipt($1,'Valor confirmado incorretamente')",[first]);
+    assert.equal((await load(report)).available_cents,33333);
+    await assert.rejects(confirm(report,33333,'2001-02-01',request,'Parte recebida'),/já utilizada/);
+    await assert.rejects(db.query("select reverse_own_payout_receipt($1,'Estorno duplicado')",[first]),/indisponível/);
+    await confirm(report,33333,'2001-02-03');
+    const late=await create({commissionMode:'proportional'}),payment=await pay(late.installment,'2001-02-10',1000),february=await close(2);
+    await asUser(lawyer);const staleReport=await issue(february);const frozen=(await load(staleReport)).snapshot;
+    await asUser(manager);await db.query("select revise_manager_payment($1,'Recebimento conferido após fechamento',90000,'2001-02-10')",[payment]);
+    await asUser(lawyer);assert.equal((await load(staleReport)).stale,true);assert.deepEqual((await load(staleReport)).snapshot,frozen);
+    await assert.rejects(confirm(staleReport,4500,'2001-03-01'),/Emita um novo relatório/);
+    assert.equal(Number((await load(await issue(february))).amount_due),45);
+    for(const actor of [peer,secretary,otherManager]){await asUser(actor);await assert.rejects(load(report),/indisponível|autorizado/);await assert.rejects(confirm(report,1),/indisponível|autorizado/);
+      assert.equal((await db.query("select id from payout_reports where id=$1",[report])).rows.length,0);}
+    await db.exec('reset role;reset request.jwt.claim.sub');
+    await assert.rejects(db.query("update payout_reports set amount_due=1 where id=$1",[report]),/imutável/);
+    await db.exec(await readFile(new URL('20261104000600_lawyer_payout_receipts.sql',migrations),'utf8'));
+    await db.query("update profiles set active=false where id=$1",[lawyer]);
+    await asUser(lawyer);await assert.rejects(load(report),/não autorizado/);assert.equal((await db.query("select id from payout_reports")).rows.length,0);
+  }finally{await db.close();}
+});

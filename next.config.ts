@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   turbopack: { root: process.cwd() },
   outputFileTracingIncludes: {
     "/relatorios/**": ["./src/lib/reports/assets/*", "./public/branding/repassum/repassum-logo-pdf.png"],
+    "/repasses/**": ["./src/lib/reports/assets/*", "./public/branding/repassum/repassum-logo-pdf.png"],
   },
 };
 

@@ -35,7 +35,7 @@ export function closingOriginDocument(data:ClosingOriginData,issuedBy:string):Re
       "Valores consolidados a partir da composição confirmada e dos ajustes posteriores. O histórico original permanece preservado.",
       "Valor retido identifica a destinação do recebimento; não comprova pagamento do repasse ao beneficiário. Confira os pagamentos registrados no fechamento completo.",
       "A retenção nas primeiras parcelas respeita o limite total de cada beneficiário. A retenção proporcional acompanha cada recebimento registrado.",
-      "Não há data de repasse presumida pela origem. Os pagamentos efetivamente realizados continuam registrados pelo gestor."]};
+      "Não há data de repasse presumida pela origem. A advogada confirma somente a própria participação após receber o pagamento; o gestor acompanha o histórico."]};
   if(original){
     report.metrics=data.personal_only?[{label:"Recebimentos com participação",value:money(received)},...original.metrics.filter(m=>m.label!=="Recebido pelo escritório"),{label:"Destinado a terceiros",value:money(thirds)}]:[...original.metrics,{label:"Destinado a terceiros",value:money(thirds)}];
     report.sections.push(...original.sections.filter(section=>section.title!=="Agenda de repasses por contrato"&&(!data.personal_only||section.title==="Histórico de repasses")));

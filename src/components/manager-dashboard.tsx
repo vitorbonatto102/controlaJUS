@@ -9,7 +9,7 @@ import { buildManagerPaymentRows, filterManagerRows, managerDelinquency,
   managerTotals, type ManagerPaymentRow } from "@/lib/manager/view";
 import { correctField, correctPayment, recordLatePayment,
   reverseTransfer } from "@/app/gestor/actions";
-import type { AuditEntry, Closing } from "@/lib/finance/data";
+import type { AuditEntry } from "@/lib/finance/data";
 import { operationalStatusLabels } from "@/lib/secretary/view";
 import { contractClientLabel } from "@/lib/contracts/parties";
 import correctionStyles from "./manager-corrections.module.css";
@@ -157,10 +157,6 @@ function ClosingPreview({ lawyerId, month, year, rows, today }: {
       : <p>Nenhum pagamento encontrado neste período.</p>}
     <p>O fechamento é automático desde outubro/2026. Após a conclusão, abra o relatório para conferir e corrigir valores.</p>
   </section>;
-}
-
-function TransferForm({ closing }: { closing: Closing }) {
-  return <p><Link className="secondary-button" href={`/fechamentos/${closing.id}#agenda-repasses`}>Registrar repasse por contrato →</Link></p>;
 }
 
 function ReverseTransferForm({ id }: { id: string }) {
@@ -354,8 +350,8 @@ export function ManagerDashboard({ data, today }: { data: ManagerWorkspace; toda
               {new Date(item.created_at).toLocaleString("pt-BR")} · Escritório: {formatBRL(item.office_delta)} ·
               Comissão: {formatBRL(item.commission_delta)} · {item.reason}</li>)}</ul>
           </details>}
-          <TransferForm closing={closing} />
-          <details className="operation-details"><summary>Repasses ({transfers.filter((item) => !item.reversed_at).length})</summary>
+          <p className="field-hint">A advogada confirma o recebimento pelo relatório que emitiu. O saldo é atualizado automaticamente, sem aprovação adicional do gestor.</p>
+          <details className="operation-details"><summary>Histórico de recebimentos / repasses ({transfers.filter((item) => !item.reversed_at).length})</summary>
             {transfers.length ? <ul className="audit-list">{transfers.map((item) => <li key={item.id}>
               {formatBRL(item.amount)} · {formatDateBR(item.payment_date)} · {item.notes || "Sem observação"}
               {item.reversed_at ? <span>Revertido: {item.reversal_reason}</span> : <ReverseTransferForm id={item.id} />}

@@ -1,5 +1,7 @@
 # Fechamento automático e correções
 
+Após o fechamento, a própria advogada emite um relatório pelas origens desejadas e confirma o dinheiro recebido, sem aprovação adicional do gestor. Veja [confirmação de repasses](confirmacao-de-repasses.md), ativada pela migration `20261104000600_lawyer_payout_receipts.sql`. O agendamento abaixo permanece igual.
+
 A atualização de 04/11/2026 mantém este agendamento e o fechamento integral do mês. Depois das migrations anteriores, aplique `20261104000200_explicit_retention_allocation.sql` e `20261104000300_closing_origin_reports.sql`, nessa ordem, para retenção explicitamente escolhida, terceiro com total monetário e relatórios de um mesmo fechamento filtrados por múltiplas origens. Não é necessário alterar o Cron. Veja [retenção e repasses](comercial-e-repasses.md).
 
 ## Ativar no Supabase
