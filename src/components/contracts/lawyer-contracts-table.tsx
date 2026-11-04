@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ContractRecord } from "@/lib/contracts/view";
-import { contractHasPayments } from "@/lib/contracts/editing";
+import { contractHasActivePayments } from "@/lib/contracts/editing";
 import { contractClientLabel } from "@/lib/contracts/parties";
 import { formatBRL, formatDateBR } from "@/lib/formatters";
 import { ContractActions } from "./contract-actions";
@@ -49,7 +49,7 @@ export function LawyerContractsTable({ contracts }: { contracts: ContractRecord[
       <td>{contract.payment_method ? methods[contract.payment_method] : "Não informada"}</td>
       <td className="money-cell">{contract.total_contract_value === null ? "A apurar no êxito" : formatBRL(contract.total_contract_value)}</td>
       <td>{contract.contract_file_path ? <a className="row-link" href={`/advogada/contratos/${contract.id}/pdf`} target="_blank" rel="noopener noreferrer">Abrir PDF ↗</a> : "Sem PDF"}</td>
-      <td><ContractActions id={contract.id} version={contract.updated_at ?? ""} hasPayments={contractHasPayments(contract)} /></td>
+      <td><ContractActions id={contract.id} version={contract.updated_at ?? ""} hasActivePayments={contractHasActivePayments(contract)} /></td>
     </tr>)}</tbody></table></div>{pageCount > 1 && <div className="pagination"><span>Página {currentPage} de {pageCount}</span>
       <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Anterior</button>
       <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Próxima</button></div>}</> :

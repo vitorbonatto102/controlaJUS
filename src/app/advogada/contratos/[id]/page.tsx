@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { ContractActions } from "@/components/contracts/contract-actions";
-import { contractHasPayments } from "@/lib/contracts/editing";
+import { contractHasActivePayments } from "@/lib/contracts/editing";
 import { loadContractCollectionNotes } from "@/lib/contracts/management-data";
 import { noteTypeLabels } from "@/lib/secretary/view";
 import styles from "@/components/contracts/contract-management.module.css";
@@ -40,7 +40,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
     <p className="eyebrow">DETALHES DO CONTRATO</p><h1>{contractClientLabel(contract)}</h1>
     <p className="page-description">Dados gerais, documento e cronograma financeiro.</p>
     <section className={styles.toolbar} aria-label="Gerenciar este contrato"><ContractActions id={id}
-      version={contract.updated_at ?? ""} hasPayments={contractHasPayments(contract)} showView={false} /></section>
+      version={contract.updated_at ?? ""} hasActivePayments={contractHasActivePayments(contract)} showView={false} /></section>
     <EngagementForm key={contract.updated_at} contract={{ id, updated_at: contract.updated_at ?? "",
       engagement_status: contract.engagement_status, closed_on: contract.closed_on }} />
     <div className="detail-grid"><section className="form-panel"><h2>Dados gerais</h2>

@@ -13,6 +13,10 @@ export function contractHasPayments(contract: ContractRecord) {
   return contract.installments.some((installment) => installment.payments.length > 0);
 }
 
+export function contractHasActivePayments(contract: ContractRecord) {
+  return contract.installments.some((installment) => installment.payments.some((payment) => !payment.voided_at));
+}
+
 export function contractToForm(contract: ContractRecord): ContractFormValues {
   const regular = contract.installments.filter((item) => item.kind === "regular")
     .sort((a, b) => a.installment_number - b.installment_number);

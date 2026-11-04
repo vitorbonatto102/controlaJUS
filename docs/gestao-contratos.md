@@ -4,6 +4,8 @@
 
 No SQL Editor do Supabase, executar apenas a nova migration `supabase/migrations/20261022000300_lawyer_contract_management.sql`, após as migrations anteriores já aplicadas. Pode ser reaplicada. Ela adiciona a exclusão lógica, duas RPCs e os controles de integridade; não remove dados existentes.
 
+Para a correção de 04/11/2026, em uma instalação já atualizada, execute somente `supabase/migrations/20261104000400_delete_contract_with_voided_payments.sql` inteiro. É reaplicável, não exclui nenhum contrato automaticamente e não requer novas variáveis. Publique também o código atualizado para liberar o botão quando só houver estornos.
+
 ## Interface
 
 - **Contratos** no menu da advogada: lista completa, inclusive êxito e início condicionado, com busca por cliente e filtros de origem e forma de pagamento.
@@ -17,7 +19,9 @@ As RPCs usam o usuário autenticado, a função ativa e o escritório, e só ope
 
 Sem pagamentos ou cobranças por parcela, podem ser modificados valores, percentuais, forma de pagamento e cronograma. O cliente vinculado é preservado, pois seu cadastro pode ser compartilhado por outros contratos do escritório.
 
-Com pagamentos (inclusive estornados) ou cobranças vinculadas às parcelas, a edição da advogada limita-se à origem, data e documento. Correções financeiras permanecem com o gestor. Contratos com qualquer histórico de pagamentos não podem ser excluídos pela advogada, preservando comissões, fechamentos e repasses.
+Com pagamentos (inclusive estornados) ou cobranças vinculadas às parcelas, a edição da advogada limita-se aos dados cadastrais permitidos. Correções financeiras permanecem com o gestor. Essa trava de edição continua independente da exclusão.
+
+A exclusão é permitida quando não há pagamentos ou quando todos foram estornados, desde que não exista vínculo com composição/ajuste de fechamento, alocação de repasse ou repasse a terceiro. Um pagamento válido, mesmo parcial ou com data futura, continua bloqueando a exclusão. O banco repete essas verificações; não basta alterar o botão na tela. Os estornos, comissões históricas, parcelas e auditoria continuam armazenados após a exclusão lógica. A RPC usa o lock financeiro da advogada e a versão do contrato antes de aplicar a mudança.
 
 A exclusão é lógica e aplicada via política RLS restritiva. Parcelas e consultas operacionais herdam a indisponibilidade do contrato. Triggers impedem novos pagamentos/parcelas no contrato excluído. Locks no contrato serializam a edição com os lançamentos financeiros. A versão enviada pelo formulário impede sobrescrever alterações concorrentes, inclusive correções nas parcelas ou no percentual.
 

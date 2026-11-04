@@ -3,12 +3,21 @@ import { randomUUID } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { contractToForm, parseEditValues, prepareContractEdit } from "../src/lib/contracts/editing";
+import { contractHasActivePayments, contractHasPayments, contractToForm, parseEditValues, prepareContractEdit } from "../src/lib/contracts/editing";
+import type {ContractRecord} from "../src/lib/contracts/view";
 import { blankContractForm, prepareContract } from "../src/lib/contracts/registration";
 
 const values = { ...blankContractForm, clientName: "Cliente Teste", cpf: "52998224725", serviceName: "Ação revisional",
   contractDate: "22/10/2026", total: "1.200,00", method: "cash" as const, installmentValue: "1.200,00",
   count: "1", paymentStartType: "fixed_date" as const, firstDue: "10/12/2026", origin: "Cliente próprio", percentage: "45",commissionMode:"proportional" as const };
+
+test("estorno libera exclusão, preservando a trava de edição financeira pelo histórico",()=>{
+  const contract:ContractRecord={id:"c",client_id:"cl",client_name:"Cliente Teste",client_cpf:null,origin:"Cliente próprio",contract_date:"2026-10-07",total_contract_value:6000,commission_percentage:5,payment_method:"installments",contract_file_path:null,contract_file_name:null,installments:[{id:"i",installment_number:1,kind:"regular",regular_number:1,due_date:"2026-12-10",contractual_amount:250,payments:[{id:"p",payment_date:"2026-12-10",amount_paid:250,voided_at:"2026-11-04T12:00:00Z",commissions:null}]}]};
+  assert.equal(contractHasPayments(contract),true);
+  assert.equal(contractHasActivePayments(contract),false);
+  contract.installments[0].payments.push({id:"p2",payment_date:"2026-12-10",amount_paid:1,voided_at:null,commissions:null});
+  assert.equal(contractHasActivePayments(contract),true,"até um pagamento parcial ou futuro mantém a proteção");
+});
 
 test("edição reutiliza validação e cronograma, preservando a identificação do cliente", () => {
   const result = prepareContractEdit(values, false);
@@ -117,8 +126,32 @@ test("gestão de contratos aplica isolamento, validação, auditoria e proteçã
     await asUser(secretary);
     await db.query("select public.revise_secretary_payment($1::uuid,'Lançamento registrado incorretamente',null::bigint,null::date)", [payment]);
     await asUser(lawyer);
-    await assert.rejects(remove(paid, await version(paid)), /pagamentos registrados/);
     await assert.rejects(edit(paid, await version(paid)), /histórico de pagamentos/);
+    await remove(paid,await version(paid));
+    assert.equal((await db.query("select id from contracts where id=$1",[paid])).rows.length,0);
+    await db.exec("reset role");
+    assert.equal((await db.query("select id from payments where id=$1 and voided_at is not null",[payment])).rows.length,1,"estorno permanece armazenado");
+    assert.equal(Number((await db.query<{commission_amount:string}>("select commission_amount from commissions where payment_id=$1",[payment])).rows[0].commission_amount),432,"comissão histórica permanece armazenada");
+    assert.equal((await db.query("select id from audit_logs where record_id=$1 and field_name='deleted_at' and user_id=$2",[paid,lawyer])).rows.length,1);
+    const manager=randomUUID();
+    await db.exec("reset request.jwt.claim.sub");
+    await db.query("insert into auth.users(id,email) values($1,'manager-delete-test@example.com')",[manager]);
+    await db.query("update profiles set active=true,role='manager',office_id=$2 where id=$1",[manager,office]);
+    await asUser(lawyer);
+    const closed=randomUUID();await register(closed);
+    const closedInstallment=(await db.query<{id:string}>("select id from installments where contract_id=$1",[closed])).rows[0].id;
+    await db.exec("reset role");
+    await db.query("update contracts set contract_date='2001-01-01' where id=$1",[closed]);
+    await db.query("update installments set due_date='2001-01-10' where id=$1",[closedInstallment]);
+    await asUser(secretary);
+    const closedPayment=(await db.query<{id:string}>("insert into payments(installment_id,payment_date,amount_paid) values($1,'2001-01-10',1000) returning id",[closedInstallment])).rows[0].id;
+    await asUser(manager);
+    await db.query("select confirm_monthly_closing($1,1::smallint,2001::smallint)",[lawyer]);
+    await db.query("select revise_manager_payment($1,'Estorno conferido depois do fechamento',null::bigint,null::date)",[closedPayment]);
+    await asUser(lawyer);
+    assert.equal((await db.query("select id from payments where id=$1 and voided_at is null",[closedPayment])).rows.length,0);
+    await assert.rejects(remove(closed,await version(closed)),/vinculado a fechamento ou repasse/,"histórico de fechamento exige conferência mesmo sem pagamento válido");
+    await asUser(lawyer);
     const noted = randomUUID(); await register(noted);
     const notedInstallment = (await db.query<{ id: string }>("select id from public.installments where contract_id=$1", [noted])).rows[0].id;
     await asUser(secretary);
@@ -134,6 +167,8 @@ test("gestão de contratos aplica isolamento, validação, auditoria e proteçã
     await assert.rejects(edit(noted, await version(noted), { contract_file_path: `contracts/${other}/${noted}/${randomUUID()}.pdf`, contract_file_name: "outro.pdf" }, null), /PDF não encontrado/);
     await db.exec("reset role; reset request.jwt.claim.sub");
     await db.exec(await readFile(new URL("20261022000300_lawyer_contract_management.sql", migrations), "utf8"));
+    await db.exec(await readFile(new URL("20261104000400_delete_contract_with_voided_payments.sql", migrations), "utf8"));
+    await db.exec(await readFile(new URL("20261104000400_delete_contract_with_voided_payments.sql", migrations), "utf8"));
     await asUser(lawyer);
     const multi = randomUUID();
     const parties = [{ fullName: "Cliente Teste", cpf: "52998224725" }, { fullName: "Segunda Pessoa Fictícia", cpf: "11144477735" }];
