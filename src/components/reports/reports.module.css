@@ -7,6 +7,22 @@
 .filters label { display: grid; gap: 8px; font-size: .77rem; font-weight: 500; color: #486158; }
 .filters input, .filters select { width: 100%; min-width: 0; background: #fff; border: 1px solid #cddbd4; border-radius: 7px; padding: 11px; color: var(--ink); font-size: .79rem; }
 .filters select:disabled { opacity: .5; background: #f5f8f3; }
+.originField { display: grid; gap: 8px; font-size: .77rem; font-weight: 500; color: #486158; min-width: 0; }
+.originDropdown { position: relative; }
+.originDropdown summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; list-style: none; cursor: pointer; background: #fff; border: 1px solid #cddbd4; border-radius: 7px; padding: 11px; color: var(--ink); font-size: .79rem; }
+.originDropdown summary::-webkit-details-marker { display: none; }
+.originDropdown summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin: -3px 3px 0 0; flex-shrink: 0; }
+.originDropdown[open] summary::after { transform: rotate(225deg); margin-top: 3px; }
+.originDropdown summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.originOptions { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 10; background: #fff; border: 1px solid #cddbd4; border-radius: 9px; box-shadow: 0 10px 25px #12343914; padding: 12px; }
+.originOptions fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.originOptions legend { font-size: .7rem; color: var(--muted); margin-bottom: 9px; }
+.filters .originOptions label { display: flex; align-items: center; gap: 9px; padding: 10px 6px; color: var(--ink); cursor: pointer; border-radius: 5px; }
+.originOptions label:hover { background: #f3f7f1; }
+.filters .originOptions input { width: 16px; height: 16px; margin: 0; padding: 0; flex-shrink: 0; accent-color: var(--teal); }
+.originActions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); margin-top: 6px; padding-top: 12px; }
+.originActions button { border: 0; padding: 0; background: transparent; color: var(--teal); font: inherit; font-size: .7rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.originOptions p { font-size: .67rem; line-height: 1.6; color: var(--muted); margin: 12px 0 0; }
 .filterActions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; grid-column: 1 / -1; margin-top: 3px; }
 .filterActions a { color: var(--muted); font-size: .75rem; text-underline-offset: 3px; }
 .hint { color: var(--muted); font-size: .73rem; line-height: 1.7; margin: 17px 0 0; }

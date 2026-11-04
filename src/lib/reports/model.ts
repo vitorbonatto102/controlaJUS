@@ -23,9 +23,9 @@ export function reportScope(profile: Pick<CurrentProfile, "id" | "role" | "offic
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isReportId = (value: string) => uuid.test(value);
 export type ReportFilters = { kind: ReportKind; from: string; to: string; lawyerId: string; client: string;
-  cpf: string; origin: string; service: string; status: keyof typeof reportStatuses };
+  cpf: string; origins: string[]; service: string; status: keyof typeof reportStatuses };
 export function parseReportFilters(params: URLSearchParams, today: string): ReportFilters {
-  for (const key of ["tipo", "de", "ate", "advogada", "cliente", "cpf", "origem", "servico", "situacao"])
+  for (const key of ["tipo", "de", "ate", "advogada", "cliente", "cpf", "servico", "situacao"])
     if (params.getAll(key).length > 1) throw new ReportError("Há filtros repetidos. Limpe os filtros e tente novamente.");
   const month = today.slice(0, 7), [year, number] = month.split("-").map(Number);
   const lastDay = new Date(Date.UTC(year, number, 0)).getUTCDate();
@@ -36,17 +36,20 @@ export function parseReportFilters(params: URLSearchParams, today: string): Repo
   } catch { throw new ReportError("Informe as datas no formato DD/MM/AAAA."); }
   const kind = read("tipo") || "payments", status = read("situacao") || "all";
   const lawyerId = read("advogada"), client = read("cliente"), cpf = onlyDigits(read("cpf"));
-  const origin = read("origem"), service = read("servico");
+  const requestedOrigins = params.getAll("origem").map(value => value.trim()).filter(Boolean);
+  const origins = ORIGINS.filter(origin => requestedOrigins.includes(origin)), service = read("servico");
   if (!Object.hasOwn(reportLabels, kind) || !Object.hasOwn(reportStatuses, status) || from > to || from < "1900-01-01" || to > "2200-12-31" ||
     (lawyerId && !uuid.test(lawyerId)) || client.length > 160 || service.length > 180 ||
-    (read("cpf") && (cpf.length !== 11 || !/^[\d.\-\s]+$/.test(read("cpf")))) || (origin && !ORIGINS.includes(origin as typeof ORIGINS[number])) ||
+    (read("cpf") && (cpf.length !== 11 || !/^[\d.\-\s]+$/.test(read("cpf")))) || requestedOrigins.some(origin => !ORIGINS.includes(origin as typeof ORIGINS[number])) ||
     (kind !== "installments" && status !== "all")) throw new ReportError("Confira o período e os filtros selecionados.");
-  return { kind: kind as ReportKind, from, to, lawyerId, client, cpf, origin, service, status: status as ReportFilters["status"] };
+  return { kind: kind as ReportKind, from, to, lawyerId, client, cpf, origins, service, status: status as ReportFilters["status"] };
 }
 export function reportQuery(filters: ReportFilters): string {
-  return new URLSearchParams({ tipo: filters.kind, de: formatDateBR(filters.from), ate: formatDateBR(filters.to),
-    advogada: filters.lawyerId, cliente: filters.client, cpf: filters.cpf, origem: filters.origin,
-    servico: filters.service, situacao: filters.status }).toString();
+  const params = new URLSearchParams({ tipo: filters.kind, de: formatDateBR(filters.from), ate: formatDateBR(filters.to),
+    advogada: filters.lawyerId, cliente: filters.client, cpf: filters.cpf,
+    servico: filters.service, situacao: filters.status });
+  for (const origin of filters.origins) params.append("origem", origin);
+  return params.toString();
 }
 export type ReportColumn = { label: string; weight: number; align?: "right" };
 export type ReportSection = { title: string; columns: ReportColumn[]; rows: string[][]; empty?: string };
@@ -102,7 +105,7 @@ export function operationalDocument(rows: OperationalReportRow[], filters: Repor
   }
   const basis = filters.kind === "payments" ? "Data efetiva do recebimento" : filters.kind === "installments" ? "Data de vencimento das parcelas" : "Data do documento contratual";
   const selected = [basis, ...(filters.client ? [`Cliente: ${filters.client}`] : []), ...(filters.cpf ? [`CPF: ${filters.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}`] : []),
-    ...(filters.origin ? [`Origem: ${filters.origin}`] : []), ...(filters.service ? [`Serviço: ${filters.service}`] : []),
+    ...(filters.origins.length ? [`${filters.origins.length === 1 ? "Origem" : "Origens"}: ${filters.origins.join("; ")}`] : []), ...(filters.service ? [`Serviço: ${filters.service}`] : []),
     ...(filters.status !== "all" ? [`Situação: ${reportStatuses[filters.status]}`] : [])];
   return { title: `Relatório de ${reportLabels[filters.kind].toLocaleLowerCase("pt-BR")}`, subtitle: "Uma visão organizada dos registros do período.",
     officeName: context.officeName, audience: context.lawyerName || (scope.lawyerId ? "Minha carteira" : "Todas as advogadas do escritório"),

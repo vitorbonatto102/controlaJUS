@@ -38,6 +38,8 @@ test("relatórios aplicam RLS, filtros e snapshots sem expor comissões à secre
       await db.query("insert into contracts(id,office_id,client_id,lawyer_id,origin,total_contract_value,contract_date,service_name) values($1,$2,$3,$4,'Cliente próprio',2000,'2001-01-01','Revisional contratual')",[id,off,client,owner]);
       await db.query("insert into contract_financial_terms(contract_id,commission_percentage) values($1,40)",[id]);
     }
+    await db.query("update contracts set origin='Propriedade Intelectual' where id=$1",[b]);
+    await db.query("update contracts set origin='Tráfego HP' where id=$1",[outside]);
     await db.query("insert into contract_parties(contract_id,client_id,office_id,position) values($1,$2,$3,2)",[a,extra,office]);
     const ia=randomUUID(),ia2=randomUUID(),ib=randomUUID(),io=randomUUID();
     for(const [id,contract,number,date] of [[ia,a,1,'2001-01-10'],[ia2,a,2,'2001-02-10'],[ib,b,1,'2001-01-10'],[io,outside,1,'2001-01-10']])
@@ -45,6 +47,8 @@ test("relatórios aplicam RLS, filtros e snapshots sem expor comissões à secre
     const asUser=async(id:string)=>{await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);};
     const report=async(kind='payments',owner:string|null=null,client='',cpf='',service='',status='all',from='2001-01-01',to='2001-02-28')=>(await db.query<{report:Payload}>(
       "select filtered_activity_report($1,$2::date,$3::date,$4::uuid,$5,$6,'',$7,$8) as report",[kind,from,to,owner,client,cpf,service,status])).rows[0].report;
+    const multiReport=async(origins:(string|null)[],owner:string|null=null)=>(await db.query<{report:Payload}>(
+      "select filtered_activity_report_multi('payments','2001-01-01','2001-02-28',$1::uuid,'','',$2::text[]) as report",[owner,origins])).rows[0].report;
     const outsideSecretary=randomUUID();
     await db.query("insert into auth.users(id,email) values($1,'outside-secretary@example.com')",[outsideSecretary]);
     await db.query("update profiles set role='secretary',office_id=$2,active=true where id=$1",[outsideSecretary,otherOffice]);
@@ -54,6 +58,8 @@ test("relatórios aplicam RLS, filtros e snapshots sem expor comissões à secre
     const pa=(await db.query<{id:string}>("insert into payments(installment_id,payment_date,amount_paid) values($1,'2001-01-15',1080) returning id",[ia])).rows[0].id;
     await db.query("insert into payments(installment_id,payment_date,amount_paid) values($1,'2001-01-20',200)",[ib]);
     let data=await report();assert.equal(data.rows.length,2);assert.equal('commissions' in data,false,"nem a secretaria admin recebe dados de comissão");
+    data=await multiReport(['Cliente próprio','Propriedade Intelectual']);assert.equal(data.rows.length,2);assert.equal('commissions' in data,false);
+    assert.equal((await multiReport(['Tráfego HP'])).rows.length,0,'múltiplas origens não ampliam o escritório');
     assert.equal((await report('payments',lawyer)).rows.length,1);
     data=await report('payments',null,'','11144477735');assert.equal(data.rows.length,1);assert.equal(data.rows[0].clients.length,2,"vários contratantes não duplicam pagamentos");
     assert.equal((await report('payments',null,'Cliente adicional')).rows.length,1);
@@ -64,10 +70,18 @@ test("relatórios aplicam RLS, filtros e snapshots sem expor comissões à secre
     await assert.rejects(report('payments',null,'','','','paid'),/filtros/);
     await asUser(lawyer);
     data=await report();assert.equal(data.rows.length,1);assert.equal(Number(data.commissions?.[0].amount),432);
+    data=await multiReport(['Cliente próprio','Propriedade Intelectual']);assert.equal(data.rows.length,1);assert.equal(Number(data.commissions?.[0].amount),432);
+    await assert.rejects(multiReport(['Cliente próprio','Propriedade Intelectual'],colleague),/próprios dados/);
     await assert.rejects(report('payments',colleague),/próprios dados/);
     await asUser(colleague);assert.equal((await report()).rows.length,1);
     await asUser(outsider);assert.equal((await report()).rows.length,1);assert.equal((await report()).rows[0].contract_id,outside);
     await asUser(manager);data=await report();assert.equal(data.rows.length,2);assert.equal(data.commissions?.length,2);
+    data=await multiReport(['Cliente próprio','Propriedade Intelectual']);assert.equal(data.rows.length,2);assert.equal(data.commissions?.length,2);
+    assert.equal(new Set(data.rows.map(row=>row.row_id)).size,2);
+    assert.equal((await multiReport(['Cliente próprio','Cliente próprio'])).rows.length,1,'origem repetida não duplica registros');
+    assert.equal((await multiReport([])).rows.length,2,'sem seleção inclui todas as origens permitidas');
+    await assert.rejects(multiReport(['Cliente próprio','invalida']),/origens/);
+    await assert.rejects(multiReport([null]),/origens/);
     await asUser(secretary);
     await db.query("insert into payments(installment_id,payment_date,amount_paid) values($1,'2099-01-15',1000)",[ia2]);
     assert.equal((await report('payments',lawyer,'','','','all','2099-01-01','2099-01-31')).rows.length,0,"pagamento futuro não vira recebido");

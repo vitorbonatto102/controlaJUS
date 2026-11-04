@@ -8,6 +8,10 @@
 4. Use **Visualizar relatório** para aplicar os filtros. A prévia mostra 40 registros por página; **Baixar PDF** inclui todos os registros do filtro, até o limite declarado de 5.000. Acima dele, a emissão solicita filtros mais específicos e não entrega um documento parcial.
 5. Após o fechamento automático (desde outubro/2026), ambos têm **Visualizar / corrigir valores** e a opção de baixar PDF. Meses em apuração não emitem o demonstrativo. Ative a rotina conforme [fechamento automático](fechamento-automatico.md).
 
+Para habilitar a seleção de várias origens em uma instalação existente, execute somente `supabase/migrations/20261103000500_report_multiple_origins.sql`, após as migrations anteriores. É uma função de leitura reaplicável, sem alteração de registros ou permissões das tabelas. Não há novas variáveis de ambiente.
+
+No filtro **Origem**, abra a seta e marque uma ou mais opções. Use **Selecionar todas** ou **Limpar seleção** conforme necessário; nenhuma opção marcada inclui todas as origens. Clique em **Visualizar relatório** para aplicar. A seleção permanece na paginação e no PDF, que identifica as origens escolhidas.
+
 ## O que cada relatório mostra
 
 | Relatório | Base do período | Valores |
@@ -42,6 +46,8 @@ As rotas de prévia e PDF autenticam novamente e derivam o escopo do perfil ativ
 As funções `filtered_activity_report` e `closed_month_report` são **SECURITY INVOKER**, executadas com todas as RLS existentes, além de validação explícita de escritório e titularidade. Somente `authenticated` pode executá-las. Não usam service role, chave secreta ou uma view que contorne as RLS. O payload da secretaria não contém dados de comissões e a função de fechamento recusa esse cargo no banco.
 
 Recebimentos e comissões são consultados no mesmo snapshot SQL; o mesmo vale para composição, ajustes e repasses de um fechamento. O resultado JSON evita a truncagem padrão de 1.000 linhas da API, com limite explícito de 5.000. Falhas de permissão ou consulta não são convertidas em totais zero.
+
+A função `filtered_activity_report_multi` combina as origens selecionadas no mesmo snapshot, reutilizando a consulta original com **SECURITY INVOKER**. O limite de 5.000 considera a soma dos registros selecionados. Repetir uma origem não duplica valores; os limites por cargo, advogada e escritório continuam sendo verificados no banco.
 
 PDFs são gerados sob demanda em Node.js, sem persistência pública. Downloads e erros usam `Cache-Control: private, no-store`, variam por Cookie e não expõem erros SQL internos. O botão apresenta erros e sessão expirada sem abrir uma página de falha genérica.
 

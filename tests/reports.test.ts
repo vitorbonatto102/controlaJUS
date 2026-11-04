@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PDFDocument } from "pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { operationalDocument, parseReportFilters, reportScope, ReportError, type OperationalReportRow } from "../src/lib/reports/model";
+import { operationalDocument, parseReportFilters, reportQuery, reportScope, ReportError, type OperationalReportRow } from "../src/lib/reports/model";
 import { renderReportPdf } from "../src/lib/reports/pdf";
 
 const id = "11111111-1111-4111-8111-111111111111", colleague = "22222222-2222-4222-8222-222222222222";
@@ -23,6 +23,21 @@ test("filtros validam datas brasileiras, calendário, repetições e escopo indi
   assert.throws(() => reportScope(profile, colleague), /próprios/);
   assert.equal(reportScope(profile).lawyerId, id);
   assert.equal(reportScope({ ...profile, role: "secretary" }).financial, false);
+});
+
+test("várias origens são preservadas na URL, paginação e descrição do relatório", () => {
+  const params = new URLSearchParams();
+  for (const origin of ["Tráfego HP", "Cliente próprio", "Tráfego HP"]) params.append("origem", origin);
+  const filters = parseReportFilters(params, "2026-11-03");
+  assert.deepEqual(filters.origins, ["Cliente próprio", "Tráfego HP"]);
+  const query = new URLSearchParams(reportQuery(filters));
+  assert.deepEqual(query.getAll("origem"), filters.origins);
+  assert.deepEqual(parseReportFilters(query, "2026-11-03"), filters);
+  const report = operationalDocument([row], filters, reportScope(profile), context);
+  assert.ok(report.filters.includes("Origens: Cliente próprio; Tráfego HP"));
+  assert.deepEqual(parseReportFilters(new URLSearchParams("origem="), "2026-11-03").origins, []);
+  assert.deepEqual(parseReportFilters(new URLSearchParams("origem=Cliente+próprio"), "2026-11-03").origins, ["Cliente próprio"]);
+  assert.throws(() => parseReportFilters(new URLSearchParams("origem=Cliente+próprio&origem=invalida"), "2026-11-03"), ReportError);
 });
 
 test("recebimentos usam comissões registradas, não estimativas, e o DTO da secretaria omite dados privados", () => {

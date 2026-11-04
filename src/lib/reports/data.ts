@@ -27,8 +27,13 @@ export async function reportLawyers(profile: CurrentProfile) {
 export async function loadOperationalReport(profile: CurrentProfile, filters: ReportFilters) {
   const scope = reportScope(profile, filters.lawyerId);
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("filtered_activity_report", { p_kind: filters.kind, p_from: filters.from, p_to: filters.to,
-    p_lawyer: scope.lawyerId, p_client: filters.client, p_cpf: filters.cpf, p_origin: filters.origin, p_service: filters.service, p_status: filters.status });
+  const args = { p_kind: filters.kind, p_from: filters.from, p_to: filters.to,
+    p_lawyer: scope.lawyerId, p_client: filters.client, p_cpf: filters.cpf, p_service: filters.service, p_status: filters.status };
+  const { data, error } = filters.origins.length > 1
+    ? await supabase.rpc("filtered_activity_report_multi", { ...args, p_origins: filters.origins })
+    : await supabase.rpc("filtered_activity_report", { ...args, p_origin: filters.origins[0] ?? "" });
+  if (error?.code === "PGRST202" && filters.origins.length > 1)
+    throw new ReportError("A seleção de várias origens aguarda a atualização do banco. Peça ao administrador para aplicar a migration de múltiplas origens nos relatórios.", 503);
   if (error) reportFailure(error);
   const payload = data as { rows: OperationalReportRow[]; as_of: string; issued_at: string; commissions?: { payment_id: string; amount: number }[] };
   if (!payload || !Array.isArray(payload.rows)) throw new ReportError("Relatório indisponível.", 503);
